@@ -29,6 +29,9 @@ export default function Component() {
           <Link href="#" className="text-sm font-medium hover:underline underline-offset-4" prefetch={false}>
             Contact
           </Link>
+          <Link href="/sign-on" className="text-sm font-medium bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors" prefetch={false}>
+            Go to app
+          </Link>
         </nav>
       </header>
       <main className="flex-1">

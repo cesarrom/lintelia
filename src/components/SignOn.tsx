@@ -7,7 +7,7 @@ export function SignOn() {
     <SignUpOrInFlow
       onSuccess={(e) => console.log('Logged in!')}
       onError={(e) => console.log('Could not logged in!')}
-      redirectAfterSuccess="/"
+      redirectAfterSuccess="/onboarding"
     />
   );
 }

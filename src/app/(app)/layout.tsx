@@ -86,7 +86,7 @@ export default function AppLayout({ children }: React.PropsWithChildren<unknown>
       <aside className="hidden w-64 flex-col border-r bg-background p-4 md:flex">
         <div className="mb-6 flex items-center gap-2">
           <Package2Icon className="h-6 w-6" />
-          <span className="text-lg font-semibold">Admin Dashboard</span>
+          <span className="text-lg font-semibold">Fintivio</span>
         </div>
         <nav className="flex flex-col gap-2">
           {menuItems}

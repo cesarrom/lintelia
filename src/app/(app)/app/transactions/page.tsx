@@ -28,7 +28,7 @@ export default function Transactions() {
         <div className="mb-4 grid gap-4 md:grid-cols-[auto_1fr]">
           <div className="flex flex-col gap-2">
             <span className="text-sm font-medium">Filter by:</span>
-            <Select placeholder="Status" className="max-w-[200px]" defaultValue="all">
+            <Select defaultValue="all">
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
@@ -36,7 +36,7 @@ export default function Transactions() {
                 <SelectItem value="rejected">Rejected</SelectItem>
               </SelectContent>
             </Select>
-            <Select placeholder="Type" className="max-w-[200px]" defaultValue="all">
+            <Select defaultValue="all">
               <SelectContent>
                 <SelectItem value="all">All</SelectItem>
                 <SelectItem value="deposit">Deposit</SelectItem>
@@ -95,7 +95,7 @@ export default function Transactions() {
                       <Button size="sm" variant="outline">
                         Review
                       </Button>
-                      <Button size="sm" variant="success">
+                      <Button size="sm" variant="default">
                         Approve
                       </Button>
                       <Button size="sm" variant="destructive">

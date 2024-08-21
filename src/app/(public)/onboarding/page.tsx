@@ -16,7 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1)
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<any>({
     tenantName: "",
     tenantDescription: "",
     bankName: "",
@@ -28,17 +28,17 @@ export default function OnboardingPage() {
     allowedPaymentMethods: [],
     feesAndLimits: {},
   })
-  const handleChange = (e) => {
+  const handleChange = (e: any) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
-  const handleCheckboxChange = (e) => {
+  const handleCheckboxChange = (e: any) => {
     const { value, checked } = e.target
     const allowedPaymentMethods = checked
       ? [...formData.allowedPaymentMethods, value]
-      : formData.allowedPaymentMethods.filter((method) => method !== value)
+      : formData.allowedPaymentMethods.filter((method: any) => method !== value)
     setFormData({ ...formData, allowedPaymentMethods })
   }
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: any) => {
     e.preventDefault()
     console.log(formData)
   }
@@ -163,7 +163,7 @@ export default function OnboardingPage() {
             <div className="grid gap-4 mb-6">
               <div className="grid gap-2">
                 <Label htmlFor="currency">Currency</Label>
-                <Select id="currency" name="currency" value={formData.currency} required onValueChange={handleChange}>
+                <Select name="currency" value={formData.currency} required onValueChange={handleChange}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select currency" />
                   </SelectTrigger>
