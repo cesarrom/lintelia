@@ -13,6 +13,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
+import { redirect } from "next/navigation"
+import Link from "next/link"
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(1)
@@ -37,10 +39,6 @@ export default function OnboardingPage() {
       ? [...formData.allowedPaymentMethods, value]
       : formData.allowedPaymentMethods.filter((method: any) => method !== value)
     setFormData({ ...formData, allowedPaymentMethods })
-  }
-  const handleSubmit = (e: any) => {
-    e.preventDefault()
-    console.log(formData)
   }
   const handleNextStep = () => {
     setStep(step + 1)
@@ -274,7 +272,9 @@ export default function OnboardingPage() {
               <Button variant="outline" onClick={handlePrevStep}>
                 Previous
               </Button>
-              <Button onClick={handleSubmit}>Submit</Button>
+              <Link href="/app/dashboard">
+                <Button>Submit</Button>
+              </Link>
             </div>
           </div>
         )}
