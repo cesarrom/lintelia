@@ -4,7 +4,7 @@ import './globals.css'
 import { Inter } from 'next/font/google'
 import { cn } from '@/lib/utils'
 import { AuthProvider } from '@descope/nextjs-sdk'
-import { env } from '@/lib/constants'
+import { env } from '@fintivio-sst/core/constants'
 
 const fontHeading = Inter({
   subsets: ['latin'],

@@ -8,9 +8,9 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/component
 import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuItem } from "@/components/ui/dropdown-menu"
-import { Package2Icon, HomeIcon, FileTextIcon, ChevronRightIcon, DollarSignIcon, MenuIcon, UserPlusIcon, MessageCircleIcon, MoveHorizontalIcon } from "@/components/CustomIcons"
 import React from "react"
 import { Notifications } from "@/components/Notifications"
+import { ChevronRightIcon, DollarSignIcon, FileTextIcon, HomeIcon, MenuIcon, Package2Icon, UserIcon, FoldersIcon } from "lucide-react"
 
 export default function AppLayout({ children }: React.PropsWithChildren<unknown>) {
   const menuItems = React.useMemo(() => [
@@ -21,7 +21,7 @@ export default function AppLayout({ children }: React.PropsWithChildren<unknown>
     },
     {
       label: "Applications",
-      icon: <FileTextIcon className="h-5 w-5" />,
+      icon: <FoldersIcon className="h-5 w-5" />,
       children: [
         {
           label: "Forms",
@@ -30,7 +30,7 @@ export default function AppLayout({ children }: React.PropsWithChildren<unknown>
         },
         {
           label: "Review",
-          icon: <FileTextIcon className="h-5 w-5" />,
+          icon: <UserIcon className="h-5 w-5" />,
           href: "/app/applications/reviews",
         }
       ]

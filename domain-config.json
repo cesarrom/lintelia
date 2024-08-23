@@ -1,0 +1,26 @@
+{
+  "nameServers": {
+    "google": [
+      "ns-cloud-a1.googledomains.com",
+      "ns-cloud-a2.googledomains.com",
+      "ns-cloud-a3.googledomains.com",
+      "ns-cloud-a4.googledomains.com"
+    ],
+    "aws": [
+      "ns-167.awsdns-20.com",
+      "ns-592.awsdns-10.net",
+      "ns-1179.awsdns-19.org",
+      "ns-1893.awsdns-44.co.uk"
+    ]
+  },
+  "TXT": {
+    "google._domainkey": "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwCOuEC1l8gaWcrLY5PISvLsVPit8QDCL8KL6Eyp7N7ZxnbS6LGfgDIEGVuV79LdGMLewsThQVCvyup/4w5R6OEt6dT5mdMSnYvsyN5kPtpnDmEtIH0EaTE/vuhCEIWpToUyWK0BL70SDpqHXxih62UvsSrqI9FA7QjHv2EA9iU9OXIkBoCIblUgQ6QzLuOd7VoebZvHhcgb2fRzwTWoduHzzw18lF6XKW+Mpkn6lIWpEXpaXIT9Buo6IOlrWf0GZAPMHTYfGVufFHF6VjLhXsR+g6RIFTz6hWrPo4/jYfBLqkBnrP640SiM8rQ9hSFUjkGU3tGfwoCA60DP2a4vqSwIDAQAB",
+    "@": "v=spf1 include:_spf.google.com ~all"
+  },
+  "MX": {
+    "@": {
+      "priority": 1,
+      "value": "smtp.google.com"
+    }
+  }
+}
