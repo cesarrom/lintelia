@@ -3,10 +3,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "sst bind next dev",
-    "build": "sst bind next build",
-    "start": "sst bind next start",
-    "lint": "sst bind next lint"
+    "dev": "sst shell next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
     "@aws-sdk/client-rds-data": "^3.635.0",
@@ -37,7 +37,7 @@
     "@types/node": "^22.5.0",
     "@types/aws-lambda": "^8.10.143",
     "vitest": "^2.0.5",
-    "sst": "^2.43.4",
+    "sst": "3.0.66",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "postcss": "^8",

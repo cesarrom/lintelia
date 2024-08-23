@@ -4,6 +4,7 @@
     "module": "esnext",
     "moduleResolution": "node",
     "baseUrl": ".",
+    "types": ["./sst-env.d.ts"],
     "paths": {
       "@fintivio-sst/core/*": ["../core/src/*"]
     }

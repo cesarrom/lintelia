@@ -4,25 +4,27 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "export AWS_ACCESS_KEY= && export AWS_SECRET_ACCESS_KEY= && export AWS_PROFILE=fintivio && export AWS_REGION=us-east-1 && sst dev",
     "build": "export AWS_ACCESS_KEY= && export AWS_SECRET_ACCESS_KEY= && export AWS_PROFILE=fintivio && export AWS_REGION=us-east-1 && sst build",
-    "deploy": "export AWS_ACCESS_KEY= && export AWS_SECRET_ACCESS_KEY= && export AWS_PROFILE=fintivio && export AWS_REGION=us-east-1 && sst deploy",
-    "remove": "export AWS_ACCESS_KEY= && export AWS_SECRET_ACCESS_KEY= && export AWS_PROFILE=fintivio && export AWS_REGION=us-east-1 && sst remove",
     "console": "export AWS_ACCESS_KEY= && export AWS_SECRET_ACCESS_KEY= && export AWS_PROFILE=fintivio && export AWS_REGION=us-east-1 && sst console",
-    "typecheck": "tsc --noEmit",
-    "domain:start": "ngrok http --domain=normal-spider-genuine.ngrok-free.app"
+    "deploy": "export AWS_ACCESS_KEY= && export AWS_SECRET_ACCESS_KEY= && export AWS_PROFILE=fintivio && export AWS_REGION=us-east-1 && sst deploy",
+    "dev": "export AWS_ACCESS_KEY= && export AWS_SECRET_ACCESS_KEY= && export AWS_PROFILE=fintivio && export AWS_REGION=us-east-1 && sst dev",
+    "domain:start": "ngrok http --domain=normal-spider-genuine.ngrok-free.app",
+    "remove": "export AWS_ACCESS_KEY= && export AWS_SECRET_ACCESS_KEY= && export AWS_PROFILE=fintivio && export AWS_REGION=us-east-1 && sst remove",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@tsconfig/node18": "^18.2.4",
+    "@types/aws-lambda": "8.10.143",
     "aws-cdk-lib": "2.142.1",
     "constructs": "10.3.0",
-    "sst": "^2.43.4",
+    "sst": "3.0.66",
     "typescript": "^5.5.4"
   },
   "workspaces": [
     "packages/*"
   ],
   "dependencies": {
-    "@types/node": "^22.5.0"
+    "@types/node": "^22.5.0",
+    "sst": "3.0.68"
   }
 }
