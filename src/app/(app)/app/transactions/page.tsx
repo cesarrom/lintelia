@@ -1,8 +1,4 @@
-/**
- * v0 by Vercel.
- * @see https://v0.dev/t/lkvu9xbbHjq
- * Documentation: https://v0.dev/docs#integrating-generated-code-into-your-nextjs-app
- */
+"use client";
 import Link from "next/link"
 import { Select, SelectContent, SelectItem } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -11,18 +7,29 @@ import { Button } from "@/components/ui/button"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { ListOrderedIcon } from "lucide-react"
+import React from "react"
 
 export default function Transactions() {
-  const isAdmin = false
+  const [isAdmin, setIsAdmin] = React.useState(false);
+  const transactions = React.useMemo(() => [
+  ], []);
   return (
     <section className="container px-4 mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">Transactions</h2>
-        {!isAdmin && (
-          <Link href="#" className="btn btn-primary" prefetch={false}>
-            New Transaction
-          </Link>
-        )}
+        <div>
+          {!isAdmin && (
+            <Link href="/app/transactions/new" className="btn btn-primary" prefetch={false}>
+              New Transaction
+            </Link>
+          )}
+          <Button variant={isAdmin ? "outline" : "default"} onClick={() => setIsAdmin(false)}>
+            Client View
+          </Button>
+          <Button variant={isAdmin ? "default" : "outline"} onClick={() => setIsAdmin(true)}>
+            Admin View
+          </Button>
+        </div>
       </div>
       {isAdmin && (
         <div className="mb-4 grid gap-4 md:grid-cols-[auto_1fr]">
@@ -89,21 +96,29 @@ export default function Transactions() {
                 <TableCell>
                   <Badge variant="secondary">Pending</Badge>
                 </TableCell>
-                {isAdmin && (
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button size="sm" variant="outline">
-                        Review
-                      </Button>
-                      <Button size="sm" variant="default">
-                        Approve
-                      </Button>
-                      <Button size="sm" variant="destructive">
-                        Reject
-                      </Button>
-                    </div>
-                  </TableCell>
-                )}
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    {isAdmin ?
+                      <>
+                        <Link href="/app/transactions/1">
+                          <Button size="sm" variant="outline">
+                            Review
+                          </Button>
+                        </Link>
+                        <Button size="sm" variant="default">
+                          Approve
+                        </Button>
+                        <Button size="sm" variant="destructive">
+                          Reject
+                        </Button>
+                      </> :
+                      <Link href="/app/transactions/1">
+                        <Button size="sm" variant="outline">
+                          View
+                        </Button>
+                      </Link>}
+                  </div>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
