@@ -1,5 +1,5 @@
 {
-  "extends": "@tsconfig/node18/tsconfig.json",
+  "extends": "../../tsconfig.json",
   "compilerOptions": {
     "lib": [
       "dom",
@@ -8,7 +8,8 @@
     ],
     "allowJs": true,
     "skipLibCheck": true,
-    "strict": true,
+    "strict": false,
+    "alwaysStrict": false,
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
@@ -17,7 +18,6 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-    "types": ["./sst-env.d.ts"],
     "plugins": [
       {
         "name": "next"
@@ -25,12 +25,10 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@fintivio-sst/core/*": [
-        "../core/src/*"
-      ],
       "@/*": [
         "./src/*"
-      ]
+      ],
+      "@fintivio-sst/core/*": ["../core/src/*"]
     }
   },
   "include": [

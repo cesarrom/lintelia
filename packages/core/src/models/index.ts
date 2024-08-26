@@ -1,1 +1,2 @@
-export * from "./tables.sql";
+export * from "./tenants.sql";
+export * from "./platform.sql";

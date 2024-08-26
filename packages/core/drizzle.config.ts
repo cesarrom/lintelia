@@ -5,9 +5,9 @@ export default defineConfig({
   driver: "aws-data-api",
   dialect: "postgresql",
   dbCredentials: {
-    database: Resource.Postgres.databaseName,
-    secretArn: Resource.Postgres.secretArn,
-    resourceArn: Resource.Postgres.clusterArn,
+    database: Resource.Database.database,
+    secretArn: Resource.Database.secretArn,
+    resourceArn: Resource.Database.clusterArn,
   },
   // Pick up all our schema files
   schema: ["./src/**/*.sql.ts"],

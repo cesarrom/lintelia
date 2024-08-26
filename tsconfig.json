@@ -1,1 +1,48 @@
-{}
+{
+  "extends": "@tsconfig/node18/tsconfig.json",
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "types": [
+      "./sst-env.d.ts"
+    ],
+    "typeRoots": [
+      "./sst-env.d.ts",
+      "node_modules/@types"
+    ],
+    "sourceMap": true,
+    "strict": false,
+    "alwaysStrict": false,
+    "declaration": false,
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "es2015",
+    "module": "esnext",
+    "lib": [
+      "es2019",
+      "dom"
+    ],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "@fintivio-sst/core/*": [
+        "./packages/core/src/*"
+      ],
+      "@/*": [
+        "./packages/web/src/*"
+      ]
+    }
+  },
+  "include": [
+    "./sst-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "tmp"
+  ]
+}

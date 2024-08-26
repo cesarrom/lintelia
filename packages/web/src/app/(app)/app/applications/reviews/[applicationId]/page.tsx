@@ -21,7 +21,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ComingSoonCard } from "@/components/ComingSoonCard"
 
 export default function ApplicationReviewPage() {
   const additionalInfoRequests = [
@@ -57,7 +56,6 @@ export default function ApplicationReviewPage() {
   return (
     <div className="w-full max-w-5xl mx-auto p-6 md:p-8 lg:p-10">
       <div className="grid gap-8">
-        <ComingSoonCard id="application-details_client-information">
           <Card>
             <CardHeader>
               <CardTitle>Client Information</CardTitle>
@@ -87,8 +85,6 @@ export default function ApplicationReviewPage() {
               </div>
             </CardContent>
           </Card>
-        </ComingSoonCard>
-        <ComingSoonCard id="application-details_risk-assessment">
           <Card>
             <CardHeader>
               <CardTitle>Risk Assessment</CardTitle>
@@ -118,8 +114,6 @@ export default function ApplicationReviewPage() {
               </div>
             </CardContent>
           </Card>
-        </ComingSoonCard>
-        <ComingSoonCard id="application-details_identity-verification">
           <Card>
             <CardHeader>
               <CardTitle>Identity Verification</CardTitle>
@@ -155,8 +149,6 @@ export default function ApplicationReviewPage() {
               </div>
             </CardContent>
           </Card>
-        </ComingSoonCard>
-        <ComingSoonCard id="application-details_document-review">
           <Card>
             <CardHeader>
               <CardTitle>Document Review</CardTitle>
@@ -192,8 +184,6 @@ export default function ApplicationReviewPage() {
               </div>
             </CardContent>
           </Card>
-        </ComingSoonCard>
-        <ComingSoonCard id="application-details_additional-information-requests">
           <Card>
             <CardHeader>
               <CardTitle>Additional Information Requests</CardTitle>
@@ -274,7 +264,6 @@ export default function ApplicationReviewPage() {
               </div>
             </CardContent>
           </Card>
-        </ComingSoonCard>
       </div>
     </div>
   )
