@@ -4,6 +4,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": ".",
+    "types": ["node"],
     "typeRoots": [
       "packages",
       "node_modules/@types"
