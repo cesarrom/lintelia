@@ -2,12 +2,10 @@
   "extends": "@tsconfig/node18/tsconfig.json",
   "compileOnSave": false,
   "compilerOptions": {
+    "baseUrl": ".",
     "rootDir": ".",
-    "types": [
-      "./sst-env.d.ts"
-    ],
     "typeRoots": [
-      "./sst-env.d.ts",
+      "packages",
       "node_modules/@types"
     ],
     "sourceMap": true,
@@ -28,19 +26,15 @@
     "skipDefaultLibCheck": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-    "baseUrl": ".",
     "paths": {
       "@fintivio-sst/core/*": [
-        "./packages/core/src/*"
+        "packages/core/src/*"
       ],
       "@/*": [
-        "./packages/web/src/*"
+        "packages/web/src/*"
       ]
     }
   },
-  "include": [
-    "./sst-env.d.ts"
-  ],
   "exclude": [
     "node_modules",
     "tmp"

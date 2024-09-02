@@ -40,7 +40,7 @@ export class TenantsService {
     return await this.db.select().from(tenants).where(eq(tenants.domain, domain)).limit(1).then((res) => res[0] || null);
   }
 
-  async update(domain: number, data: Omit<Partial<typeof tenants.$inferInsert>, 'domain' | 'databaseId' | 'databaseName' | 'databaseUrl' | 'databaseAuthToken'>) {
+  async update(domain: string, data: Omit<Partial<typeof tenants.$inferInsert>, 'domain' | 'databaseId' | 'databaseName' | 'databaseUrl' | 'databaseAuthToken'>) {
     return await this.db.update(tenants).set(data).where(eq(tenants.domain, domain)).returning();
   }
 

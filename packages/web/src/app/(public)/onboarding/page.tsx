@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import React from "react"
+import Link from "next/link"
 
 export default function TenantOnboardingPage() {
   return (
@@ -135,9 +136,11 @@ export default function TenantOnboardingPage() {
           </CardContent>
         </Card> */}
         <div className="flex justify-end">
-          <Button type="submit" className="w-full sm:w-auto">
-            Save Settings
-          </Button>
+          <Link href="/app/dashboard">
+            <Button type="submit" className="w-full sm:w-auto">
+              Save Settings
+            </Button>
+          </Link>
         </div>
       </div>
     </div>
