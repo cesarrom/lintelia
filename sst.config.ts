@@ -16,7 +16,6 @@ export default $config({
     const vpc = new sst.aws.Vpc("Vpc");
     const database = new sst.aws.Postgres("Database", { vpc });
     const bucket = new sst.aws.Bucket("Bucket");
-
     const next = new sst.aws.Nextjs("Next", {
       link: [database, bucket],
       path: './packages/web',
