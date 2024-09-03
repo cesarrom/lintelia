@@ -12,6 +12,7 @@ export default $config({
   async run() {
     const baseDomain = "fintivio.org";
     const domain = `${$app.stage || 'development'}.${baseDomain}`;
+
     const vpc = new sst.aws.Vpc("Vpc");
     const database = new sst.aws.Postgres("Database", { vpc });
     const bucket = new sst.aws.Bucket("Bucket");
