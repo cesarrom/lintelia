@@ -4,8 +4,10 @@
     "baseUrl": ".",
     "module": "esnext",
     "moduleResolution": "node",
+    "typeRoots": ["sst-env.d.ts"],
     "paths": {
       "@fintivio-sst/core/*": ["../core/src/*"]
     }
-  }
+  },
+  "include": ["src/**/*"]
 }

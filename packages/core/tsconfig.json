@@ -3,7 +3,8 @@
   "compilerOptions": {
     "baseUrl": ".",
     "module": "esnext",
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "typeRoots": ["sst-env.d.ts"],
   },
   "include": ["src/**/*"]
 }
