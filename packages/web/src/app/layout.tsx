@@ -5,6 +5,9 @@ import { Inter } from 'next/font/google'
 import { cn } from '@/lib/utils'
 import { AuthProvider } from '@descope/nextjs-sdk'
 import { env } from '@fintivio-sst/core/constants'
+import { SessionProvider } from '@/providers/session.provider'
+import { headers } from 'next/headers';
+import { getTenant } from '@/actions/tenants/getTenant'
 
 const fontHeading = Inter({
   subsets: ['latin'],
@@ -18,22 +21,37 @@ const fontBody = Inter({
   variable: '--font-body',
 })
 
-export default function Layout({ children }: Readonly<{
+export default async function Layout({ children }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = headers();
+  // {tenant}.{env?}.fintivio.org/...
+  const headerUrl = headersList.get('x-url') || "";
+
+  const tenantName = headerUrl.split(".")[0];
+  const tenant = await getTenant(tenantName);
+
   return (
     <AuthProvider projectId={env.DESCOPE_PROJECT_ID}>
-      <html lang="en">
-        <body
-          className={cn(
-            'antialiased',
-            fontHeading.variable,
-            fontBody.variable
-          )}
-        >
-          {children}
-        </body>
-      </html>
+      <SessionProvider
+        session={{
+          isAuthenticated: false,
+          user: null,
+          tenant,
+        }}
+      >
+        <html lang="en">
+          <body
+            className={cn(
+              'antialiased',
+              fontHeading.variable,
+              fontBody.variable
+            )}
+          >
+            {children}
+          </body>
+        </html>
+      </SessionProvider>
     </AuthProvider>
   )
 }

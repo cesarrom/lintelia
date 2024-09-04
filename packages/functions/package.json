@@ -10,6 +10,7 @@
     "@types/node": "^22.5.0",
     "@types/aws-lambda": "^8.10.143",
     "vitest": "^2.0.5",
+    "tslib": "^2.7.0",
     "sst": "3.0.66"
   }
 }
