@@ -2,19 +2,31 @@
   "name": "@fintivio-sst/core",
   "version": "0.0.0",
   "type": "module",
+  "exports": {
+    "./*": [
+      "./src/*/index.ts",
+      "./src/*.ts"
+    ]
+  },
   "scripts": {
     "test": "sst shell vitest",
+    "build": "tsc",
     "typecheck": "tsc -noEmit",
-    "db": "sst shell drizzle-kit",
-    "db:studio": "sst shell drizzle-kit studio",
-    "db:migrate": "sst shell drizzle-kit migrate",
-    "db:generate-custom": "sst shell drizzle-kit generate --custom",
-    "db:generate": "sst shell drizzle-kit generate"
+    "db": "sst shell --stage=$STAGE -- drizzle-kit",
+    "db:studio:pg": "pnpm run db studio --config=./drizzle.config.postgres.ts",
+    "db:studio:sqlite": "pnpm run db studio --config=./drizzle.config.sqlite.ts",
+    "db:migrate:pg": "pnpm run db migrate --config=./drizzle.config.postgres.ts",
+    "db:migrate:sqlite": "pnpm run db migrate --config=./drizzle.config.sqlite.ts",
+    "db:generate-custom": "pnpm run db generate --custom",
+    "db:generate:pg": "pnpm run db generate --config=./drizzle.config.postgres.ts",
+    "db:generate:sqlite": "pnpm run db generate --config=./drizzle.config.sqlite.ts"
   },
   "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
     "@types/node": "^22.5.0",
-    "sst": "3.0.66",
+    "sst": "3.0.108",
     "tslib": "^2.7.0",
+    "typescript": "^5.5.4",
     "vitest": "^2.0.5"
   },
   "dependencies": {
@@ -24,10 +36,14 @@
     "@descope/node-sdk": "^1.6.9",
     "@libsql/client": "^0.9.0",
     "@tursodatabase/api": "^1.8.1",
+    "aws-sdk": "^2.1691.0",
+    "axios": "^1.7.7",
+    "bcrypt": "^5.1.1",
     "dotenv": "^16.4.5",
     "drizzle-kit": "^0.24.1",
     "drizzle-orm": "^0.33.0",
     "env-var": "^7.5.0",
+    "ts-injection": "^3.2.0",
     "zod": "^3.23.8"
   }
 }

@@ -1,8 +1,14 @@
 import { eq } from "drizzle-orm";
-import { PlatformDB, forms } from "../models/platform.sql";
+import { forms } from "../models/platform.sql";
+import { type PlatformDB } from "./tenants.service";
+import { PLATFORM_DB_TOKEN } from "../libs/injector/tokens";
+import { Autowire, Injectable } from "ts-injection";
 
+@Injectable()
 export class FormsService {
-  constructor(private readonly db: PlatformDB) { }
+
+  @Autowire(PLATFORM_DB_TOKEN)
+  private db: PlatformDB
 
   async createForm(formData: typeof forms.$inferInsert) {
     return await this.db.insert(forms).values(formData).returning();

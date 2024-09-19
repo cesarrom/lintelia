@@ -1,0 +1,1 @@
+ALTER TABLE "tenants" ADD COLUMN "country" varchar(255) NOT NULL;

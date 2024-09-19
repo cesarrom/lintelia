@@ -1,8 +1,13 @@
 import { eq } from "drizzle-orm";
-import { PlatformDB, files } from "../models/platform.sql";
+import { files } from "../models/platform.sql";
+import { type PlatformDB } from "./tenants.service";
+import { PLATFORM_DB_TOKEN } from "../libs/injector/tokens";
+import { Autowire, Injectable } from "ts-injection";
 
+@Injectable()
 export class FilesService {
-  constructor(private readonly db: PlatformDB) { }
+  @Autowire(PLATFORM_DB_TOKEN)
+  private db: PlatformDB
 
   async createFile(fileData: typeof files.$inferInsert) {
     return await this.db.insert(files).values(fileData).returning();

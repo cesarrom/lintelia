@@ -30,7 +30,9 @@
         "./src/*"
       ],
       "@fintivio-sst/core/*": ["../core/src/*"]
-    }
+    },
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
   "include": [
     "next-env.d.ts",

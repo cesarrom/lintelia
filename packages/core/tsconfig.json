@@ -2,9 +2,15 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "module": "esnext",
+    "module": "CommonJS",
     "moduleResolution": "node",
     "typeRoots": ["sst-env.d.ts"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "skipDefaultLibCheck": true,
+    "skipLibCheck": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
   "include": ["src/**/*"]
 }

@@ -1,8 +1,13 @@
 import { eq } from "drizzle-orm";
-import { PlatformDB, reviews } from "../models/platform.sql";
+import { reviews } from "../models/platform.sql";
+import { type PlatformDB } from "./tenants.service";
+import { PLATFORM_DB_TOKEN } from "../libs/injector/tokens";
+import { Autowire, Injectable } from "ts-injection";
 
+@Injectable()
 export class ReviewsService {
-  constructor(private readonly db: PlatformDB) { }
+  @Autowire(PLATFORM_DB_TOKEN)
+  private db: PlatformDB;
 
   async createReview(reviewData: typeof reviews.$inferInsert) {
     return await this.db.insert(reviews).values(reviewData).returning();

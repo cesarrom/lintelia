@@ -10,6 +10,6 @@ export default defineConfig({
     resourceArn: Resource.Database.clusterArn,
   },
   // Pick up all our schema files
-  schema: ["./src/**/*.sql.ts"],
-  out: "./migrations",
+  schema: ["./src/models/tenants.sql.ts"],
+  out: "./drizzle-postgres",
 });

@@ -1,34 +1,41 @@
 import { from } from 'env-var';
-import * as dotenv from 'dotenv';
+import { Resource as R } from 'sst';
 
-const noop = () => {};
+const noop = () => { };
 
-const config = (dir: string) => {
-  dotenv.config({
-    path: `${dir}/${process.env.NODE_ENV || ''}.env`,
-  });
-};
-export const ACCESS_SHORT_ID_LENGTH = 8;
+const Resource = new Proxy(R, {
+  get: (target, prop) => {
+    try {
+      return target[prop];
+    } catch (error) {
+      return new Proxy({}, {
+        get() {
+          return '-'
+        }
+      });
+    }
+  }
 
-const getHookStrings = (hook: string, entityName: string) => ({
-  DELETE: `${hook}(${entityName}.delete)`,
-  UPDATE: `${hook}(${entityName}.update)`,
-  CREATE: `${hook}(${entityName}.create)`,
-});
+}) as any;
 
-export const EVENTS = {
-  PROJECTS: {
-    BEFORE: getHookStrings('before', 'projects'),
-    AFTER: getHookStrings('after', 'projects'),
-  },
-};
-
-process.env.MANUAL_CONFIGURATION !== 'true' && config(`${process.env.PWD}`);
 const e = from(process.env, {}, noop);
 
 export const env = {
   PORT: e.get('PORT').default('3000').asIntPositive(),
-  HOST: e.get('HOST').default('http://localhost:3000').asString(),
-  DATABASE_URL: e.get('DATABASE_URL').required().asString(),
-  DESCOPE_PROJECT_ID: e.get('DESCOPE_PROJECT_ID').required().asString(),
+  HOST: e.get('HOST').default(Resource.Parameters.host).asString(),
+  AWS_KEY: e.get('AWS_KEY').default(Resource.Parameters.awsKey).required().asString(),
+  AWS_SECRET: e.get('AWS_SECRET').default(Resource.Parameters.awsSecret).required().asString(),
+  AWS_REGION: e.get('AWS_REGION').default(Resource.Parameters.awsRegion).required().asString(),
+  DESCOPE_PROJECT_ID: e.get('DESCOPE_PROJECT_ID').default(Resource.Parameters.descopeProjectId).required().asString(),
+  AWS_HOSTED_ZONE_ID: e.get('AWS_HOSTED_ZONE_ID').default(Resource.Parameters.awsHostedZoneId).required().asString(),
+  BASE_DOMAIN: e.get('BASE_DOMAIN').default(Resource.Parameters.baseDomain).required().asString(),
+  DOMAIN: e.get('DOMAIN').default(Resource.Parameters.domain).required().asString(),
+  DATABASE_NAME: e.get('DATABASE_NAME').default(Resource.Parameters.databaseName).required().asString(),
+  DATABASE_ID: e.get('DATABASE_ID').default(Resource.Parameters.databaseId).required().asString(),
+  DATABASE_URL: e.get('DATABASE_URL').default(Resource.Parameters.databaseUrl).required().asString(),
+  DATABASE_AUTH_TOKEN: e.get('DATABASE_AUTH_TOKEN').default(Resource.Parameters.databaseAuthToken).required().asString(),
+  DATABASE_GROUP_NAME: e.get('DATABASE_GROUP_NAME').default('fintivio-platform').required().asString(),
+  ONFIDO_TOKEN: e.get('ONFIDO_TOKEN').default(Resource.Parameters.onfidoToken).required().asString(),
+  ONFIDO_WORKFLOW_ID: e.get('ONFIDO_WORKFLOW_ID').default(Resource.Parameters.onfidoWorkflowId).required().asString(),
+  AWS_CERTIFICATE_ARN: e.get('AWS_CERTIFICATE_ARN').default(Resource.Parameters.awsCertificateArn).required().asString(),
 };

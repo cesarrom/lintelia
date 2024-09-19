@@ -1,3 +1,5 @@
+
+"use client"
 /**
  * v0 by Vercel.
  * @see https://v0.dev/t/hfdp4kiIKbm
@@ -9,8 +11,13 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { DollarSignIcon, FileTextIcon, MessageCircleIcon, MoveHorizontalIcon, UserIcon, UserPlusIcon } from "lucide-react"
+import { useSession } from "@/providers/session/session.provider"
 
 export default function Dashboard() {
+  const session = useSession();
+
+  console.log(session);
+
   return (
     <div className="grid gap-6">
       <Card>

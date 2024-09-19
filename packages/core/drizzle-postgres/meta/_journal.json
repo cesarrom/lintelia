@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1725557651068,
+      "tag": "0000_right_korg",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1725981322854,
+      "tag": "0001_smooth_vindicator",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1725985831930,
+      "tag": "0002_demonic_proemial_gods",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1726594475174,
+      "tag": "0003_flaky_talos",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1726594767393,
+      "tag": "0004_opposite_micromacro",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1726687130700,
+      "tag": "0005_faulty_abomination",
+      "breakpoints": true
+    }
+  ]
+}

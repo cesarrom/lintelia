@@ -4,3 +4,6 @@ export * from "./forms.service";
 export * from "./reviews.service";
 export * from "./tenants.service";
 export * from "./users.service";
+export * from "./environments.service";
+export * from "./domains.service";
+export * from "./kyc.service";

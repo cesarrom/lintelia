@@ -1,13 +1,12 @@
-// This is the root layout component for your Next.js app.
-// Learn more: https://nextjs.org/docs/app/building-your-application/routing/pages-and-layouts#root-layout-required
 import './globals.css'
 import { Inter } from 'next/font/google'
 import { cn } from '@/lib/utils'
 import { AuthProvider } from '@descope/nextjs-sdk'
 import { env } from '@fintivio-sst/core/constants'
-import { SessionProvider } from '@/providers/session.provider'
-import { headers } from 'next/headers';
-import { getTenant } from '@/actions/tenants/getTenant'
+import { SessionFetcher } from '@/providers/session/session-fetcher'
+import { v4 as uuid } from 'uuid';
+import { getSession } from '@/actions/session/getSession'
+import { SessionProvider } from '@/providers/session/session.provider'
 
 const fontHeading = Inter({
   subsets: ['latin'],
@@ -24,22 +23,10 @@ const fontBody = Inter({
 export default async function Layout({ children }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const headersList = headers();
-  // {tenant}.{env?}.fintivio.org/...
-  const headerUrl = headersList.get('x-url') || "";
-
-  const tenantName = headerUrl.split(".")[0];
-  const tenant = await getTenant(tenantName);
-
+  const s = await getSession();
   return (
     <AuthProvider projectId={env.DESCOPE_PROJECT_ID}>
-      <SessionProvider
-        session={{
-          isAuthenticated: false,
-          user: null,
-          tenant,
-        }}
-      >
+      <SessionProvider session={s}>
         <html lang="en">
           <body
             className={cn(

@@ -1,18 +1,9 @@
-import { type GetTenant } from '@/actions/tenants/getTenant';
+"use client"
+import { AppSession } from '@/actions/session/getSession';
 import React, { createContext, useContext } from 'react';
 
-interface Session {
-  tenant: GetTenant | null
-  user: {
-    id: string;
-    name: string;
-    email: string;
-  } | null;
-  isAuthenticated: boolean;
-}
-
 interface SessionContextType {
-  session: Session;
+  session: AppSession;
 }
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
@@ -25,8 +16,7 @@ export const useSession = () => {
   return context;
 };
 
-export const SessionProvider: React.FC<React.PropsWithChildren<{ session: Session }>> = ({ children, session }) => {
-
+export const SessionProvider: React.FC<React.PropsWithChildren<SessionContextType>> = ({ children, session }) => {
   return (
     <SessionContext.Provider value={{ session }}>
       {children}
