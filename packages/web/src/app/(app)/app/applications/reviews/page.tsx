@@ -1,3 +1,4 @@
+'use server';
 /**
  * v0 by Vercel.
  * @see https://v0.dev/t/rrnVQvqLLKu
@@ -11,31 +12,26 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { CheckIcon, EyeIcon, FileIcon, FilterIcon, ListOrderedIcon, MoveVerticalIcon, PlusIcon, XIcon } from "lucide-react"
 import React from "react"
+import { getAllApplications } from "@/actions/applications"
+import { getTenant } from "@/actions/tenants";
 
-export default function ApplicationsReviews() {
-  const applicants = React.useMemo(() => [
-    {
-      id: 1,
-      name: 'John Doe',
-      status: 'Pending',
-      risk: 'High',
-      documents: ['ID', 'Proof of Income'],
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      status: 'Approved',
-      risk: 'Medium',
-      documents: ['ID', 'Proof of Income', 'Proof of Address'],
-    },
-    {
-      id: 3,
-      name: 'Bob Johnson',
-      status: 'Rejected',
-      risk: 'Low',
-      documents: ['ID', 'Proof of Income', 'Proof of Address'],
-    }
-  ], []);
+export default async function ApplicationsReviews() {
+  const tenant = await getTenant();
+  const applicantsResponse = await getAllApplications(tenant.domain, 'user');
+  console.log(applicantsResponse);
+  const applicants = await Promise.all(
+    applicantsResponse.map(
+      applicant => ({
+        id: applicant.application.id,
+        name: applicant.user.name,
+        status: applicant.application.status,
+        documents: ['ID', 'Selfie'],
+        risk: JSON.parse(applicant.application.data)?.risk,
+      })
+    )
+  );
+
+  console.log(applicants);
 
   return (
     <div className="flex-1 bg-background p-6">

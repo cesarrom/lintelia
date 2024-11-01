@@ -19,11 +19,14 @@
     "db:migrate:sqlite": "pnpm run db migrate --config=./drizzle.config.sqlite.ts",
     "db:generate-custom": "pnpm run db generate --custom",
     "db:generate:pg": "pnpm run db generate --config=./drizzle.config.postgres.ts",
-    "db:generate:sqlite": "pnpm run db generate --config=./drizzle.config.sqlite.ts"
+    "db:generate:sqlite": "pnpm run db generate --config=./drizzle.config.sqlite.ts",
+    "db:migrate-all:sqlite": "sst shell --stage=$STAGE -- tsx ./migrate-all-sqlite.ts"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",
     "@types/node": "^22.5.0",
+    "@types/node-fetch": "2.6.11",
+    "@types/nodemailer": "^6.4.16",
     "sst": "3.0.108",
     "tslib": "^2.7.0",
     "typescript": "^5.5.4",
@@ -34,16 +37,24 @@
     "@aws-sdk/client-s3": "^3.637.0",
     "@aws-sdk/s3-request-presigner": "^3.637.0",
     "@descope/node-sdk": "^1.6.9",
+    "@hbtgmbh/dmn-eval-js": "^1.5.0",
     "@libsql/client": "^0.9.0",
     "@tursodatabase/api": "^1.8.1",
     "aws-sdk": "^2.1691.0",
     "axios": "^1.7.7",
     "bcrypt": "^5.1.1",
+    "cheerio": "^1.0.0",
     "dotenv": "^16.4.5",
     "drizzle-kit": "^0.24.1",
     "drizzle-orm": "^0.33.0",
     "env-var": "^7.5.0",
+    "form-data": "^4.0.0",
+    "mailgun.js": "^10.2.3",
+    "node-fetch": "2.7.0",
+    "nodemailer": "^6.9.15",
     "ts-injection": "^3.2.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.19.1",
     "zod": "^3.23.8"
   }
 }

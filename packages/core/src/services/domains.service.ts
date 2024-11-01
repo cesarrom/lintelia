@@ -97,6 +97,9 @@ export class DomainsService {
   }
 
   async addAlias(newAlias: string) {
+    if (!this.distributionId) {
+      return;
+    }
     try {
       const { DistributionConfig, ETag } = await this.getDistributionConfig();
 
@@ -115,6 +118,9 @@ export class DomainsService {
   }
 
   async removeAlias(aliasToRemove: string) {
+    if (!this.distributionId) {
+      return;
+    }
     try {
       const { DistributionConfig, ETag } = await this.getDistributionConfig();
 
@@ -164,12 +170,11 @@ export class DomainsService {
     }
 
     try {
-      await this.route53.changeResourceRecordSets(params).promise()
-
       if (isAlias) {
         await this.addAlias(`${subdomain}.${target}`);
       }
 
+      await this.route53.changeResourceRecordSets(params).promise().catch(e => console.error(e));
       console.log(`Subdomain ${subdomain}.fintivio.org created successfully.`)
     } catch (error) {
       console.error(`Error creating subdomain ${subdomain}.fintivio.org:`, error)
@@ -208,11 +213,11 @@ export class DomainsService {
     }
 
     try {
-      await this.route53.changeResourceRecordSets(params).promise()
-
       if (isAlias) {
         await this.removeAlias(`${subdomain}.${target}`);
       }
+
+      await this.route53.changeResourceRecordSets(params).promise().catch(e => console.error(e));
 
       console.log(`Subdomain ${subdomain} deleted successfully.`)
     } catch (error) {

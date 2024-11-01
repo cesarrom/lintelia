@@ -2,6 +2,22 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Test DMN",
+      "program": "${workspaceFolder}/dmn.cjs",
+      "request": "launch",
+      "args": [
+        "forms/clients_onboarding/assessment.dmn",
+        "Decision_19w5k1e",
+        "age",
+        "integer",
+        "18"
+      ],
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "type": "node"
+    },
+    {
       "name": "Debug SST Start",
       "type": "node",
       "request": "launch",

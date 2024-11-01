@@ -11,10 +11,10 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { DollarSignIcon, FileTextIcon, MessageCircleIcon, MoveHorizontalIcon, UserIcon, UserPlusIcon } from "lucide-react"
-import { useSession } from "@/providers/session/session.provider"
+import { useUser } from "@descope/nextjs-sdk/client"
 
 export default function Dashboard() {
-  const session = useSession();
+  const session = useUser();
 
   console.log(session);
 

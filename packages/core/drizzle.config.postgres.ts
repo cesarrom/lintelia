@@ -11,5 +11,5 @@ export default defineConfig({
   },
   // Pick up all our schema files
   schema: ["./src/models/tenants.sql.ts"],
-  out: "./drizzle-postgres",
+  out: "../web/drizzle-postgres",
 });

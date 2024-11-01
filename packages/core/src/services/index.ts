@@ -7,3 +7,5 @@ export * from "./users.service";
 export * from "./environments.service";
 export * from "./domains.service";
 export * from "./kyc.service";
+export * from "./emails.service";
+export * from './invitations.service';

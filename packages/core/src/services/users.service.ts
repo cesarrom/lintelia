@@ -1,11 +1,12 @@
 import { eq } from "drizzle-orm";
-import { users } from "../models/platform.sql";
-import { type PlatformDB } from "./tenants.service";
-import { auth } from "../clients/auth.client";
+import { userRoles } from "../models/platform.sql";
+import { TenantsService, type PlatformDB } from "./tenants.service";
 import { Autowire, Injectable } from "ts-injection";
-import { PLATFORM_DB_TOKEN } from "../libs/injector/tokens";
+import { AUTH_TOKEN, PLATFORM_DB_TOKEN, TENANT_TOKEN } from "../libs/injector/tokens";
+import { auth } from "../clients/auth.client";
+
 @Injectable()
-export class UsersService {
+export class UserRolesService {
   static roles = {
     admin: 'admin',
     reviewer: 'reviewer',
@@ -15,39 +16,56 @@ export class UsersService {
   @Autowire(PLATFORM_DB_TOKEN)
   private db: PlatformDB;
 
-  async createUser(userData: typeof users.$inferInsert & { phoneNumber: string }) {
-    const [user] = await this.db.insert(users).values({
-      ...userData,
+  @Autowire(AUTH_TOKEN)
+  private _auth: typeof auth;
+
+  @Autowire(TENANT_TOKEN)
+  private _tenant: Awaited<ReturnType<TenantsService['getByDomain']>>;
+
+  async createUserRole(userRoleData: typeof userRoles.$inferInsert) {
+    const user = await this._auth.management.user.loadByUserId(userRoleData.userId);
+    const [loginId] = user.data.loginIds;
+
+    await this._auth.management.user.addTenantRoles(loginId, this._tenant.domain, [userRoleData.role]);
+
+    const [userRole] = await this.db.insert(userRoles).values({
+      ...userRoleData,
     }).returning();
 
-    return user;
+    return userRole;
   }
 
-  async getUserById(id: string) {
+  async getUserRoleById(id: number) {
     return await this.db
       .select()
-      .from(users)
-      .where(eq(users.id, id))
+      .from(userRoles)
+      .where(eq(userRoles.id, id))
       .limit(1)
       .then((res) => res[0] || null);
   }
 
-  async updateUser(id: string, userData: Partial<typeof users.$inferInsert>) {
+  async updateUserRole(id: number, userRoleData: Partial<typeof userRoles.$inferInsert>) {
     return await this.db
-      .update(users)
-      .set(userData)
-      .where(eq(users.id, id))
+      .update(userRoles)
+      .set(userRoleData)
+      .where(eq(userRoles.id, id))
       .returning();
   }
 
-  async deleteUser(id: string) {
-    await auth.management.user.deleteByUserId(id);
-
-    return await this.db.delete(users).where(eq(users.id, id)).returning();
+  async getRoleByUserId(userId: string) {
+    return await this.db
+      .select()
+      .from(userRoles)
+      .where(eq(userRoles.userId, userId))
+      .limit(1)
+      .then((res) => res[0] || null);
   }
 
-  async getAllUsers() {
-    return await this.db.select().from(users);
+  async deleteUserRole(id: number) {
+    return await this.db.delete(userRoles).where(eq(userRoles.id, id)).returning();
   }
 
+  async getAllUserRoles() {
+    return await this.db.select().from(userRoles);
+  }
 }

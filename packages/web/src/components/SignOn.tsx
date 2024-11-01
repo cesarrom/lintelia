@@ -1,31 +1,39 @@
 'use client';
 
-import { createUser } from '@/actions/users/createUser';
-import { useSession } from '@/providers/session/session.provider';
 import { SignUpOrInFlow } from '@descope/nextjs-sdk';
 import React from 'react';
+import Cookie from 'js-cookie';
+import { getTenant } from '@/actions/tenants';
+import { matchInvitationRoles } from '@/actions/users';
 
 export function SignOn() {
-  const { session } = useSession();
-
   const [_, startTransition] = React.useTransition();
-
-  console.log(session);
-
   return (
-    <SignUpOrInFlow redirectAfterSuccess="/onboarding" onSuccess={data => {
-      if (!session.tenant?.domain) {
-        return;
-      }
+    <SignUpOrInFlow
+      redirectAfterSuccess="/onboarding"
+      onSuccess={data => {
+        startTransition(async () => {
+          const isLocal = window.location.hostname.includes('local.fintivio.org');
+          let redirectUri = '/onboarding';
 
-      startTransition(async () => {
-        await createUser({
-          email: data.detail.user.email,
-          phoneNumber: data.detail.user.phone,
-          id: data.detail.user.userId,
-          role: 'user',
-        }, session.tenant.domain).catch(console.error);
-      });
-    }} />
+          try {
+            const tenant = await getTenant();
+            redirectUri = await matchInvitationRoles(data.detail.user?.userId, tenant.domain);
+          } catch (e) {
+            console.error(e);
+          }
+
+          if (isLocal) {
+            // we set the JWT as a cookie called DS
+            Cookie.set('DS', data.detail.sessionJwt);
+            window.location.href = redirectUri;
+          }
+        })
+
+
+
+
+      }}
+    />
   );
 }

@@ -1,0 +1,433 @@
+{
+  "components": [
+    {
+      "id": "Field_0b6jfzg",
+      "key": "firstName",
+      "type": "textfield",
+      "label": "First Name",
+      "layout": {
+        "row": "Row_0auoz2g",
+        "columns": null
+      },
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "id": "Field_12ftixk",
+      "key": "lastName",
+      "type": "textfield",
+      "label": "Last Name",
+      "layout": {
+        "row": "Row_0pa8mi2",
+        "columns": null
+      },
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "subtype": "date",
+      "dateLabel": "Date of birth",
+      "id": "Field_1e62idx",
+      "key": "dob",
+      "type": "datetime",
+      "label": "Date time",
+      "layout": {
+        "row": "Row_0mejoon",
+        "columns": null
+      },
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "id": "Field_1khxilh",
+      "key": "phoneCountry",
+      "type": "select",
+      "label": "Phone Country Code",
+      "layout": {
+        "row": "Row_171oezy",
+        "columns": null
+      },
+      "validate": {
+        "required": true
+      },
+      "valuesKey": "countries",
+      "properties": {
+        "datasource": "countries"
+      },
+      "searchable": true
+    },
+    {
+      "id": "Field_072hz8y",
+      "key": "phoneNumber",
+      "type": "textfield",
+      "label": "Phone Number",
+      "layout": {
+        "row": "Row_11gv55v",
+        "columns": null
+      },
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "id": "Field_1lo02yt",
+      "key": "documentCountry",
+      "type": "select",
+      "label": "Document Country",
+      "layout": {
+        "row": "Row_1phne08",
+        "columns": null
+      },
+      "validate": {
+        "required": true
+      },
+      "valuesKey": "countries",
+      "properties": {
+        "datasource": "countries"
+      },
+      "searchable": true
+    },
+    {
+      "id": "Field_1baqyqi",
+      "key": "documentType",
+      "type": "select",
+      "label": "Document Type",
+      "layout": {
+        "row": "Row_03vf8cq",
+        "columns": null
+      },
+      "validate": {
+        "required": true
+      },
+      "valuesKey": "documentTypes"
+    },
+    {
+      "id": "Field_12cey96",
+      "key": "documentNumber",
+      "type": "textfield",
+      "label": "Document Number",
+      "layout": {
+        "row": "Row_0hpvd2o",
+        "columns": null
+      },
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "subtype": "date",
+      "dateLabel": "Document Issue Date",
+      "id": "Field_0c5gh5l",
+      "key": "documentIssueDate",
+      "type": "datetime",
+      "label": "Date time",
+      "layout": {
+        "row": "Row_0x6z5xq",
+        "columns": null
+      },
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "subtype": "date",
+      "dateLabel": "Document Expiry Date",
+      "id": "Field_18i50ve",
+      "key": "documentExpiryDate",
+      "type": "datetime",
+      "label": "Date time",
+      "layout": {
+        "row": "Row_0rxf9gl",
+        "columns": null
+      },
+      "disallowPassedDates": true
+    },
+    {
+      "id": "Field_1562xei",
+      "key": "country",
+      "type": "select",
+      "label": "Country of Residence",
+      "layout": {
+        "row": "Row_0173cqz",
+        "columns": null
+      },
+      "validate": {
+        "required": true
+      },
+      "valuesKey": "countries",
+      "properties": {
+        "datasource": "countries"
+      },
+      "searchable": true
+    },
+    {
+      "id": "Field_1pu1yf9",
+      "key": "street",
+      "type": "textfield",
+      "label": "Street",
+      "layout": {
+        "row": "Row_0swnvp6",
+        "columns": null
+      },
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "id": "Field_1qjpf5j",
+      "key": "buildingNumber",
+      "type": "textfield",
+      "label": "Building Number",
+      "layout": {
+        "row": "Row_1c1mr54",
+        "columns": null
+      }
+    },
+    {
+      "id": "Field_1vgbf5f",
+      "key": "state",
+      "type": "textfield",
+      "label": "State",
+      "layout": {
+        "row": "Row_1xrj393",
+        "columns": null
+      },
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "id": "Field_0nu5kog",
+      "key": "city",
+      "type": "textfield",
+      "label": "City",
+      "layout": {
+        "row": "Row_1gzln05",
+        "columns": null
+      },
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "id": "Field_1uvvh66",
+      "key": "zipCode",
+      "type": "textfield",
+      "label": "Zip Code",
+      "layout": {
+        "row": "Row_0h022jo",
+        "columns": null
+      }
+    },
+    {
+      "values": [
+        {
+          "label": "CDs/ Supermax",
+          "value": "1"
+        },
+        {
+          "label": "Non - interest bearing account",
+          "value": "2"
+        },
+        {
+          "label": "Debit Card",
+          "value": "3"
+        },
+        {
+          "label": "Trading Account",
+          "value": "4"
+        },
+        {
+          "label": "Investment Portfolios/Custody Services",
+          "value": "5"
+        },
+        {
+          "label": "Wire Transfers",
+          "value": "6"
+        }
+      ],
+      "label": "What product are you interested in",
+      "type": "select",
+      "layout": {
+        "row": "Row_1d37wcr",
+        "columns": null
+      },
+      "id": "Field_05zf562",
+      "key": "product",
+      "validate": {
+        "required": true
+      }
+    },
+    {
+      "id": "Field_0yecuae",
+      "key": "employment",
+      "type": "select",
+      "label": "Profession",
+      "layout": {
+        "row": "Row_18pgghf",
+        "columns": null
+      },
+      "validate": {
+        "required": true
+      },
+      "valuesKey": "professions",
+      "properties": {
+        "datasource": "professions"
+      },
+      "searchable": true
+    },
+    {
+      "id": "Field_1locz5s",
+      "key": "expectedActivityValue",
+      "type": "number",
+      "label": "Average monthly income",
+      "layout": {
+        "row": "Row_13559mu",
+        "columns": null
+      },
+      "validate": {
+        "min": 1,
+        "required": true
+      },
+      "description": "the average amount of momey you expect to receive in this account on average"
+    },
+    {
+      "id": "Field_1nqm1jq",
+      "key": "incomeCurrency",
+      "type": "select",
+      "label": "Income Currency",
+      "layout": {
+        "row": "Row_0pakk7u",
+        "columns": null
+      },
+      "validate": {
+        "required": true
+      },
+      "valuesKey": "currencies",
+      "properties": {
+        "datasource": "currencies"
+      },
+      "searchable": true
+    },
+    {
+      "id": "Field_0osqf1k",
+      "key": "transactionsVolume",
+      "type": "number",
+      "label": "Average Monthly transactions",
+      "layout": {
+        "row": "Row_0dx2up9",
+        "columns": null
+      },
+      "validate": {
+        "min": 1
+      },
+      "description": "the amount of monthly transactions you expect to sned and receive in this account on average"
+    },
+    {
+      "values": [
+        {
+          "label": "No",
+          "value": "false"
+        },
+        {
+          "label": "Yes",
+          "value": "true"
+        }
+      ],
+      "label": "Are you a terrorist",
+      "type": "radio",
+      "layout": {
+        "row": "Row_0sbryn6",
+        "columns": null
+      },
+      "id": "Field_0ckqv7u",
+      "key": "isSanctionOrTerrorist",
+      "validate": {
+        "required": true
+      },
+      "defaultValue": "false"
+    },
+    {
+      "values": [
+        {
+          "label": "No",
+          "value": "false"
+        },
+        {
+          "label": "Yes",
+          "value": "true"
+        }
+      ],
+      "label": "Are you under criminal investigation",
+      "type": "radio",
+      "layout": {
+        "row": "Row_16y3kdr",
+        "columns": null
+      },
+      "id": "Field_06d8ity",
+      "key": "isSubjectToCriminalInvestigation",
+      "validate": {
+        "required": true
+      },
+      "defaultValue": "false"
+    },
+    {
+      "values": [
+        {
+          "label": "No",
+          "value": "false"
+        },
+        {
+          "label": "Yes",
+          "value": "true"
+        }
+      ],
+      "label": "Do you have a criminal record",
+      "type": "radio",
+      "layout": {
+        "row": "Row_1ho6ehh",
+        "columns": null
+      },
+      "id": "Field_1wmccyq",
+      "key": "isConvictionStremming",
+      "validate": {
+        "required": true
+      },
+      "defaultValue": "false"
+    },
+    {
+      "values": [
+        {
+          "label": "No",
+          "value": "false"
+        },
+        {
+          "label": "Yes",
+          "value": "true"
+        }
+      ],
+      "label": "Are you a Politically Exposed Person",
+      "type": "radio",
+      "layout": {
+        "row": "Row_176dgfq",
+        "columns": null
+      },
+      "id": "Field_0d54irm",
+      "key": "isPep",
+      "validate": {
+        "required": true
+      },
+      "defaultValue": "false"
+    }
+  ],
+  "id": "Form_04046ka",
+  "type": "default",
+  "exporter": {
+    "name": "form-js (https://demo.bpmn.io)",
+    "version": "1.8.3"
+  },
+  "schemaVersion": 16
+}

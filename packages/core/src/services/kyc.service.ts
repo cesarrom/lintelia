@@ -1,22 +1,23 @@
 import axios, { Axios } from "axios";
 import { env } from "../constants";
 import { ENVIRONMENT_TOKEN } from "../libs/injector/tokens";
+import { Blob } from "buffer";
 import { Autowire, Injectable } from "ts-injection";
+import FormData from "form-data";
 
 @Injectable()
 export class KYCService {
   @Autowire(ENVIRONMENT_TOKEN)
   private _env: typeof env
-
+  private static BASE_URL = 'https://api.kycaid.com';
   private _api: Axios;
 
   private get api() {
     if (!this._api) {
       this._api = axios.create({
-        baseURL: 'https://api.eu.onfido.com/v3.6',
+        baseURL: KYCService.BASE_URL,
         headers: {
-          'Authorization': `Token token=${this._env.ONFIDO_TOKEN}`,
-          'Accept': 'application/json',
+          'Authorization': `Token ${this._env.KYC_TOKEN}`,
         },
       });
     }
@@ -24,35 +25,77 @@ export class KYCService {
     return this._api;
   }
 
-  async createApplicant(data: {
-    first_name: string,
-    last_name: string,
-    dob: string,
-    address: {
-      building_number: string,
-      street: string,
-      town: string,
-      postcode: string,
-      country: string
-    }
-  }): Promise<{ id: string }> {
-    try {
-      const response = await this.api.post('/applicants', data);
-      return response.data;
-    } catch (error) {
-      throw new Error('Failed to create applicant');
-    }
+  // Create an applicant
+  async createApplicant(applicantData: {
+    type: string
+    first_name: string
+    last_name: string
+    dob: string
+    residence_country: string
+    email: string
+  }): Promise<{ applicant_id: string }> {
+    const response = await this.api.post('/applicants', applicantData)
+    return response.data
   }
 
-  async createWorkflowRun(data: {
-    workflow_id: string,
+  // Upload a file
+  async uploadFile(file: Buffer, name: string): Promise<{ file_id: string }> {
+    const formData = new FormData();
+    formData.append('file', file, { 
+      filename: name, 
+      contentType: 'image/jpeg'  // Explicitly specify MIME type if needed
+  });
+
+    const response = await this.api.post('/files', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        ...formData.getHeaders()
+      },
+    });
+
+    return response.data;
+  }
+
+  // Create an applicant document
+  async createApplicantDocument(documentData: {
     applicant_id: string
-  }): Promise<{ id: string }> {
-    try {
-      const response = await this.api.post(`/workflow_runs`, data);
-      return response.data;
-    } catch (error) {
-      throw new Error('Failed to start workflow');
-    }
+    document_number?: string
+    issue_date?: string
+    expiry_date?: string
+    front_side_id: string
+    back_side_id?: string
+    type:
+    'GOVERNMENT_ID' |
+    'PASSPORT' |
+    'DRIVERS_LICENSE' |
+    'DOMESTIC_PASSPORT' |
+    'PERMANENT_RESIDENCE_PERMIT' |
+    'REFUGEE_CARD' |
+    'FOREIGN_CITIZEN_PASSPORT' |
+    'SELFIE_IMAGE' |
+    'SELFIE_WITH_DOCUMENT' |
+    'SELFIE_WITH_CREDIT_CARD' |
+    'ADDRESS_DOCUMENT' |
+    'FINANCIAL_DOCUMENT' |
+    'TAX_ID_NUMBER' |
+    'CREDIT_CARD' |
+    'BANK_STATEMENT' |
+    'REGISTRATION_COMPANY' |
+    'COMPANY_LEGAL_ADDRESS' |
+    'AUTHORISED_PERSON' |
+    'COMPANY_OWNERSHIP' |
+    'VIDEO'
+  }): Promise<{ document_id: string }> {
+    const response = await this.api.post('/documents', documentData)
+    return response.data
+  }
+
+  // Create a verification request
+  async createVerification(verificationData: {
+    applicant_id: string
+    form_id: string
+  }): Promise<{ verification_id: string }> {
+    const response = await this.api.post('/verifications', verificationData)
+    return response.data
   }
 }

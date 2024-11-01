@@ -31,5 +31,5 @@ export default defineConfig({
     authToken: process.env.TENANT_TOKEN || Resource.Parameters.databaseAuthToken,
   },
   schema: ["./src/models/platform.sql.ts"],
-  out: "./drizzle-sqlite",
+  out: "../web/drizzle-sqlite",
 });

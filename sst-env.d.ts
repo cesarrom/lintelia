@@ -53,15 +53,19 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
+    "EMAIL_FROM": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "HOST": {
       "type": "sst.sst.Secret"
       "value": string
     }
-    "ONFIDO_TOKEN": {
+    "KYC_TOKEN": {
       "type": "sst.sst.Secret"
       "value": string
     }
-    "ONFIDO_WORKFLOW_ID": {
+    "KYC_WORKFLOW_ID": {
       "type": "sst.sst.Secret"
       "value": string
     }
@@ -72,16 +76,45 @@ declare module "sst" {
       "awsRegion": string
       "awsSecret": string
       "baseDomain": string
+      "bucketArn": string
+      "bucketDomain": string
+      "bucketName": string
       "databaseAuthToken": string
       "databaseId": string
       "databaseName": string
       "databaseUrl": string
       "descopeProjectId": string
       "domain": string
+      "emailFrom": string
       "host": string
-      "onfidoToken": string
-      "onfidoWorkflowId": string
+      "kycToken": string
+      "kycWorkflowId": string
+      "smtpHost": string
+      "smtpPass": string
+      "smtpPort": string
+      "smtpSecure": string
+      "smtpUser": string
       "type": "sst.sst.Linkable"
+    }
+    "SMTP_HOST": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "SMTP_PASS": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "SMTP_PORT": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "SMTP_SECURE": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "SMTP_USER": {
+      "type": "sst.sst.Secret"
+      "value": string
     }
     "Site": {
       "type": "sst.aws.Nextjs"

@@ -6,20 +6,26 @@ import { createClient } from "@libsql/client/web";
 import { drizzle as sqliteDrizzle } from "drizzle-orm/libsql";
 import { migrate as sqliteMigrate } from "drizzle-orm/libsql/migrator";
 import { migrate as pgMigrate } from "drizzle-orm/aws-data-api/pg/migrator";
-import { drizzle as pgDrizzle } from "drizzle-orm/aws-data-api/pg";
+import { AwsDataApiPgDatabase, drizzle as pgDrizzle } from "drizzle-orm/aws-data-api/pg";
 import { join } from "path";
 import { RDSDataClient } from "@aws-sdk/client-rds-data";
 import { sql } from "drizzle-orm";
+import { S3 } from "aws-sdk";
+import { existsSync, readdirSync, readFileSync } from "fs";
 
 async function sqliteMigrator(url: string, authToken: string, migrationsFolder: string) {
-  const db = sqliteDrizzle(
-    createClient({
-      url,
-      authToken,
-    })
-  );
+  try {
+    const db = sqliteDrizzle(
+      createClient({
+        url,
+        authToken,
+      })
+    );
 
-  await sqliteMigrate(db, { migrationsFolder });
+    await sqliteMigrate(db, { migrationsFolder });
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 async function pgMigrator(database: string, secretArn: string, clusterArn: string, migrationsFolder: string) {
@@ -57,7 +63,9 @@ export default $config({
 
     const existingDb = await turso.databases.get(dbValues.databaseName).catch(() => null);
 
-    const existsDb = existingDb && existingDb.id
+    const existsDb = existingDb && existingDb.id;
+
+    const migrationsFolder = join(process.cwd(), 'packages', 'web', 'drizzle-sqlite');
 
     if (!existsDb) {
       const db = await turso.databases.create(dbValues.databaseName, {
@@ -85,7 +93,6 @@ export default $config({
       setSecret("DatabaseUrl", dbValues.databaseUrl);
       setSecret("DatabaseAuthToken", dbValues.databaseAuthToken);
 
-      const migrationsFolder = join(process.cwd(), 'packages', 'core', 'drizzle-sqlite');
 
       await sqliteMigrator(dbValues.databaseUrl, dbValues.databaseAuthToken, migrationsFolder);
     }
@@ -100,33 +107,52 @@ export default $config({
     const databaseId = new sst.Secret("DatabaseId");
     const databaseUrl = new sst.Secret("DatabaseUrl");
     const databaseAuthToken = new sst.Secret("DatabaseAuthToken");
-    const onfidoToken = new sst.Secret("ONFIDO_TOKEN");
-    const onfidoWorkflowId = new sst.Secret("ONFIDO_WORKFLOW_ID");
+    const kycToken = new sst.Secret("KYC_TOKEN");
+    const kycWorkflowId = new sst.Secret("KYC_WORKFLOW_ID");
+    const smtpHost = new sst.Secret('SMTP_HOST');
+    const smtpPort = new sst.Secret('SMTP_PORT');
+    const smtpSecure = new sst.Secret('SMTP_SECURE');
+    const smtpUser = new sst.Secret('SMTP_USER');
+    const smtpPass = new sst.Secret('SMTP_PASS');
+    const emailFrom = new sst.Secret('EMAIL_FROM');
 
     const prefix = $app.stage === 'main' ? '' : $app.stage + '.';
 
     const domain = `${prefix}${baseDomain}` as const;
 
+    const bucket = new sst.aws.Bucket("Bucket");
+
     const parameters = new sst.Linkable("Parameters", {
-      properties: Object.fromEntries(
-        Object.entries({
-          descopeProjectId,
-          awsHostedZoneId,
-          onfidoToken,
-          awsRegion,
-          onfidoWorkflowId,
-          awsSecret,
-          awsKey,
-          host,
-          baseDomain,
-          domain,
-          databaseName,
-          databaseId,
-          databaseUrl,
-          databaseAuthToken,
-          awsCertificateArn: certificateArn,
-        }).map(([key, value]) => [key, typeof value === 'string' ? value : value.value])
-      ),
+      properties: {
+        bucketArn: bucket.arn,
+        bucketDomain: bucket.domain,
+        bucketName: bucket.name,
+        ...Object.fromEntries(
+          Object.entries({
+            descopeProjectId,
+            awsHostedZoneId,
+            kycToken,
+            awsRegion,
+            kycWorkflowId,
+            awsSecret,
+            awsKey,
+            host,
+            baseDomain,
+            domain,
+            databaseName,
+            databaseId,
+            databaseUrl,
+            databaseAuthToken,
+            awsCertificateArn: certificateArn,
+            smtpHost,
+            smtpPort,
+            smtpSecure,
+            smtpUser,
+            smtpPass,
+            emailFrom,
+          }).map(([key, value]) => [key, typeof value === 'string' ? value : value.value])
+        )
+      },
     });
 
     const vpc = new sst.aws.Vpc("Vpc");
@@ -138,44 +164,92 @@ export default $config({
       }
     });
 
-    const bucket = new sst.aws.Bucket("Bucket");
-
-    const dbOutput = database.nodes.instance.endpoint.apply(() => {
-      return database.database.apply(db => {
-        return database.secretArn.apply(secretArn => {
-          return database.clusterArn.apply(async resourceArn => {
-            return await pgMigrator(db, secretArn, resourceArn, join(process.cwd(), 'packages', 'core', 'drizzle-postgres'));
-          });
-        });
-      })
+    const dbOutput = $util.all([database.database, database.secretArn, database.clusterArn]).apply(([db, secretArn, resourceArn]) => {
+      return {
+        db: db,
+        secretArn: secretArn,
+        resourceArn: resourceArn,
+      };
     });
 
     const next = new sst.aws.Nextjs("Site", {
       link: [database, bucket, parameters],
-      path: './packages/web',
+      path: 'packages/web',
       domain: {
         certificateArn,
         name: domain,
-        aliases: dbOutput.apply(async conn => {
-          const tenants = await conn.execute(sql`SELECT * FROM tenants`);
-
-          return tenants.rows.map(row => `${row.domain}.${domain}`);
-        }),
+        aliases: [`*.${domain}`],
         dns: sst.aws.dns({
           zone: 'REDACTED',
         }),
       }
     });
 
-    next.nodes.cdn.nodes.distribution.arn.apply(arn => {
-      return dbOutput.apply(async conn => {
-        await conn.execute(sql`
-          INSERT INTO environments (name, distribution_arn) VALUES (${$app.stage}, ${arn})
-          ON CONFLICT (name) DO UPDATE SET distribution_arn = ${arn};
-        `);
-      });
-    })
+    $util.all([awsRegion.value, awsSecret.value, awsKey.value, bucket.name, databaseUrl.value, databaseAuthToken.value, dbOutput])
+      .apply(async ([awsRegion, awsSecret, awsKey, bucketName, databaseUrl, databaseAuthToken, connDetails]) => {
+        const conn = await pgMigrator(connDetails.db, connDetails.secretArn, connDetails.resourceArn, join(process.cwd(), 'packages', 'web', 'drizzle-postgres'));
 
-    return { next, distribution: next.nodes.cdn.nodes.distribution.arn };
+        await sqliteMigrator(databaseUrl, databaseAuthToken, migrationsFolder);
+
+        const s3 = new S3({
+          region: awsRegion,
+          credentials: {
+            accessKeyId: awsKey,
+            secretAccessKey: awsSecret,
+          },
+        });
+
+        await migrateForms(s3, bucketName, conn as any);
+
+        $app.stage !== 'local' && next.nodes.cdn.nodes.distribution.arn.apply(async arn => {
+          await conn.execute(sql`
+            INSERT INTO environments (name, distribution_arn) VALUES (${$app.stage}, ${arn})
+            ON CONFLICT (name) DO UPDATE SET distribution_arn = ${arn};
+          `);
+        });
+      });
+
+
+
+    return { next };
   },
 });
+
+async function migrateForms(s3: S3, BUCKET_NAME: string, conn: AwsDataApiPgDatabase<Record<string, never>>) {
+  const migrationDate = new Date().toISOString().split('T')[0];
+  const formsDir = join(process.cwd(), 'forms')
+  const purposes = readdirSync(formsDir, { withFileTypes: true })
+    .filter(dirent => dirent.isDirectory())
+    .map(dirent => dirent.name)
+
+  for (const purpose of purposes) {
+    const purposeDir = join(formsDir, purpose)
+    const formPath = join(purposeDir, 'form.json')
+    const assessmentPath = join(purposeDir, 'assessment.dmn')
+
+    if (!existsSync(formPath) || !existsSync(assessmentPath)) {
+      continue;
+    }
+
+    const formContent = readFileSync(formPath)
+    const assessmentContent = readFileSync(assessmentPath)
+
+    const { Key: form } = await s3.upload({
+      Bucket: BUCKET_NAME,
+      Key: `${purpose}--${migrationDate}_form.json`,
+      Body: formContent,
+    }).promise()
+
+    const { Key: dmn } = await s3.upload({
+      Bucket: BUCKET_NAME,
+      Key: `${purpose}--${migrationDate}_assessment.dmn`,
+      Body: assessmentContent,
+    }).promise()
+    await conn.execute(sql`
+      DELETE FROM default_forms WHERE purpose = ${purpose}`
+    );
+    await conn.execute(sql`
+      INSERT INTO default_forms (purpose, form_key, dmn_key) VALUES (${purpose}, ${form}, ${dmn})`
+    );
+  }
+}

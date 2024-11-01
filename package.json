@@ -14,19 +14,24 @@
     "remove": "pnpm run set-env && sst remove",
     "set-env": "export AWS_ACCESS_KEY= && export AWS_SECRET_ACCESS_KEY= && export AWS_PROFILE=fintivio && export AWS_REGION=us-east-1 && PORT=80",
     "typecheck": "tsc --noEmit",
-    "unlock": "pnpm run set-env && sst unlock"
+    "unlock": "pnpm run set-env && sst unlock",
+    "dmn": "node dmn.cjs" 
   },
   "devDependencies": {
-    "@libsql/client": "^0.9.0",
     "@aws-sdk/client-rds-data": "^3.635.0",
+    "@hbtgmbh/dmn-eval-js": "^1.5.0",
+    "@libsql/client": "^0.9.0",
+    "cheerio": "^1.0.0",
     "drizzle-orm": "^0.33.0",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "xml-js": "^1.6.11"
   },
   "workspaces": [
     "packages/*"
   ],
   "dependencies": {
     "@types/node": "^22.5.0",
+    "aws-sdk": "^2.1691.0",
     "sst": "3.0.108"
   }
 }

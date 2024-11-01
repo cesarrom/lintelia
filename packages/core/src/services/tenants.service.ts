@@ -8,6 +8,10 @@ import { DomainsService } from "./domains.service";
 import { env } from "../constants";
 import { TENANTS_DB_TOKEN } from "../libs/injector/tokens";
 import { Autowire, Injectable } from "ts-injection";
+import { migrate as sqliteMigrate } from "drizzle-orm/libsql/migrator";
+import { join } from "node:path";
+import { Resource } from "sst";
+import { EmailsService } from "./emails.service";
 
 @Injectable()
 export class TenantsService {
@@ -15,15 +19,20 @@ export class TenantsService {
   @Autowire(TENANTS_DB_TOKEN)
   private db: typeof tenantsDB;
 
-  @Autowire(DomainsService)
-  private domainService: DomainsService
-
   async create(dataRef: CreateTenant) {
     const onError = [] as Array<() => Promise<void>>;
     const data: Partial<typeof tenants.$inferInsert> = dataRef;
+
     try {
+
+      const existingTenants = await this.db.select().from(tenants).where(eq(tenants.domain, data.domain)).limit(1);
+
+      if (existingTenants.length > 0) {
+        throw new Error("Tenant already exists");
+      }
+      const dbDomain = Resource.App.stage + '-' + data.domain
       // isolated database for this company
-      const tenantDbDetails = await turso.databases.create(data.domain, {
+      const tenantDbDetails = await turso.databases.create(dbDomain, {
         group: env.DATABASE_GROUP_NAME,
         schema: env.DATABASE_NAME,
       });
@@ -49,15 +58,10 @@ export class TenantsService {
       // update the tenant with the database details
       data.databaseName = tenantDbDetails.name;
       data.databaseId = tenantDbDetails.id;
-      data.databaseUrl = `libsql://${data.domain}-fintivio.turso.io`;
+      data.databaseUrl = `libsql://${dbDomain}-fintivio.turso.io`;
       data.databaseAuthToken = token.jwt;
 
-      const existingTenants = await this.db.select().from(tenants).where(eq(tenants.domain, data.domain)).limit(1);
 
-      if (existingTenants.length > 0) {
-        // DELETE
-        await this.db.delete(tenants).where(eq(tenants.domain, data.domain));
-      }
 
       const [tenant] = await this.db.insert(tenants).values(data as typeof tenants.$inferInsert).returning();
 
@@ -65,13 +69,8 @@ export class TenantsService {
         await this.db.delete(tenants).where(eq(tenants.domain, data.domain));
       });
 
-      //const isAlias = env.DOMAIN.includes('fintivio');
-
-      /*await this.domainService.createSubdomain(tenant.domain, env.DOMAIN, isAlias);
-
-      onError.push(async () => {
-        await this.domainService.deleteSubdomain(tenant.domain, env.DOMAIN, isAlias);
-      });*/
+      const db = await this.getPlatformDBClient(data.domain);
+      await sqliteMigrate(db, { migrationsFolder: join(process.cwd(), 'drizzle-sqlite') }).catch(console.error);
 
       return tenant;
     } catch (error) {
@@ -85,6 +84,12 @@ export class TenantsService {
     }
   }
 
+  async migrateTenant(domain: string) {
+    const db = await this.getPlatformDBClient(domain);
+
+    await sqliteMigrate(db, { migrationsFolder: join(process.cwd(), 'drizzle-sqlite') }).catch(console.error);
+  }
+
   async getByDomain(domain: string) {
     return await this.db.select().from(tenants).where
       (or(
@@ -92,6 +97,10 @@ export class TenantsService {
         // POSTGRES:: tenants.allowedDomains is a jsonb column that contains an array of strings
         sql`${tenants.allowedDomains}::jsonb @> jsonb_build_array(${domain})`)
       ).limit(1).then((res) => res[0] || null);
+  }
+
+  async getAllTenants() {
+    return await this.db.select().from(tenants);
   }
 
   async update(domain: string, data: Omit<Partial<typeof tenants.$inferInsert>, 'domain' | 'databaseId' | 'databaseName' | 'databaseUrl' | 'databaseAuthToken'>) {
@@ -110,7 +119,6 @@ export class TenantsService {
 
     await auth.management.tenant.delete(tenant.domain);
     await turso.databases.delete(tenant.databaseName);
-    await this.domainService.deleteSubdomain(tenant.domain, env.DOMAIN, isAlias);
     await this.db.delete(tenants).where(eq(tenants.domain, domain)).returning();
 
   }

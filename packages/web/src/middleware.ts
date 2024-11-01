@@ -8,5 +8,6 @@ export default  authMiddleware({
 });
 
 export const config = {
-   matcher: '/onboarding/:path*',
+   matcher: ['/onboarding', '/onboarding/:path*', '/app/:path*'],
+   
 }

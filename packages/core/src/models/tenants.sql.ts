@@ -39,7 +39,8 @@ export const tenants = pgTable('tenants', {
 export const defaultForms = pgTable('default_forms', {
   id: serial('id').primaryKey(),
   purpose: varchar('purpose', { length: 255 }).notNull(),
-  formData: jsonb('form_data').notNull(),
+  formKey: varchar('form_key', { length: 255 }),
+  dmnKey: varchar('dmn_key', { length: 255 }),
   version: bigint('version', { mode: 'number' }).notNull().default(sql`EXTRACT(EPOCH FROM CURRENT_TIMESTAMP) * 1000`),
 });
 
