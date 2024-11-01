@@ -40,7 +40,7 @@ async function createTenantsInjector() {
   container.register(KYCService).successOrThrow();
   container.register(DomainsService).successOrThrow();
   container.register(TenantsService).successOrThrow();
-
+  container.register(FilesService).successOrThrow();
 
   return container;
 };
@@ -72,7 +72,6 @@ export async function getInjector(domain?: string) {
   const platformDb = await tenantsService.getPlatformDBClient(domain);
   container.register(platformDb, PLATFORM_DB_TOKEN).successOrThrow();
   container.register(tenant, TENANT_TOKEN).successOrThrow();
-  container.register(FilesService).successOrThrow();
   container.register(FormsService).successOrThrow();
   container.register(ApplicationsService).successOrThrow();
   container.register(ReviewsService).successOrThrow();

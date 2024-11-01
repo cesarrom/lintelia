@@ -1,16 +1,10 @@
-import { eq } from "drizzle-orm";
-import { files } from "../models/platform.sql";
-import { type PlatformDB } from "./tenants.service";
-import { ENVIRONMENT_TOKEN, PLATFORM_DB_TOKEN } from "../libs/injector/tokens";
+import { ENVIRONMENT_TOKEN } from "../libs/injector/tokens";
 import { Autowire, Injectable } from "ts-injection";
 import { env } from "../constants";
 import { S3 } from "aws-sdk";
 
 @Injectable()
 export class FilesService {
-  @Autowire(PLATFORM_DB_TOKEN)
-  private db: PlatformDB;
-
   @Autowire(ENVIRONMENT_TOKEN)
   private _env: typeof env
 
@@ -68,44 +62,5 @@ export class FilesService {
     console.log('downloaded successfully');
 
     return { ...object, Body: await this.getSignedUrl(path), ContentDisposition: object.ContentDisposition };
-  }
-
-
-  async createFile(fileData: Omit<typeof files.$inferInsert, 'path'> & { file: Buffer }) {
-    const { file } = fileData;
-
-    const result = await this.uploadFile(file, fileData.name);
-
-    const [res] = await this.db.insert(files).values({
-      ...fileData,
-      path: result.Key,
-    }).returning();
-
-    return res;
-  }
-
-  async getFileById(id: number) {
-    return await this.db
-      .select()
-      .from(files)
-      .where(eq(files.id, id))
-      .limit(1)
-      .then((res) => res[0] || null);
-  }
-
-  async updateFile(id: number, fileData: Partial<typeof files.$inferInsert>) {
-    return await this.db
-      .update(files)
-      .set(fileData)
-      .where(eq(files.id, id))
-      .returning();
-  }
-
-  async deleteFile(id: number) {
-    return await this.db.delete(files).where(eq(files.id, id)).returning();
-  }
-
-  async getAllFiles() {
-    return await this.db.select().from(files);
   }
 }

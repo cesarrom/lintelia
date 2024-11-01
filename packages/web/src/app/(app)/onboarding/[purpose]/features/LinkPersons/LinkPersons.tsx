@@ -5,21 +5,23 @@ import { InviteeList } from "@/components/InviteApplicants";
 import { getTenant } from "@/actions/tenants";
 import { Button } from "@/components/ui/button";
 import { getValidationFeatureResponse, linkApplicant, registerValidationFeatureResponse } from "@/actions/applications";
+import { getUser } from "@/actions/users";
 
 export const Feature = 'Link Persons';
 
 export const Create = (props: StepProps & { disabled?: boolean }) => {
   const [sending, startTransition] = React.useTransition();
-  const [forms, setForms] = React.useState<Omit<Form, 'validationFeatures'>[]>([]);
-  const formNames = React.useMemo(() => forms.map(form => form.title), [forms]);
   const [value, setValue] = React.useState<{ [key: string]: string }>({});
 
   React.useEffect(() => {
     startTransition(async () => {
       const tenant = await getTenant();
-      const forms = await getAllForms(tenant.domain);
+      const user = await getUser();
 
-      setForms(forms);
+      setValue(v => ({
+        ...v,
+        [user.email]: 'founder',
+      }));
 
       const response = await getValidationFeatureResponse(tenant.domain, props.applicationId, Feature);
 
@@ -47,9 +49,9 @@ export const Create = (props: StepProps & { disabled?: boolean }) => {
 
         await registerValidationFeatureResponse(tenant.domain, props.applicationId, Feature, data);
 
-        await Promise.all(Object.entries(data).map(([key, value]) => {
-          if (value) {
-            return linkApplicant(tenant.domain, props.applicationId, key, value);
+        await Promise.all(Object.entries(data).map(([email, role]) => {
+          if (role) {
+            return linkApplicant(tenant.domain, props.applicationId, email, role);
           }
 
           return Promise.resolve();

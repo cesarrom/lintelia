@@ -426,6 +426,10 @@ export const updateApplicationStatus = async (domain: string, applicationId: num
     </html>
   `;
 
+  if (!['approved', 'rejected'].includes(status)) {
+    return;
+  }
+
   await emailsService.sendEmail(user.email, `your application to ${tenant.name} was ${status}`, '', status === 'approved' ? approvedText : rejectedText, users.map(u => u.email));
 }
 

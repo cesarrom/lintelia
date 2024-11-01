@@ -32,7 +32,7 @@ const cleanBase64 = (base64: string) => {
 }
 
 export const uploadFile = async (domain: string, base64: string, name: string) => {
-  const injector = await getInjector(domain);
+  const injector = await getInjector();
   const filesService = injector.resolve(FilesService);
 
   const { Key } = await filesService.uploadFile(

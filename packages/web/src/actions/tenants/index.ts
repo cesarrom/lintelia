@@ -1,7 +1,7 @@
 "use server";
 import { session } from '@descope/nextjs-sdk/server';
 import { auth } from '@fintivio-sst/core/clients/auth.client';
-import { type CreateTenant, FormsService, InvitationsService, TenantsService, UserRolesService, env, getInjector } from '@fintivio-sst/core/index';
+import { type CreateTenant, FilesService, FormsService, InvitationsService, TenantsService, UserRolesService, env, getInjector } from '@fintivio-sst/core/index';
 import { ENVIRONMENT_TOKEN } from '@fintivio-sst/core/libs/injector/tokens';
 import { omit } from 'lodash';
 import { headers } from 'next/headers';
@@ -19,7 +19,6 @@ export const createTenant = async (tenant: CreateTenant) => {
     }
 
     const tenantsService = injector.resolve(TenantsService);
-
     const domainObject = await tenantsService.create(tenant);
     
     onError.push(async () => {

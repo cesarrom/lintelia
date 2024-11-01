@@ -12,8 +12,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { X, XIcon } from "lucide-react";
 import * as Yup from 'yup';
 import { InviteeList } from "@/components/InviteApplicants";
-
-type CustomCreateTenant = CreateTenant & { currentEmail: string; currentDomain: string; };
+import countries from '@/app/(app)/onboarding/FormViewer/datasources/countries.json'
+import { uploadFile } from "@/actions/files";
+type CustomCreateTenant = CreateTenant & { currentEmail: string; currentDomain: string; logoName: string };
 
 export default function TenantOnboardingPage() {
   const [sending, startTransition] = React.useTransition();
@@ -32,6 +33,7 @@ export default function TenantOnboardingPage() {
       allowedDomains: [],
       currentEmail: '',
       currentDomain: '',
+      logoName: '',
       addressLine1: '',
       addressLine2: '',
       city: '',
@@ -45,7 +47,8 @@ export default function TenantOnboardingPage() {
   const schema = Yup.object().shape({
     name: Yup.string().max(255, 'Cannot exceed 255 characters').required('Required'),
     domain: Yup.string().matches(/^[a-z0-9-]+$/, 'May only contain numbers, lowercase letters, and dashes').max(255, 'Cannot exceed 255 characters').required('Required'),
-    logoUrl: Yup.string().max(255, 'Cannot exceed 255 characters'),
+    logoUrl: Yup.string(),
+    logoName: Yup.string(),
     plan: Yup.string().max(255, 'Cannot exceed 255 characters'),
     pallette: Yup.object().shape({
       primary: Yup.string().max(255, 'Cannot exceed 255 characters').required('Required'),
@@ -110,6 +113,7 @@ export default function TenantOnboardingPage() {
       onSubmit={(values: CustomCreateTenant) => {
         startTransition(async () => {
           try {
+            values.logoUrl = await uploadFile(null, values.logoUrl, values.logoName);
             await createTenant(values)
             const [currentSchema] = window.location.href.split('://');
             window.location.href = `${currentSchema}://${values.domain}.${window.location.host}/app/dashboard`;
@@ -134,8 +138,8 @@ export default function TenantOnboardingPage() {
           {getErrorMessage(errors)}
           <div className="space-y-8">
             <div>
-              <h1 className="text-3xl font-bold">Organization Setup</h1>
-              <p className="text-muted-foreground">Configure your tenant settings to get started.</p>
+              <h1 className="text-3xl font-bold">New institution form</h1>
+              <p className="text-muted-foreground">Please fill out the below form to get your institution's profile created.</p>
             </div>
             <Card>
               <CardHeader>
@@ -187,10 +191,11 @@ export default function TenantOnboardingPage() {
                             <SelectValue placeholder="Select country" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="us">United States</SelectItem>
-                            <SelectItem value="ca">Canada</SelectItem>
-                            <SelectItem value="uk">United Kingdom</SelectItem>
-                            {/* Add more countries as needed */}
+                            {countries.map((country) => (
+                              <SelectItem key={country.code} value={country.code}>
+                                {country.name}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       )}
@@ -233,7 +238,26 @@ export default function TenantOnboardingPage() {
               <CardContent className="grid gap-6">
                 <div className="grid gap-2">
                   <Label htmlFor="logoUrl">Logo URL</Label>
-                  <Input id="logoUrl" placeholder="Enter logo URL" name="logoUrl" disabled={isSubmitting || sending} onChange={handleChange} onBlur={handleBlur} value={values.logoUrl} />
+                  <Input
+                    id="logoUrl"
+                    placeholder="Enter logo URL"
+                    name="logoUrl"
+                    type="file"
+                    disabled={isSubmitting || sending}
+                    onBlur={handleBlur}
+                    onChange={e => {
+                      // we will read the file as a base64 url, and then set that value to the logoUrl field
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          setFieldValue('logoUrl', reader.result as string);
+                          setFieldValue('logoName', file.name);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
                   {errors.logoUrl && <p className="text-red-500 text-sm">{errors.logoUrl}</p>}
                   <div className="flex items-center gap-2">
                     <img
