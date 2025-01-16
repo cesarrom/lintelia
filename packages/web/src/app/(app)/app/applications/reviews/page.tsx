@@ -19,7 +19,14 @@ export default async function ApplicationsReviews() {
   const tenant = await getTenant();
   const applicantsResponse = await getAllApplications(tenant.domain, 'user');
 
-  const applicants = Object.values(
+  const applicants: Array<{
+    id: number;
+    name: string;
+    status: string;
+    purpose: string;
+    documents: string[];
+    risk: any;
+  }> = Object.values(
     Object.fromEntries(
       applicantsResponse.filter(a => !a.application.parentApplicationId).map(
         applicant => [
