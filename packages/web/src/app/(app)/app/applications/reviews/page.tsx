@@ -18,20 +18,24 @@ import { getTenant } from "@/actions/tenants";
 export default async function ApplicationsReviews() {
   const tenant = await getTenant();
   const applicantsResponse = await getAllApplications(tenant.domain, 'user');
-  console.log(applicantsResponse);
-  const applicants = await Promise.all(
-    applicantsResponse.map(
-      applicant => ({
-        id: applicant.application.id,
-        name: applicant.user.name,
-        status: applicant.application.status,
-        documents: ['ID', 'Selfie'],
-        risk: JSON.parse(applicant.application.data)?.risk,
-      })
+
+  const applicants = Object.values(
+    Object.fromEntries(
+      applicantsResponse.filter(a => !a.application.parentApplicationId).map(
+        applicant => [
+          applicant.application.id,
+          {
+            id: applicant.application.id,
+            name: applicant.user.name,
+            status: applicant.application.status,
+            purpose: applicant.application.applicationPurpose,
+            documents: ['ID', 'Selfie'],
+            risk: JSON.parse(applicant.application.data)?.risk,
+          }
+        ]
+      )
     )
   );
-
-  console.log(applicants);
 
   return (
     <div className="flex-1 bg-background p-6">
@@ -87,6 +91,7 @@ export default async function ApplicationsReviews() {
           <TableHeader>
             <TableRow>
               <TableHead>Client Name</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Risk Level</TableHead>
               <TableHead>Required Documents</TableHead>
@@ -100,6 +105,9 @@ export default async function ApplicationsReviews() {
                   <Link href={"/app/applications/reviews/" + applicant.id} className="font-medium" prefetch={false}>
                     {applicant.name}
                   </Link>
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline">{applicant.purpose}</Badge>
                 </TableCell>
                 <TableCell>
                   <Badge variant="secondary">{applicant.status}</Badge>

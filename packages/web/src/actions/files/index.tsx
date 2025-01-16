@@ -26,17 +26,18 @@ const cleanBase64 = (base64: string) => {
     }
     
     // Handle base64url (remove URL safe characters)
-    return base64.replace(/-/g, '+').replace(/_/g, '/');
+    return base64;
   
   
 }
 
-export const uploadFile = async (domain: string, base64: string, name: string) => {
+export const uploadFile = async (domain: string, base64Ref: string, name: string) => {
   const injector = await getInjector();
   const filesService = injector.resolve(FilesService);
-
+  const base64 = cleanBase64(base64Ref);
+  console.log(base64.length, 'base64');
   const { Key } = await filesService.uploadFile(
-    Buffer.from(cleanBase64(base64), 'base64'),
+    Buffer.from(base64, 'base64'),
     name
   );
 

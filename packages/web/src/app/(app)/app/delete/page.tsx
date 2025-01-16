@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,12 +15,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { AlertTriangle } from "lucide-react"
-import { deleteTenant } from '@/actions/tenants'
-import { useTenant } from '@/providers/tenant/tenant.provider'
+import { deleteTenant, GetTenant, getTenant } from '@/actions/tenants'
 import { useUser } from '@descope/nextjs-sdk/client'
 
 export default function Component() {
-  const { tenant } = useTenant();
+  const [tenant, setTenant] = useState<GetTenant | null>(null)
   const { user } = useUser();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [confirmText, setConfirmText] = useState('')
@@ -34,6 +33,16 @@ export default function Component() {
       await deleteTenant(tenant.domain, user.userId);
       window.location.href = '/';
     })
+  }
+
+  useEffect(() => {
+    startTransition(async () => {
+      await getTenant().then(setTenant);
+    });
+  }, []);
+
+  if (!tenant) {
+    return null;
   }
 
   return (

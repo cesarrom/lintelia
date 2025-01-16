@@ -3,7 +3,9 @@ import { Inter } from 'next/font/google'
 import { cn } from '@/lib/utils'
 import { AuthProvider } from '@descope/nextjs-sdk'
 import { env } from '@fintivio-sst/core/constants'
-import { TenantFetcher } from '@/providers/tenant/tenant-fetcher'
+import { getTenant } from '@/actions/tenants'
+import { getUser } from '@/actions/users'
+import { SessionProvider } from '@/providers/session.provider'
 
 const fontHeading = Inter({
   subsets: ['latin'],
@@ -18,9 +20,14 @@ const fontBody = Inter({
 })
 
 export default async function Layout({ children }: React.PropsWithChildren<unknown>) {
+  const [tenant, user] = await Promise.all([
+    getTenant(),
+    getUser()
+  ]);
+
   return (
     <AuthProvider projectId={env.DESCOPE_PROJECT_ID}>
-      <TenantFetcher>
+      <SessionProvider user={user} tenant={tenant}>
         <html lang="en">
           <body
             className={cn(
@@ -32,7 +39,7 @@ export default async function Layout({ children }: React.PropsWithChildren<unkno
             {children}
           </body>
         </html>
-      </TenantFetcher>
+      </SessionProvider>
     </AuthProvider>
   )
 }

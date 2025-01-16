@@ -1,23 +1,29 @@
 'use client';
-import React from "react";
+import React, { useCallback, useEffect } from "react";
 import { Formik, Field, FormikErrors } from 'formik';
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { createTenant } from "@/actions/tenants";
-import { CreateTenant } from "@fintivio-sst/core/services/tenants.service";
+import { type APICreateTenantRequest, CreatedTenant, createTenant } from "@/actions/tenants";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { X, XIcon } from "lucide-react";
+import { v4 as uuid } from 'uuid';
+import { X } from "lucide-react";
 import * as Yup from 'yup';
 import { InviteeList } from "@/components/InviteApplicants";
 import countries from '@/app/(app)/onboarding/FormViewer/datasources/countries.json'
 import { uploadFile } from "@/actions/files";
-type CustomCreateTenant = CreateTenant & { currentEmail: string; currentDomain: string; logoName: string };
+import timezones from './timezones.json';
+import { TimePicker } from "@/components/TimePicker";
+import { Gothic_A1 } from "next/font/google";
+type CustomCreateTenant = APICreateTenantRequest & {
+  currentEmail: string; currentDomain: string; logoName: string;
+  timezone: string;
+};
 
 export default function TenantOnboardingPage() {
   const [sending, startTransition] = React.useTransition();
+  const [tenant, setTenant] = React.useState<CreatedTenant | null>(null);
   const initialValues = React.useMemo(
     () => ({
       name: '',
@@ -42,6 +48,10 @@ export default function TenantOnboardingPage() {
       zipCode: '',
       startWorkingHour: '',
       endWorkingHour: '',
+      individualContract: '',
+      coApplicantContract: '',
+      businessContract: '',
+      timezone: '',
     }) as CustomCreateTenant,
     []);
   const schema = Yup.object().shape({
@@ -68,42 +78,62 @@ export default function TenantOnboardingPage() {
     zipCode: Yup.string().max(255, 'Cannot exceed 255 characters').required('Required'),
     startWorkingHour: Yup.string().max(255, 'Cannot exceed 255 characters').required('Required'),
     endWorkingHour: Yup.string().max(255, 'Cannot exceed 255 characters').required('Required'),
+    individualContract: Yup.string().required('Required'),
+    coApplicantContract: Yup.string().required('Required'),
+    businessContract: Yup.string().required('Required'),
+    timezone: Yup.string().max(255, 'Cannot exceed 255 characters').required('Required'),
   });
 
-  // TODO: show in the ui that the saving is in progress and when it is done
-
-  const getErrorMessage = (errors: FormikErrors<CustomCreateTenant>) => {
-    if (!errors || !Object.values(errors).length) {
-      return null;
+  const handleContractChange = (fieldName: string, setFieldValue: (fieldName: string, val: any) => unknown) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64String = e.target?.result?.toString().split(',')[1];
+        setFieldValue(fieldName, base64String);
+      };
+      reader.readAsDataURL(file);
     }
+  };
 
-    let { key, val } = Object.entries(errors).map(([key, val]) => ({ key, val }))[0];
+  const goToDashboard = useCallback(() => {
+    const [currentSchema] = window.location.href.split('://');
+    window.location.href = `${currentSchema}://${tenant.domain}.${window.location.host}/app/dashboard`;
+  }, [tenant]);
 
-    let [errorMessage] = [val].flat();
-
-    let limit = 30;
-
-    while (errorMessage && typeof errorMessage !== 'string') {
-      const [message] = [Object.values(errorMessage)[0]].flat();
-      errorMessage = message;
-
-      limit -= 1;
-
-      if (limit < 0) {
-        console.error('Error message processing is too long, aborting');
-        break;
-      }
+  useEffect(() => {
+    if (tenant && !tenant.cnameRecords.length) {
+      goToDashboard();
     }
+  }, [tenant, goToDashboard]);
 
-    const strMessage = errorMessage as string;
-
-    if (strMessage) {
-      return <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-        {key}: {strMessage}
+  if (tenant) {
+    return (
+      <div className="container max-w-4xl mx-auto p-6 sm:p-8 md:p-10">
+        <div className="space-y-8">
+          <div>
+            <h1 className="text-3xl font-bold">DNS Configuration Required</h1>
+            <p className="text-muted-foreground mb-6">Please set up the following CNAME records for your domain:</p>
+          </div>
+          <div className="bg-gray-50 p-6 rounded-lg">
+            {tenant.cnameRecords.map((record, index) => (
+              <div key={index} className="mb-4 last:mb-0">
+                <p className="font-mono bg-white p-3 rounded border">{record.Type}</p>
+                <p className="font-mono bg-white p-3 rounded border">{record.Name}</p>
+                <p className="font-mono bg-white p-3 rounded border">{record.Value}</p>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end">
+            <Button
+              onClick={goToDashboard}
+            >
+              Go to Dashboard
+            </Button>
+          </div>
+        </div>
       </div>
-    }
-
-    return null;
+    );
   }
 
   return (
@@ -113,10 +143,19 @@ export default function TenantOnboardingPage() {
       onSubmit={(values: CustomCreateTenant) => {
         startTransition(async () => {
           try {
-            values.logoUrl = await uploadFile(null, values.logoUrl, values.logoName);
-            await createTenant(values)
-            const [currentSchema] = window.location.href.split('://');
-            window.location.href = `${currentSchema}://${values.domain}.${window.location.host}/app/dashboard`;
+            const [logoUrl, individualContract, coApplicantContract, businessContract] = await Promise.all([
+              uploadFile(null, values.logoUrl, values.logoName),
+              uploadFile(null, values.individualContract, uuid() + '__individualContract.pdf'),
+              uploadFile(null, values.coApplicantContract, uuid() + '__coApplicantContract.pdf'),
+              uploadFile(null, values.businessContract, uuid() + '__businessContract.pdf'),
+            ]);
+
+            Object.assign(values, { logoUrl, individualContract, coApplicantContract, businessContract });
+
+            const response = await createTenant(values)
+
+            setTenant(response);
+
           } catch (e) {
             console.error(e);
           }
@@ -135,7 +174,6 @@ export default function TenantOnboardingPage() {
         /* and other goodies */
       }) => (
         <form onSubmit={handleSubmit} className="container max-w-4xl mx-auto p-6 sm:p-8 md:p-10">
-          {getErrorMessage(errors)}
           <div className="space-y-8">
             <div>
               <h1 className="text-3xl font-bold">New institution form</h1>
@@ -209,20 +247,41 @@ export default function TenantOnboardingPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
+                  <Label htmlFor="timezone">Timezone</Label>
+                  <Field
+                    name="timezone"
+                    render={() => (
+                      <Select required onValueChange={(value: string) => setFieldValue('timezone', value)} value={values.timezone} disabled={isSubmitting || sending} defaultValue={values.timezone}>
+                        <SelectTrigger id="timezone">
+                          <SelectValue placeholder="Select timezone" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {timezones.map((tz) => (
+                            <SelectItem key={tz.value} value={tz.value}>
+                              {tz.value}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.zipCode && <p className="text-red-500 text-sm">{errors.zipCode}</p>}
+                </div>
+                <div className="space-y-2">
                   <Label>Working Hours</Label>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      type="time"
+                  <div className="flex flex-col items-start space-x-2">
+                    <Field
                       name="startWorkingHour"
-                      required
-                      disabled={isSubmitting || sending} onChange={handleChange} onBlur={handleBlur} value={values.startWorkingHour}
+                      render={() => (
+                        <TimePicker date={values.startWorkingHour ? new Date(values.startWorkingHour) : undefined} setDate={(date) => setFieldValue('startWorkingHour', date.toISOString())} />
+                      )}
                     />
-                    <span>to</span>
-                    <Input
-                      type="time"
+                    <div>To</div>
+                    <Field
                       name="endWorkingHour"
-                      disabled={isSubmitting || sending} onChange={handleChange} onBlur={handleBlur} value={values.endWorkingHour}
-                      required
+                      render={() => (
+                        <TimePicker date={values.endWorkingHour ? new Date(values.endWorkingHour) : undefined} setDate={(date) => setFieldValue('endWorkingHour', date.toISOString())} />
+                      )}
                     />
                   </div>
                   {errors.startWorkingHour && <p className="text-red-500 text-sm">{errors.startWorkingHour}</p>}
@@ -354,6 +413,45 @@ export default function TenantOnboardingPage() {
                 setFieldValue('invitee', Object.entries(value).map(([email, role]) => ({ email, role })));
               }}
             />
+            <Card>
+              <CardHeader>
+                <CardTitle>Terms Templates</CardTitle>
+                <CardDescription>Upload your standard terms that users have to sign when they sign up to your platform</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="individual-contract">Individual Terms Template</Label>
+                  <Input
+                    id="individual-contract"
+                    type="file"
+                    accept=".pdf"
+                    onChange={handleContractChange('individualContract', setFieldValue)}
+                    disabled={sending}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="co-applicant-contract">Co-Applicant Terms Template</Label>
+                  <Input
+                    id="co-applicant-contract"
+                    type="file"
+                    accept=".pdf"
+                    onChange={handleContractChange('coApplicantContract', setFieldValue)}
+                    disabled={sending}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="business-contract">Business Terms Template</Label>
+                  <Input
+                    id="business-contract"
+                    type="file"
+                    accept=".pdf"
+                    onChange={handleContractChange('businessContract', setFieldValue)}
+                    disabled={sending}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
             {/* <Card>
           <CardHeader>
             <CardTitle>User Database</CardTitle>

@@ -4,13 +4,19 @@ import * as faceapi from 'face-api.js'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useDebounce } from 'use-debounce';
+import { StepProps } from '../stepProps'
+import { Sparkles } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { RiskAssessmentWizardStep } from '@/components/RiskAssessmentWizard'
+
+export const Feature = 'Proof of Life';
 
 const instructions = [
   { text: "Look straight at the camera", action: "neutral" },
   { text: "Smile", action: "smile" }
 ]
 
-export default function LivenessDetection({ onDone = () => { } }: { onDone?: () => unknown }) {
+export function Create({ onDone, currentStep: cs }: StepProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [currentStep, setCurrentStep] = useState(0)
@@ -20,10 +26,16 @@ export default function LivenessDetection({ onDone = () => { } }: { onDone?: () 
   const [done, setDone] = useState(false);
 
   useEffect(() => {
-    if (done) {
-      setTimeout(() => onDone(), 1500);
+    if (window.location.hostname.includes('local.fintivio.org')) {
+      onDone(cs)
     }
-  }, [done]);
+  }, [cs]);
+
+  useEffect(() => {
+    if (done) {
+      setTimeout(() => onDone(cs), 1500);
+    }
+  }, [done, cs]);
 
   useEffect(() => {
     if ((isDetecting || done) && 'speechSynthesis' in window) {
@@ -46,9 +58,17 @@ export default function LivenessDetection({ onDone = () => { } }: { onDone?: () 
   const startVideo = async () => {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: "user",
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+            aspectRatio: { ideal: 1.333 }
+          }
+        });
         if (videoRef.current) {
           videoRef.current.srcObject = stream
+          videoRef.current.playsInline = true;
           videoRef.current.onloadedmetadata = () => {
             videoRef.current?.play()
             setIsDetecting(true)
@@ -154,24 +174,46 @@ export default function LivenessDetection({ onDone = () => { } }: { onDone?: () 
   }
 
   return (
-    <Card className="w-full max-w-3xl">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold text-center">Liveness Detection</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {done ? null : <div className="relative w-full aspect-video max-w-[640px] mx-auto">
-          <video ref={videoRef} autoPlay muted className="rounded-lg shadow-lg absolute top-0 left-0 w-full h-full object-cover z-30" />
-          <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full z-50" />
-        </div>}
-        <p className="mt-4 text-center text-lg font-semibold">{message}</p>
-        <div className="mt-4 flex justify-center space-x-4">
-          {!isDetecting && !done ? (
-            <Button onClick={startDetection}>Start</Button>
-          ) : (
-            <Button onClick={stopDetection} variant="destructive">Stop</Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+    <>
+      <Card className="w-full max-w-3xl">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold text-center">Liveness Detection</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {done ? null : <div className="relative w-full aspect-video max-w-[640px] mx-auto">
+            <video ref={videoRef} playsInline autoPlay muted className="rounded-lg shadow-lg absolute top-0 left-0 w-full h-full object-cover z-30" />
+            <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full z-50" />
+          </div>}
+          <p className="mt-4 text-center text-lg font-semibold">{message}</p>
+          <div className="mt-4 flex justify-center space-x-4">
+            {!isDetecting && !done ? (
+              <Button onClick={startDetection}>Start</Button>
+            ) : (
+              <Button onClick={stopDetection} variant="destructive">Stop</Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </>
   )
+}
+
+export const Review = (props: StepProps) => {
+  return <div className="flex items-center justify-center p-4">
+    <motion.div
+      initial={{ opacity: 0, scale: 0.5 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5 }}
+      className="text-center"
+    >
+      <motion.p
+        className="text-lg text-gray-700 mt-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 2.5 }}
+      >
+        Proof of life passed successfully
+      </motion.p>
+    </motion.div>
+  </div>
 }

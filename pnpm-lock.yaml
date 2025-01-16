@@ -167,8 +167,11 @@ importers:
         specifier: ^1.9.1
         version: 1.9.1(@lezer/common@1.2.1)
       '@descope/nextjs-sdk':
-        specifier: ^0.2.2
-        version: 0.2.2(@reduxjs/toolkit@2.2.7)(@types/react@18.3.4)(encoding@0.1.13)(immer@10.1.1)(next@14.2.5)(react@18.3.1)(redux-thunk@3.1.0)(redux@5.0.1)
+        specifier: 0.3.10
+        version: 0.3.10(@reduxjs/toolkit@2.2.7)(@types/react@18.3.4)(encoding@0.1.13)(immer@10.1.1)(next@14.2.5)(react@18.3.1)(redux-thunk@3.1.0)(redux@5.0.1)
+      '@docuseal/signature-maker-react':
+        specifier: ^1.0.2
+        version: 1.0.2
       '@headlessui/react':
         specifier: ^2.1.10
         version: 2.1.10(react-dom@18.3.1)(react@18.3.1)
@@ -208,6 +211,15 @@ importers:
       '@radix-ui/react-tabs':
         specifier: ^1.1.0
         version: 1.1.0(@types/react-dom@18.3.0)(@types/react@18.3.4)(react-dom@18.3.1)(react@18.3.1)
+      '@react-pdf-viewer/core':
+        specifier: 3.6.0
+        version: 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      '@react-pdf-viewer/default-layout':
+        specifier: 3.6.0
+        version: 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      base64-encode-file:
+        specifier: ^1.0.7
+        version: 1.0.7
       class-variance-authority:
         specifier: ^0.7.0
         version: 0.7.0
@@ -262,6 +274,9 @@ importers:
       pdf-viewer-reactjs:
         specifier: ^2.2.3
         version: 2.2.3(bulma-helpers@0.4.3)(bulma@1.0.2)(material-design-icons@3.0.1)(react-dom@18.3.1)(react@18.3.1)
+      pdfjs-dist:
+        specifier: ^2.15.349
+        version: 2.16.105
       react:
         specifier: ^18
         version: 18.3.1
@@ -311,6 +326,9 @@ importers:
       '@types/react-dom':
         specifier: ^18
         version: 18.3.0
+      '@types/uuid':
+        specifier: ^10.0.0
+        version: 10.0.0
       postcss:
         specifier: ^8
         version: 8.4.41
@@ -1934,13 +1952,13 @@ packages:
       '@jridgewell/trace-mapping': 0.3.9
     dev: false
 
-  /@descope/access-key-management-widget@0.1.118(react@18.3.1):
-    resolution: {integrity: sha512-Bd/CcIiRlERUa1UTHk+9ndvBmSc6hGIzYtUiR1t65WQEbnx0eJs5Aw8ik+d+yvspBZI2WRaZlDh9nUkBAG3aWQ==}
+  /@descope/access-key-management-widget@0.2.3(react@18.3.1):
+    resolution: {integrity: sha512-s+YzPnZfADxx+8iQTnCkzlb1fKQIFAKpZS+k+JKDihNiwpep/LGoHuWGxYXvbjCo53Tl/bEBi3f7GnMwEk8lDg==}
     dependencies:
-      '@descope/sdk-component-drivers': 0.2.41
+      '@descope/sdk-component-drivers': 0.2.42
       '@descope/sdk-helpers': 0.1.60
-      '@descope/sdk-mixins': 0.3.0(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1)
-      '@descope/web-js-sdk': 1.16.3
+      '@descope/sdk-mixins': 0.4.0(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1)
+      '@descope/web-js-sdk': 1.20.2
       '@reduxjs/toolkit': 2.2.7(react@18.3.1)
       immer: 10.1.1
       redux: 5.0.1
@@ -1952,13 +1970,31 @@ packages:
       - react-redux
     dev: false
 
-  /@descope/audit-management-widget@0.1.81(react@18.3.1):
-    resolution: {integrity: sha512-S5krIHCVc4Br6OkYDmz0WjnNKBrlitEE1Na9XPmC7A5xgmQm7jfNFnO/QWtv1YzMcE1n6jvwryDFyfJAdFeL3Q==}
+  /@descope/applications-portal-widget@0.2.3(react@18.3.1):
+    resolution: {integrity: sha512-0pVuuMVZAdwDgV3spnfM/2VD0UrQbN82PJa3yrmmPNP8/LLf/3UgjHrFVYU7DPEBJo0hadK7MsCcZnVFen8/Lg==}
     dependencies:
-      '@descope/sdk-component-drivers': 0.2.41
+      '@descope/sdk-component-drivers': 0.2.42
       '@descope/sdk-helpers': 0.1.60
-      '@descope/sdk-mixins': 0.3.0(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1)
-      '@descope/web-js-sdk': 1.16.3
+      '@descope/sdk-mixins': 0.4.0(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1)
+      '@descope/web-js-sdk': 1.20.2
+      '@reduxjs/toolkit': 2.2.7(react@18.3.1)
+      immer: 10.1.1
+      redux: 5.0.1
+      redux-thunk: 3.1.0(redux@5.0.1)
+      reselect: 5.1.1
+      tslib: 2.6.3
+    transitivePeerDependencies:
+      - react
+      - react-redux
+    dev: false
+
+  /@descope/audit-management-widget@0.2.3(react@18.3.1):
+    resolution: {integrity: sha512-4UV3lhrXrVShBoDXNB7bcQIdieg95rs/iW3Ce0yCcDXNvIyyslyRHck4vCIKUytaeQTOK9ftcUwHLtSVqcmxYg==}
+    dependencies:
+      '@descope/sdk-component-drivers': 0.2.42
+      '@descope/sdk-helpers': 0.1.60
+      '@descope/sdk-mixins': 0.4.0(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1)
+      '@descope/web-js-sdk': 1.20.2
       '@reduxjs/toolkit': 2.2.7(react@18.3.1)
       immer: 10.1.1
       redux: 5.0.1
@@ -1976,29 +2012,33 @@ packages:
       jwt-decode: 3.1.2
     dev: false
 
-  /@descope/core-js-sdk@2.24.3:
-    resolution: {integrity: sha512-NqK57zXgKozIqCyjxhu7l4Mg6zPYOB7uxiZKnY3zpO2rOAiaSWZPg5dVrXtaDMJcBbHYsIY97LYfunMD3V/eiw==}
+  /@descope/core-js-sdk@2.31.0:
+    resolution: {integrity: sha512-y5Z8wQwmOt4IEt67XwS006jbtSVGumbcXDx6k+1/e3jHFzSLZdVnt9sgKKU0biQQl5jAi3GVNsilWVNIC4D2Ww==}
     dependencies:
-      jwt-decode: 3.1.2
+      jwt-decode: 4.0.0
     dev: false
 
-  /@descope/nextjs-sdk@0.2.2(@reduxjs/toolkit@2.2.7)(@types/react@18.3.4)(encoding@0.1.13)(immer@10.1.1)(next@14.2.5)(react@18.3.1)(redux-thunk@3.1.0)(redux@5.0.1):
-    resolution: {integrity: sha512-uj9T58oblUzmeCaqbGPPuMWRPqDoegBDOKzQX2fjQTBTBSYkwVQIUiFeV2l6Ss8jCeBnHIxZFUbZwuxkNccqFg==}
+  /@descope/escape-markdown@0.1.1:
+    resolution: {integrity: sha512-KWwz2p1k7EeMkEnHniwK6af5psi3R9cQcC9+YWyxUdE+2Kvs91XrdC5TRhxXcdEEO4ksxksMPfVNG1sWyAnRgw==}
+    dev: false
+
+  /@descope/nextjs-sdk@0.3.10(@reduxjs/toolkit@2.2.7)(@types/react@18.3.4)(encoding@0.1.13)(immer@10.1.1)(next@14.2.5)(react@18.3.1)(redux-thunk@3.1.0)(redux@5.0.1):
+    resolution: {integrity: sha512-ai2DHiZn7BJw9Oird1HZT5MxrQKQspKue9gAWN2yypMhRi8tvH4HJotRcmNkOyIPQS+8MGWWRRcy9uyo/btE/A==}
     engines: {node: ^18 || ^20}
     peerDependencies:
       '@types/react': '>=18'
       next: '>=13'
       react: '>=18'
     dependencies:
-      '@descope/core-js-sdk': 2.24.3
+      '@descope/core-js-sdk': 2.31.0
       '@descope/node-sdk': 1.6.9(encoding@0.1.13)
-      '@descope/react-sdk': 2.0.68(@reduxjs/toolkit@2.2.7)(@types/react@18.3.4)(immer@10.1.1)(react@18.3.1)(redux-thunk@3.1.0)(redux@5.0.1)
-      '@descope/web-component': 3.23.2(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1)
+      '@descope/react-sdk': 2.3.2(@reduxjs/toolkit@2.2.7)(@types/react@18.3.4)(immer@10.1.1)(react@18.3.1)(redux-thunk@3.1.0)(redux@5.0.1)
+      '@descope/web-component': 3.29.3(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1)
       '@types/react': 18.3.4
       next: 14.2.5(@playwright/test@1.48.2)(react-dom@18.3.1)(react@18.3.1)
       react: 18.3.1
     optionalDependencies:
-      '@descope/web-js-sdk': 1.16.3
+      '@descope/web-js-sdk': 1.20.2
     transitivePeerDependencies:
       - '@reduxjs/toolkit'
       - encoding
@@ -2020,20 +2060,21 @@ packages:
       - encoding
     dev: false
 
-  /@descope/react-sdk@2.0.68(@reduxjs/toolkit@2.2.7)(@types/react@18.3.4)(immer@10.1.1)(react@18.3.1)(redux-thunk@3.1.0)(redux@5.0.1):
-    resolution: {integrity: sha512-EB744NMkKmRrTRPdw2kKcyRD0FcB1hivM5XOjUtdteCxbtr9DpQAa88k5XEh+4j0p7aaxYkTuCN8e7BBFS1UQw==}
+  /@descope/react-sdk@2.3.2(@reduxjs/toolkit@2.2.7)(@types/react@18.3.4)(immer@10.1.1)(react@18.3.1)(redux-thunk@3.1.0)(redux@5.0.1):
+    resolution: {integrity: sha512-r0ZkL/tCRSW+CCJehccm3W5OXl9aVZuxFIJMMP9Au7dZsUzeW9Ez6T2gKs11JYTKTz4BYt66l1nIEqUijLnJ6Q==}
     peerDependencies:
       '@types/react': '>=17'
       react: '>=17'
     dependencies:
-      '@descope/access-key-management-widget': 0.1.118(react@18.3.1)
-      '@descope/audit-management-widget': 0.1.81(react@18.3.1)
-      '@descope/core-js-sdk': 2.24.3
-      '@descope/role-management-widget': 0.1.116(react@18.3.1)
-      '@descope/user-management-widget': 0.4.119(react@18.3.1)
-      '@descope/user-profile-widget': 0.0.100(react@18.3.1)
-      '@descope/web-component': 3.23.2(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1)
-      '@descope/web-js-sdk': 1.16.3
+      '@descope/access-key-management-widget': 0.2.3(react@18.3.1)
+      '@descope/applications-portal-widget': 0.2.3(react@18.3.1)
+      '@descope/audit-management-widget': 0.2.3(react@18.3.1)
+      '@descope/core-js-sdk': 2.31.0
+      '@descope/role-management-widget': 0.2.3(react@18.3.1)
+      '@descope/user-management-widget': 0.5.3(react@18.3.1)
+      '@descope/user-profile-widget': 0.1.3(react@18.3.1)
+      '@descope/web-component': 3.29.3(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1)
+      '@descope/web-js-sdk': 1.20.2
       '@types/react': 18.3.4
       react: 18.3.1
     transitivePeerDependencies:
@@ -2044,13 +2085,13 @@ packages:
       - redux-thunk
     dev: false
 
-  /@descope/role-management-widget@0.1.116(react@18.3.1):
-    resolution: {integrity: sha512-S+3Wq505JjEfXLhfoM9iWy+F9kDo/6CpIjIlH3wEjAYK8d5zXXJna7kYQOgTiTowvIekhiYRVNeUrdlIlj+8Ow==}
+  /@descope/role-management-widget@0.2.3(react@18.3.1):
+    resolution: {integrity: sha512-YRPv7SrQwTkWYQQZkp+hSkOOKaP2dIomEJzDZKOZ7ansMhaY9NZhT5GP4P0X3ftcQRWS/tARk6DYrixROCuIYg==}
     dependencies:
-      '@descope/sdk-component-drivers': 0.2.41
+      '@descope/sdk-component-drivers': 0.2.42
       '@descope/sdk-helpers': 0.1.60
-      '@descope/sdk-mixins': 0.3.0(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1)
-      '@descope/web-js-sdk': 1.16.3
+      '@descope/sdk-mixins': 0.4.0(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1)
+      '@descope/web-js-sdk': 1.20.2
       '@reduxjs/toolkit': 2.2.7(react@18.3.1)
       immer: 10.1.1
       redux: 5.0.1
@@ -2062,8 +2103,8 @@ packages:
       - react-redux
     dev: false
 
-  /@descope/sdk-component-drivers@0.2.41:
-    resolution: {integrity: sha512-JRV1t2p2ULvb1Bvtrll1CglqIuz86BDgomrgZUKMHfIpem1TVuINouJxkX7GyoayUMTchBn5vVd4ZtlvW9F8/Q==}
+  /@descope/sdk-component-drivers@0.2.42:
+    resolution: {integrity: sha512-2HGVnOHGml8AW1maCdf5b9/ZN3tFo/NEUEgerkySo/hBMedVZ0tEclEadfGnoe/xFY4+Mr3xzjJOfqlPZOHjFg==}
     dependencies:
       '@descope/sdk-helpers': 0.1.60
       tslib: 2.6.3
@@ -2075,15 +2116,15 @@ packages:
       tslib: 2.6.3
     dev: false
 
-  /@descope/sdk-mixins@0.3.0(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1):
-    resolution: {integrity: sha512-XSA7LZkxigG73+80DyqPPILDMSvmK4LzeSrBAs5TPau0tDsCKzC5o3GK6YALRqqzbznxKLL/rzWXDgRlYkF1Bg==}
+  /@descope/sdk-mixins@0.4.0(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1):
+    resolution: {integrity: sha512-4eRjwEqONOoCP/5yFIiq4W544PAte6f/mcu9fAV47PMX3aH5CmOE4q9Si9udVLPYZuZ39uHLi1T+4UpCnVLaJQ==}
     peerDependencies:
       '@reduxjs/toolkit': ^2.0.1
       immer: ^10.0.3
       redux: 5.0.1
       redux-thunk: 3.1.0
     dependencies:
-      '@descope/sdk-component-drivers': 0.2.41
+      '@descope/sdk-component-drivers': 0.2.42
       '@descope/sdk-helpers': 0.1.60
       '@reduxjs/toolkit': 2.2.7(react@18.3.1)
       immer: 10.1.1
@@ -2092,13 +2133,13 @@ packages:
       tslib: 2.6.3
     dev: false
 
-  /@descope/user-management-widget@0.4.119(react@18.3.1):
-    resolution: {integrity: sha512-ykvWo1RpW9uyuInxgnURXX/AOxQ57XitMOmV/oL4duawYBmu3tc0CIL2DHSwhREGxL8oFLNcw5ES9tGONf27YQ==}
+  /@descope/user-management-widget@0.5.3(react@18.3.1):
+    resolution: {integrity: sha512-WGlS/cNVodZG6532kAFBSdX4pMSyQlSdlVwNQyAbAINrrvSVl2Mg+JyeMynP+8jcMMg4uW25/ULDfVbMHx3ZGw==}
     dependencies:
-      '@descope/sdk-component-drivers': 0.2.41
+      '@descope/sdk-component-drivers': 0.2.42
       '@descope/sdk-helpers': 0.1.60
-      '@descope/sdk-mixins': 0.3.0(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1)
-      '@descope/web-js-sdk': 1.16.3
+      '@descope/sdk-mixins': 0.4.0(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1)
+      '@descope/web-js-sdk': 1.20.2
       '@reduxjs/toolkit': 2.2.7(react@18.3.1)
       immer: 10.1.1
       libphonenumber-js: 1.11.4
@@ -2111,14 +2152,14 @@ packages:
       - react-redux
     dev: false
 
-  /@descope/user-profile-widget@0.0.100(react@18.3.1):
-    resolution: {integrity: sha512-Ap48dP010cRlpjY926VQvEmUoewlo6U+Q5aopUgx69zMZfWRo32Hs67fXUsmICCTw3ZfiEDg2c6gmX09/7oYeQ==}
+  /@descope/user-profile-widget@0.1.3(react@18.3.1):
+    resolution: {integrity: sha512-5j6t0UdLcRO/IAJrI/ss0rm/SVJUAp3/rjhjZWK8jDvKl4xp7e9JwVddYaBX2ySZ7PX1b+6Fjuapv5NynhbuvA==}
     dependencies:
-      '@descope/sdk-component-drivers': 0.2.41
+      '@descope/sdk-component-drivers': 0.2.42
       '@descope/sdk-helpers': 0.1.60
-      '@descope/sdk-mixins': 0.3.0(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1)
-      '@descope/web-component': 3.23.2(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1)
-      '@descope/web-js-sdk': 1.16.3
+      '@descope/sdk-mixins': 0.4.0(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1)
+      '@descope/web-component': 3.29.3(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1)
+      '@descope/web-js-sdk': 1.20.2
       '@reduxjs/toolkit': 2.2.7(react@18.3.1)
       immer: 10.1.1
       redux: 5.0.1
@@ -2126,18 +2167,19 @@ packages:
       reselect: 5.1.1
       tslib: 2.6.3
     optionalDependencies:
-      '@descope/core-js-sdk': 2.24.3
+      '@descope/core-js-sdk': 2.31.0
     transitivePeerDependencies:
       - react
       - react-redux
     dev: false
 
-  /@descope/web-component@3.23.2(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1):
-    resolution: {integrity: sha512-4dzy1IBAB0EG74hHxbuuxbRPE6Tkyl3Ezm52pwkv88HZpnYEE3acvZXM2h6oXRAeZGwZ7EbRg+0Dj3ZEDFwmrQ==}
+  /@descope/web-component@3.29.3(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1):
+    resolution: {integrity: sha512-d1UYcDoTK7JCNYR+B+/5IlDf2oy3oNlqrJnzFh6J8FKF5CGB0wYe3AiTdZqkgT/fS4rVmutiENrHlULNsPgcGQ==}
     dependencies:
+      '@descope/escape-markdown': 0.1.1
       '@descope/sdk-helpers': 0.1.60
-      '@descope/sdk-mixins': 0.3.0(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1)
-      '@descope/web-js-sdk': 1.16.3
+      '@descope/sdk-mixins': 0.4.0(@reduxjs/toolkit@2.2.7)(immer@10.1.1)(redux-thunk@3.1.0)(redux@5.0.1)
+      '@descope/web-js-sdk': 1.20.2
       '@fingerprintjs/fingerprintjs-pro': 3.9.9
       tslib: 2.6.3
     transitivePeerDependencies:
@@ -2147,14 +2189,27 @@ packages:
       - redux-thunk
     dev: false
 
-  /@descope/web-js-sdk@1.16.3:
-    resolution: {integrity: sha512-jQL2CtPvIupNgD6nm8zKq3Fyqf6b8T9BBDQnpzvrKFx51iqtaUBI/qnot56Pyt4qtFp/nvajOZ+pOZ10s/nqEQ==}
+  /@descope/web-js-sdk@1.20.2:
+    resolution: {integrity: sha512-MN289cbjo9ujDJguxZMqghxE9vpvDpVD7xty56e9zxnra6msY49lgSAApcyc56/o+y45PxU2sxX6LyMmeMjjVQ==}
+    requiresBuild: true
     dependencies:
-      '@descope/core-js-sdk': 2.24.3
+      '@descope/core-js-sdk': 2.31.0
       '@fingerprintjs/fingerprintjs-pro': 3.9.9
       js-cookie: 3.0.5
-      jwt-decode: 3.1.2
+      jwt-decode: 4.0.0
       tslib: 2.6.3
+    dev: false
+
+  /@docuseal/signature-maker-js@1.0.1:
+    resolution: {integrity: sha512-xXj4lEsz5w1UIXqCPnN4Fz7nCoxDB911bgxPn+g3th+hzGa3UMvVxHUDaEudesNtQAVWjnMAVpKLDZfXjIKanw==}
+    dependencies:
+      signature_pad: 5.0.4
+    dev: false
+
+  /@docuseal/signature-maker-react@1.0.2:
+    resolution: {integrity: sha512-WATE2ZE+mcMF6sGSOQDOUMk1b9SbNgH1a0kVbZGiZGdCJG7OaWoKAYL0Ef9C4jxaDoHmSlxhkPCqMcUMWpm5Pg==}
+    dependencies:
+      '@docuseal/signature-maker-js': 1.0.1
     dev: false
 
   /@drizzle-team/brocli@0.10.1:
@@ -3312,6 +3367,7 @@ packages:
   /@mapbox/node-pre-gyp@1.0.11(encoding@0.1.13):
     resolution: {integrity: sha512-Yhlar6v9WQgUp/He7BdgzOz8lqMQ8sU+jkCq7Wx8Myc5YFJLbEe7lgui/V7G1qB1DJykHSGwreceSaD60Y0PUQ==}
     hasBin: true
+    requiresBuild: true
     dependencies:
       detect-libc: 2.0.2
       https-proxy-agent: 5.0.1
@@ -4283,6 +4339,255 @@ packages:
       '@swc/helpers': 0.5.5
       clsx: 2.1.1
       react: 18.3.1
+    dev: false
+
+  /@react-pdf-viewer/attachment@3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-etxzIQsssuUE0TYVScHDuL+AArQp3YbDTowGbpdCv8JqJFYzuGFV9+3uyvJ8QlGcPChhhr2CjHrbCTF2F2bw5w==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    dependencies:
+      '@react-pdf-viewer/core': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    transitivePeerDependencies:
+      - pdfjs-dist
+    dev: false
+
+  /@react-pdf-viewer/bookmark@3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-HaAQjaDrzE6Lbt89f0B1Z+jst3moSG3pqok7aGO4PmclxH4mtbBGK+zyXpWdF5+8feEnAa7QP3nWod5uAhJUQw==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    dependencies:
+      '@react-pdf-viewer/core': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    transitivePeerDependencies:
+      - pdfjs-dist
+    dev: false
+
+  /@react-pdf-viewer/core@3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-5tDBF+BafVLNULIJf1cej7nBegNrbYtdvoBKtRs9mLo3sGENIyeZuDsP4W+5mSKK84oxO3NY5MzkTkmnuu4R9g==}
+    peerDependencies:
+      pdfjs-dist: ^2.6.347
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    dependencies:
+      pdfjs-dist: 2.16.105
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    dev: false
+
+  /@react-pdf-viewer/default-layout@3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-68DjK+FB5+zyK5FKFYmIEcplq64Jejb3Y7tAVa9U/tEsoRnZt7C2mKW2e1IAEDZc+1ncdIboZvlFfRCSEDiG5A==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    dependencies:
+      '@react-pdf-viewer/attachment': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      '@react-pdf-viewer/bookmark': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      '@react-pdf-viewer/core': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      '@react-pdf-viewer/thumbnail': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      '@react-pdf-viewer/toolbar': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    transitivePeerDependencies:
+      - pdfjs-dist
+    dev: false
+
+  /@react-pdf-viewer/full-screen@3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-SG5mpE/AZr6DtwP7soGFqfGoU5wbQvaBc2KTz+upqhgmUIEyE8AwGa+ozCgkGEqTvlJ4dP7D5Kku2BFsC6l3Cg==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    dependencies:
+      '@react-pdf-viewer/core': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    transitivePeerDependencies:
+      - pdfjs-dist
+    dev: false
+
+  /@react-pdf-viewer/get-file@3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-cfMrig0Iu49yTePZSWwnyUMqu2F1pynP59snhTRoOg7RbpcAcppnDcYvVjThsE80wq1ltgMnufaVSsVoSbqIrQ==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    dependencies:
+      '@react-pdf-viewer/core': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    transitivePeerDependencies:
+      - pdfjs-dist
+    dev: false
+
+  /@react-pdf-viewer/open@3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-l/fBEj/7KjYH/mLMukos0nYypIuhovq2dO3TkQBHzQPdwtBdUTr049+AiSZnMDx1CIpr8Oz3FjB5FSw+LZuUog==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    dependencies:
+      '@react-pdf-viewer/core': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    transitivePeerDependencies:
+      - pdfjs-dist
+    dev: false
+
+  /@react-pdf-viewer/page-navigation@3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-YAfJ3Q6jEZ2ZtXwsdPSeCddrMvdtIG1bZidhujz47LRgZyr9ZmFVd5/D9aGm12sY5F/XB6V71SOnkww0aEOTqw==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    dependencies:
+      '@react-pdf-viewer/core': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    transitivePeerDependencies:
+      - pdfjs-dist
+    dev: false
+
+  /@react-pdf-viewer/print@3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-bQSf+qsl1OZlB6Ft1ES5xjqTirIbF1m0pZD5KLRuxAAjqMyeTBZOLC3mpgRXg2nGJ0X3BcrDrurNIkXO/CE2SQ==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    dependencies:
+      '@react-pdf-viewer/core': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    transitivePeerDependencies:
+      - pdfjs-dist
+    dev: false
+
+  /@react-pdf-viewer/properties@3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-J0tQxYK3ql3dXgjtiqOH1gU3ajUMWE5O6BNxFqE0zvE7BsnDZH6wfCVi8okkbivp0oEKC4TjSxF+KkHa9HZlPw==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    dependencies:
+      '@react-pdf-viewer/core': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    transitivePeerDependencies:
+      - pdfjs-dist
+    dev: false
+
+  /@react-pdf-viewer/rotate@3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-E1LZhWdj5dGwwZ3VreC32eT0VesniOTp1zDeZVX3Tom8XXxc9+A5/H/+DTY0/v1wimR5afB2aqCtQIjcQVupeQ==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    dependencies:
+      '@react-pdf-viewer/core': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    transitivePeerDependencies:
+      - pdfjs-dist
+    dev: false
+
+  /@react-pdf-viewer/scroll-mode@3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-KBIdCZsJxbtOAlSOgw1IpGdS5txboHXPheRnjWtjNpOCWAhkYwKV4YNRAdTATPxb+zcOrkWmiU4sHgj9m4kQLw==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    dependencies:
+      '@react-pdf-viewer/core': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    transitivePeerDependencies:
+      - pdfjs-dist
+    dev: false
+
+  /@react-pdf-viewer/search@3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-VxqUfws400C2FwaOzKTvgZgI8bhQ0Hx4aL/Ada42WbUmnySm+SGSM+l7Snj3q5pbYd3svcyz9xTlVrJDfXQ4IQ==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    dependencies:
+      '@react-pdf-viewer/core': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    transitivePeerDependencies:
+      - pdfjs-dist
+    dev: false
+
+  /@react-pdf-viewer/selection-mode@3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-To8Sev/30eQMDzVofPfwWXoEUfWUizqD7O67VCG+oaP6yc640y/MX4nVsP9kg+u2Git3CFSolaHgEWg/sOY60A==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    dependencies:
+      '@react-pdf-viewer/core': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    transitivePeerDependencies:
+      - pdfjs-dist
+    dev: false
+
+  /@react-pdf-viewer/theme@3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-IfLLKvKeuIK0dqL9YcSjSsopvhYKBEQLoDHc1lZ/XZGXANbqExFwOCeklPx40HwgUm8LL/arJNoLrbrGrGMCCA==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    dependencies:
+      '@react-pdf-viewer/core': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    transitivePeerDependencies:
+      - pdfjs-dist
+    dev: false
+
+  /@react-pdf-viewer/thumbnail@3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-fd0SERR9yPfWN5cpnhiJ3qp9KG7hR1FJkJ8S5KgDbl3AObn1tOM9Kw8m4Qw8Od5GIrsxxhdTUdw4esup5n2RBg==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    dependencies:
+      '@react-pdf-viewer/core': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    transitivePeerDependencies:
+      - pdfjs-dist
+    dev: false
+
+  /@react-pdf-viewer/toolbar@3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-Efz8hNsmes7A2kHVBZkXsWwrYsjybUDOf+Y69LRWilpNij4D/jtVdysQ0uSoeZYYT4P0OfNnxB5ZcdHZCn6PXg==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    dependencies:
+      '@react-pdf-viewer/core': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      '@react-pdf-viewer/full-screen': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      '@react-pdf-viewer/get-file': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      '@react-pdf-viewer/open': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      '@react-pdf-viewer/page-navigation': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      '@react-pdf-viewer/print': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      '@react-pdf-viewer/properties': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      '@react-pdf-viewer/rotate': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      '@react-pdf-viewer/scroll-mode': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      '@react-pdf-viewer/search': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      '@react-pdf-viewer/selection-mode': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      '@react-pdf-viewer/theme': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      '@react-pdf-viewer/zoom': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    transitivePeerDependencies:
+      - pdfjs-dist
+    dev: false
+
+  /@react-pdf-viewer/zoom@3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1):
+    resolution: {integrity: sha512-EEmYtC07UVK1c8wLyL1fH4PszCsi8r0smPtuuiKN0AMR40ac4GcjiqxmJppgP7HOLexCk38lgg+SpIDGuLCV4Q==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    dependencies:
+      '@react-pdf-viewer/core': 3.6.0(pdfjs-dist@2.16.105)(react-dom@18.3.1)(react@18.3.1)
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+    transitivePeerDependencies:
+      - pdfjs-dist
     dev: false
 
   /@react-stately/utils@3.10.4(react@18.3.1):
@@ -5363,6 +5668,10 @@ packages:
     resolution: {integrity: sha512-YvMLqFak/7rt//lPBtEHv3M4sRNA+HGxrhFZ+DQs9K2IkYJbNwVIb8avtJfhDiuaUBX/AW0jnjv48FV8h3u9bQ==}
     dev: false
 
+  /@types/uuid@10.0.0:
+    resolution: {integrity: sha512-7gqG38EyHgyP1S+7+xomFtL+ZNHcKv6DwNaCZmJmo1vgMugyF3TCnXVg4t1uk89mLNwnLtnY3TpOpCOyp1/xHQ==}
+    dev: true
+
   /@types/webgl-ext@0.0.30:
     resolution: {integrity: sha512-LKVgNmBxN0BbljJrVUwkxwRYqzsAEPcZOe6S2T6ZaBDIrFp0qu4FNlpc5sM1tGbXUYFgdVQIoeLk1Y1UoblyEg==}
     dev: false
@@ -5423,6 +5732,7 @@ packages:
 
   /abbrev@1.1.1:
     resolution: {integrity: sha512-nne9/IiQ/hzIhY6pdDnbBtz7DjPTKrY00P/zvPSm5pOFkl6xuGrGnXn/VtTNNfNtAfZ9/1RtehkszU9qcTii0Q==}
+    requiresBuild: true
     dev: false
 
   /acorn-walk@8.3.4:
@@ -5441,6 +5751,7 @@ packages:
   /agent-base@6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
     engines: {node: '>= 6.0.0'}
+    requiresBuild: true
     dependencies:
       debug: 4.3.6
     transitivePeerDependencies:
@@ -5477,12 +5788,14 @@ packages:
 
   /aproba@2.0.0:
     resolution: {integrity: sha512-lYe4Gx7QT+MKGbDsA+Z+he/Wtef0BiwDOlK/XkBrdfsh9J/jPPXbX0tE9x9cl27Tmu5gg3QUbUrQYa/y+KOHPQ==}
+    requiresBuild: true
     dev: false
 
   /are-we-there-yet@2.0.0:
     resolution: {integrity: sha512-Ci/qENmwHnsYo9xKIcUJN5LeDKdJ6R1Z1j9V/J5wyq8nh/mYPEpIKJbBZXtZjG04HiK7zV/p6Vs9952MrMeUIw==}
     engines: {node: '>=10'}
     deprecated: This package is no longer supported.
+    requiresBuild: true
     dependencies:
       delegates: 1.0.0
       readable-stream: 3.6.2
@@ -5563,6 +5876,10 @@ packages:
     resolution: {integrity: sha512-kwDPIFCGx0NZHog36dj+tHiwP4QMzsZ3AgMViUBKI0+V5n4U0ufTCUMhnQ04diaRI8EX/QcPfql7zlhZ7j4zgg==}
     dev: false
 
+  /base64-encode-file@1.0.7:
+    resolution: {integrity: sha512-5f9xGrLRBPc6OYM+qqAbsdxjGDCdRqYnThwCmSpBGVa9JDbKochGJXyMc9ufZ+RGYJcZuh/Pt/qeroJy7jyORg==}
+    dev: false
+
   /base64-js@1.5.1:
     resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
     dev: false
@@ -5598,6 +5915,7 @@ packages:
 
   /brace-expansion@1.1.11:
     resolution: {integrity: sha512-iCuPHDFgrHX7H2vEI/5xpz07zSHB00TpugqhmYtVmMO6518mCuRMoOYFldEBl0g187ufozdaHgWKcYFb61qGiA==}
+    requiresBuild: true
     dependencies:
       balanced-match: 1.0.2
       concat-map: 0.0.1
@@ -5738,6 +6056,7 @@ packages:
   /chownr@2.0.0:
     resolution: {integrity: sha512-bIomtDF5KGpdogkLd9VspvFzk9KfpyyGlS8YFVZl7TGPBHL5snIOnxeshwVgPteQ9b4Eydl+pVbIyE1DcvCWgQ==}
     engines: {node: '>=10'}
+    requiresBuild: true
     dev: false
 
   /class-variance-authority@0.7.0:
@@ -5790,6 +6109,7 @@ packages:
   /color-support@1.1.3:
     resolution: {integrity: sha512-qiBjkpbMLO/HL68y+lh4q0/O1MZFj2RX6X/KmMa3+gJD3z+WwI1ZzDHysvqHGS3mP6mznPckpXmw1nI9cJjyRg==}
     hasBin: true
+    requiresBuild: true
     dev: false
 
   /combined-stream@1.0.8:
@@ -5816,10 +6136,12 @@ packages:
 
   /concat-map@0.0.1:
     resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
+    requiresBuild: true
     dev: false
 
   /console-control-strings@1.1.0:
     resolution: {integrity: sha512-ty/fTekppD2fIwRvnZAVdeOiGd1c7YXEixbgJTNzqcxJWKQnjJ/V1bNEEE6hygpM3WjwHFUVK6HTjWSzV4a8sQ==}
+    requiresBuild: true
     dev: false
 
   /contra@1.9.4:
@@ -5927,6 +6249,7 @@ packages:
 
   /delegates@1.0.0:
     resolution: {integrity: sha512-bd2L678uiWATM6m5Z1VzNCErI3jiGzt6HGY8OVICs40JQq/HALfbyNJmp0UDakEY4pMMaN0Ly5om/B1VI/+xfQ==}
+    requiresBuild: true
     dev: false
 
   /dequal@2.0.3:
@@ -5937,6 +6260,7 @@ packages:
   /detect-libc@2.0.2:
     resolution: {integrity: sha512-UX6sGumvvqSaXgdKGUsgZWqcUyIXZ/vZTrlRT/iobiKhGL0zL4d3osHj3uqllWJK+i+sixDS/3COVEOFbupFyw==}
     engines: {node: '>=8'}
+    requiresBuild: true
 
   /detect-node-es@1.1.0:
     resolution: {integrity: sha512-ypdmJU/TbBby2Dxibuv7ZLW3Bs1QEmM7nHjEANfohJLvE0XVujisn1qPJcZxg+qDucsr+bP6fLD1rPS3AhJ7EQ==}
@@ -6624,12 +6948,14 @@ packages:
   /fs-minipass@2.1.0:
     resolution: {integrity: sha512-V/JgOLFCS+R6Vcq0slCuaeWEdNC3ouDlJMNIsacH2VtALiu9mV4LPrHc5cDl8k5aw6J8jwgWWpiTo5RYhmIzvg==}
     engines: {node: '>= 8'}
+    requiresBuild: true
     dependencies:
       minipass: 3.3.6
     dev: false
 
   /fs.realpath@1.0.0:
     resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
+    requiresBuild: true
     dev: false
 
   /fsevents@2.3.2:
@@ -6653,6 +6979,7 @@ packages:
     resolution: {integrity: sha512-+5J6MS/5XksCuXq++uFRsnUd7Ovu1XenbeuIuNRJxYWjgQbPuFhT14lAvsWfqfAmnwluf1OwMjz39HjfLPci0Q==}
     engines: {node: '>=10'}
     deprecated: This package is no longer supported.
+    requiresBuild: true
     dependencies:
       aproba: 2.0.0
       color-support: 1.1.3
@@ -6722,6 +7049,7 @@ packages:
   /glob@7.2.3:
     resolution: {integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==}
     deprecated: Glob versions prior to v9 are no longer supported
+    requiresBuild: true
     dependencies:
       fs.realpath: 1.0.0
       inflight: 1.0.6
@@ -6766,6 +7094,7 @@ packages:
 
   /has-unicode@2.0.1:
     resolution: {integrity: sha512-8Rf9Y83NBReMnx0gFzA8JImQACstCYWUplepDa9xprwwtmgEZUF0h/i5xSA625zB/I37EtrswSST6OXxwaaIJQ==}
+    requiresBuild: true
     dev: false
 
   /hasown@2.0.2:
@@ -6795,6 +7124,7 @@ packages:
   /https-proxy-agent@5.0.1:
     resolution: {integrity: sha512-dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA==}
     engines: {node: '>= 6'}
+    requiresBuild: true
     dependencies:
       agent-base: 6.0.2
       debug: 4.3.6
@@ -6845,6 +7175,7 @@ packages:
   /inflight@1.0.6:
     resolution: {integrity: sha512-k92I/b08q4wvFscXCLvqfsHCrjrF7yiXsQuIVvVE7N82W3+aqpzuUdBbfhWcy/FZR3/4IgflMgKLOsvPDrGCJA==}
     deprecated: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+    requiresBuild: true
     dependencies:
       once: 1.4.0
       wrappy: 1.0.2
@@ -6856,6 +7187,7 @@ packages:
 
   /inherits@2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
+    requiresBuild: true
     dev: false
 
   /invariant@2.2.4:
@@ -6973,6 +7305,11 @@ packages:
 
   /jwt-decode@3.1.2:
     resolution: {integrity: sha512-UfpWE/VZn0iP50d8cz9NrZLM9lSWhcJ+0Gt/nm4by88UL+J1SiKN8/5dkjMmbEzwL2CAe+67GsegCbIKtbp75A==}
+    dev: false
+
+  /jwt-decode@4.0.0:
+    resolution: {integrity: sha512-+KJGIyHgkGuIq3IEBNftfhW/LfWhXUIY6OmyVWjliu5KH1y0fw7VQ8YndE2O4qZdMSd9SqbnC8GOcZEy0Om7sA==}
+    engines: {node: '>=18'}
     dev: false
 
   /lang-feel@2.2.0:
@@ -7110,6 +7447,7 @@ packages:
   /make-dir@3.1.0:
     resolution: {integrity: sha512-g3FeP20LNwhALb/6Cz6Dd4F2ngze0jz7tbzrD2wAV+o9FeNHe4rL+yK2md0J/fiSf1sa1ADhXqi5+oVwOM/eGw==}
     engines: {node: '>=8'}
+    requiresBuild: true
     dependencies:
       semver: 6.3.1
     dev: false
@@ -7208,6 +7546,7 @@ packages:
 
   /minimatch@3.1.2:
     resolution: {integrity: sha512-J7p63hRiAjw1NDEww1W7i37+ByIrOWO5XQQAzZ3VOcL0PNybwpfmV/N05zFAzwQ9USyEcX6t3UO+K5aqBQOIHw==}
+    requiresBuild: true
     dependencies:
       brace-expansion: 1.1.11
     dev: false
@@ -7221,6 +7560,7 @@ packages:
   /minipass@3.3.6:
     resolution: {integrity: sha512-DxiNidxSEK+tHG6zOIklvNOwm3hvCrbUrdtzY74U6HKTJxvIDfOUL5W5P2Ghd3DTkhhKPYGqeNUIh5qcM4YBfw==}
     engines: {node: '>=8'}
+    requiresBuild: true
     dependencies:
       yallist: 4.0.0
     dev: false
@@ -7228,6 +7568,7 @@ packages:
   /minipass@5.0.0:
     resolution: {integrity: sha512-3FnjYuehv9k6ovOEbyOswadCDPX1piCfhV8ncmYtHOjuPwylVWsghTLo7rabjC3Rx5xD4HDx8Wm1xnMF7S5qFQ==}
     engines: {node: '>=8'}
+    requiresBuild: true
     dev: false
 
   /minipass@7.1.2:
@@ -7237,6 +7578,7 @@ packages:
   /minizlib@2.1.2:
     resolution: {integrity: sha512-bAxsR8BVfj60DWXHE3u30oHzfl4G7khkSuPW+qvpd7jFRHm7dLxOjUk1EHACJ/hxLY8phGJ0YhYHZo7jil7Qdg==}
     engines: {node: '>= 8'}
+    requiresBuild: true
     dependencies:
       minipass: 3.3.6
       yallist: 4.0.0
@@ -7250,6 +7592,7 @@ packages:
     resolution: {integrity: sha512-vVqVZQyf3WLx2Shd0qJ9xuvqgAyKPLAiqITEtqW0oIUjzo3PePDd6fW9iFz30ef7Ysp/oiWqbhszeGWW2T6Gzw==}
     engines: {node: '>=10'}
     hasBin: true
+    requiresBuild: true
     dev: false
 
   /moddle-xml@6.0.0:
@@ -7394,6 +7737,7 @@ packages:
     resolution: {integrity: sha512-Tbj67rffqceeLpcRXrT7vKAN8CwfPeIBgM7E6iBkmKLV7bEMwpGgYLGv0jACUsECaa/vuxP0IjEont6umdMgtQ==}
     engines: {node: '>=6'}
     hasBin: true
+    requiresBuild: true
     dependencies:
       abbrev: 1.1.1
     dev: false
@@ -7412,6 +7756,7 @@ packages:
   /npmlog@5.0.1:
     resolution: {integrity: sha512-AqZtDUWOMKs1G/8lwylVjrdYgqA4d9nu8hc+0gzRxlDb1I10+FHBGMXs6aiQHFdCUUlqH99MUMuLfzWDNDtfxw==}
     deprecated: This package is no longer supported.
+    requiresBuild: true
     dependencies:
       are-we-there-yet: 2.0.0
       console-control-strings: 1.1.0
@@ -7446,6 +7791,7 @@ packages:
 
   /once@1.4.0:
     resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
+    requiresBuild: true
     dependencies:
       wrappy: 1.0.2
     dev: false
@@ -7501,6 +7847,7 @@ packages:
   /path-is-absolute@1.0.1:
     resolution: {integrity: sha512-AVbw3UJ2e9bq64vSaS9Am0fje1Pa8pbGqTTsmXfaIiMpnr5DlDhfJOuLj9Sf95ZPVDAUerDfEk88MPmPe7UCQg==}
     engines: {node: '>=0.10.0'}
+    requiresBuild: true
     dev: false
 
   /path-key@3.1.1:
@@ -7833,6 +8180,7 @@ packages:
   /readable-stream@3.6.2:
     resolution: {integrity: sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA==}
     engines: {node: '>= 6'}
+    requiresBuild: true
     dependencies:
       inherits: 2.0.4
       string_decoder: 1.3.0
@@ -7885,6 +8233,7 @@ packages:
     resolution: {integrity: sha512-JZkJMZkAGFFPP2YqXZXPbMlMBgsxzE8ILs4lMIX/2o0L9UBw9O/Y3o6wFw/i9YLapcUJWwqbi3kdxIPdC62TIA==}
     deprecated: Rimraf versions prior to v4 are no longer supported
     hasBin: true
+    requiresBuild: true
     dependencies:
       glob: 7.2.3
     dev: false
@@ -7928,6 +8277,7 @@ packages:
 
   /safe-buffer@5.2.1:
     resolution: {integrity: sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==}
+    requiresBuild: true
     dev: false
 
   /safer-buffer@2.1.2:
@@ -7971,16 +8321,19 @@ packages:
   /semver@6.3.1:
     resolution: {integrity: sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==}
     hasBin: true
+    requiresBuild: true
     dev: false
 
   /semver@7.6.3:
     resolution: {integrity: sha512-oVekP1cKtI+CTDvHWYFUcMtsK/00wmAEfyqKfNdARm8u1wNVhSgaX7A8d4UuIlUI5e84iEwOhs7ZPYRmzU9U6A==}
     engines: {node: '>=10'}
     hasBin: true
+    requiresBuild: true
     dev: false
 
   /set-blocking@2.0.0:
     resolution: {integrity: sha512-KiKBS8AnWGEyLzofFfmvKwpdPzqiy16LvQfK3yv/fVH7Bj13/wl3JSR1J+rfgRE9q7xUJK4qvgS8raSOeLUehw==}
+    requiresBuild: true
     dev: false
 
   /set-function-length@1.2.2:
@@ -8011,11 +8364,16 @@ packages:
 
   /signal-exit@3.0.7:
     resolution: {integrity: sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ==}
+    requiresBuild: true
     dev: false
 
   /signal-exit@4.1.0:
     resolution: {integrity: sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw==}
     engines: {node: '>=14'}
+
+  /signature_pad@5.0.4:
+    resolution: {integrity: sha512-nngOixbwLAUOuH3QnZwlgwmynQblxmo4iWacKFwfymJfiY+Qt+9icNtcIe/okqXKun4hJ5QTFmHyC7dmv6lf2w==}
+    dev: false
 
   /simple-concat@1.0.1:
     resolution: {integrity: sha512-cSFtAPtRhljv69IK0hTVZQ+OfE9nePi/rtJmw5UjHeVyVroEqJXP1sFztKUy1qU+xvz3u/sfYJLa947b7nAN2Q==}
@@ -8140,6 +8498,7 @@ packages:
 
   /string_decoder@1.3.0:
     resolution: {integrity: sha512-hkRX8U1WjJFd8LsDJ2yQ/wWWxaopEsABU1XfkM8A+j0+85JAGppt16cr1Whg6KIbb4okU6Mql6BOj+uup/wKeA==}
+    requiresBuild: true
     dependencies:
       safe-buffer: 5.2.1
     dev: false
@@ -8266,6 +8625,7 @@ packages:
   /tar@6.2.1:
     resolution: {integrity: sha512-DZ4yORTwrbTj/7MZYq2w+/ZFdI6OZ/f9SFHR+71gIVUZhOQPHzVCLpvRnPgyaMpfWxxk/4ONva3GQSyNIKRv6A==}
     engines: {node: '>=10'}
+    requiresBuild: true
     dependencies:
       chownr: 2.0.0
       fs-minipass: 2.1.0
@@ -8341,6 +8701,7 @@ packages:
 
   /tr46@0.0.3:
     resolution: {integrity: sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==}
+    requiresBuild: true
     dev: false
 
   /ts-injection@3.2.0:
@@ -8636,6 +8997,7 @@ packages:
 
   /webidl-conversions@3.0.1:
     resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}
+    requiresBuild: true
     dev: false
 
   /whatwg-encoding@3.1.1:
@@ -8654,6 +9016,7 @@ packages:
 
   /whatwg-url@5.0.0:
     resolution: {integrity: sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==}
+    requiresBuild: true
     dependencies:
       tr46: 0.0.3
       webidl-conversions: 3.0.1
@@ -8688,6 +9051,7 @@ packages:
 
   /wide-align@1.1.5:
     resolution: {integrity: sha512-eDMORYaPNZ4sQIuuYPDHdQvf4gyCF9rEEV/yPxGfwPkRodwEgiMUUXTx/dex+Me0wxx53S+NgUHaP7y3MGlDmg==}
+    requiresBuild: true
     dependencies:
       string-width: 4.2.3
     dev: false
@@ -8710,6 +9074,7 @@ packages:
 
   /wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
+    requiresBuild: true
     dev: false
 
   /ws@8.18.0:

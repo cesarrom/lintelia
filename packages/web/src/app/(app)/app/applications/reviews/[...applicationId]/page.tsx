@@ -17,7 +17,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import Link from "next/link"
 import { User } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
-import { Features } from "@/app/(app)/onboarding/[purpose]/features/Features"
+import { Features } from "@/app/(app)/onboarding/new/[purpose]/features/Features"
+import { Button } from "@/components/ui/button"
 
 const FileViewer = dynamic(() => import("../FileViewer/FileViewer").then(m => m.FileViewer), { ssr: false });
 
@@ -55,7 +56,7 @@ export default async function ApplicationReviewPage({ params }: { params: { appl
             <Features availableFeatures={features} activeFeatures={form.validationFeatures} review applicationId={application.id} purpose={application.applicationPurpose} />
           </CardContent>
         </Card>
-        {applicants.length ? <Card>
+        {applicants.length > 1 ? <Card>
           <CardHeader>
             <CardTitle>Linked Users</CardTitle>
             <CardDescription>Users associated with this application</CardDescription>
@@ -75,7 +76,11 @@ export default async function ApplicationReviewPage({ params }: { params: { appl
           </CardContent>
         </Card> : null}
         <AdditionalInfo application={application} domain={tenant.domain} additionalRequests={data.additionalRequests || []} />
-        <ApplicationDecision application={application} domain={tenant.domain} />
+        {userId ? (
+          <Link href={`/app/applications/reviews/${applicationId}`} className="flex items-center space-x-2">
+            <Button>Back to main application</Button>
+          </Link>
+        ) : <ApplicationDecision application={application} domain={tenant.domain} />}
       </div>
     </div>
   )

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { StepProps } from "../stepProps";
 import { Form, getAllForms } from "@/actions/forms";
 import { InviteeList } from "@/components/InviteApplicants";
@@ -6,10 +6,13 @@ import { getTenant } from "@/actions/tenants";
 import { Button } from "@/components/ui/button";
 import { getValidationFeatureResponse, linkApplicant, registerValidationFeatureResponse } from "@/actions/applications";
 import { getUser } from "@/actions/users";
+import { RiskAssessmentWizardStep } from "@/components/RiskAssessmentWizard";
 
 export const Feature = 'Link Persons';
 
 export const Create = (props: StepProps & { disabled?: boolean }) => {
+      useEffect(() => {console.log(Feature)}, []);
+  
   const [sending, startTransition] = React.useTransition();
   const [value, setValue] = React.useState<{ [key: string]: string }>({});
 
@@ -35,7 +38,7 @@ export const Create = (props: StepProps & { disabled?: boolean }) => {
     <InviteeList
       title="Linked Persons"
       disabled={sending || props.disabled}
-      values={['executive director', 'founder',  'director', 'shareholder']}
+      values={['executive director', 'founder', 'director', 'shareholder']}
       value={value}
       onChange={value => {
         setValue(value);
@@ -57,7 +60,7 @@ export const Create = (props: StepProps & { disabled?: boolean }) => {
           return Promise.resolve();
         }));
 
-        props.onDone();
+        props.onDone(props.currentStep);
       });
     }}>{sending ? 'Loading' : 'Next'}</Button>
   </>

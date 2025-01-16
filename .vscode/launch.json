@@ -6,7 +6,7 @@
       "program": "${workspaceFolder}/dmn.cjs",
       "request": "launch",
       "args": [
-        "forms/clients_onboarding/assessment.dmn",
+        "forms/corporate/assessment.dmn",
         "Decision_19w5k1e",
         "age",
         "integer",

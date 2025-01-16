@@ -48,16 +48,21 @@ export const getApplicationById = async (domain: string, applicationId: number) 
 export const getLinkedApplications = async (domain: string, applicationId: number) => {
   const injector = await getInjector(domain);
   const applicationsService = injector.resolve(ApplicationsService);
-  const applicants = await applicationsService.getAllApplicantsByApplicationId(applicationId);
+  const childrenApps = await applicationsService.getChildrenApplications(applicationId);
   const applications: (Application & { userId: string })[] = await Promise.all(
-    applicants.map(
-      applicant => applicationsService.getApplicationsByUserId(applicant).then(
-        apps => apps.map(a => Object.assign({}, a, { userId: applicant }) as Application & { userId: string })
-      )
-    )
+    childrenApps.map(async application => {
+      const applicants = await applicationsService.getAllApplicantsByApplicationId(application.id);
+
+      return applicants.map(applicant => {
+        return {
+          ...application,
+          userId: applicant,
+        } as Application & { userId: string }
+      });
+    })
   ).then(a => a.flat());
 
-  return applications.filter(application => application.id !== applicationId);
+  return applications;
 }
 
 export const getApplicants = async (domain: string, applicationId: number) => {
@@ -455,6 +460,12 @@ export const getValidationFeatureResponse = async (domain: string, applicationId
 
 }
 
+export const listApplicationValidationFeatures = async (domain: string, applicationId: number) => {
+  const injector = await getInjector(domain);
+  const applicationsService = injector.resolve(ApplicationsService);
+  return applicationsService.getValidationFeatureResponses(applicationId);
+}
+
 export const linkApplicant = async (domain: string, applicationId: number, email: string, purpose: string) => {
   const injector = await getInjector(domain);
   const invitationsService = injector.resolve(InvitationsService);
@@ -471,4 +482,5 @@ export type AdditionalRequest = {
   request: string;
   status: 'pending' | 'viewed' | 'answered';
   response?: string;
+  attachments?: string[];
 }

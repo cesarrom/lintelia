@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne, not } from "drizzle-orm";
 import { applicants, applications, applicationValidationFeatures, invitations, userRoles } from "../models/platform.sql";
 import { type PlatformDB } from "./tenants.service";
 import { KYCService } from "./kyc.service";
@@ -206,6 +206,14 @@ export class ApplicationsService {
       .then((res) => res.map(res => res.userId));
   }
 
+  async getChildrenApplications(applicationId: number) {
+    return await this.db
+      .select()
+      .from(applications)
+      .where(eq(applications.parentApplicationId, applicationId))
+      .execute();
+  }
+
   async getApplicationsByUserId(userId: string, parentApplicationId?: number) {
     return await this.db
       .select()
@@ -213,10 +221,9 @@ export class ApplicationsService {
       .where(
         and(
           eq(applicants.userId, userId),
-          eq(applications.parentApplicationId, parentApplicationId || null)
         )
       )
-      .innerJoin(
+      .leftJoin(
         applicants,
         eq(applications.id, applicants.applicationId)
       )
@@ -241,7 +248,10 @@ export class ApplicationsService {
 
   async getAllApplications(role?: string) {
     const a = await this.db.select().from(applications).where(
-      eq(userRoles.role, role ? role : userRoles.role)
+      and(
+        eq(userRoles.role, role ? role : userRoles.role),
+        ne(applications.status, 'in-progress')
+      )
     )
       .innerJoin(
         applicants,
@@ -260,7 +270,7 @@ export class ApplicationsService {
  * @param {string[]} allowedNodes - An array of node names that should be retained.
  * @returns {string} - The resulting XML string with only allowed nodes.
  */
-  private filterXmlNodes(xml: string, allowedNodes: string[]): string {
+  private filterXmlNodes(xml: string, allowedNodes: string[]) {
     // Load the XML with xmlMode enabled
     const $ = cheerio.load(xml, { xmlMode: true });
 
@@ -274,11 +284,15 @@ export class ApplicationsService {
       }
     });
 
+    // a node with <decision name=risk ></decision>
+    const riskNode = definitions.find('decision[name=risk]');
+    const riskId = riskNode.attr('id');
+
     // Return the resulting XML string
-    return $.xml().replace(/\<(\w+)/g, '<dmn:$1');
+    return { xml: $.xml().replace(/<(\/)?(\w+)/g, '<$1dmn:$2'), riskId: riskId };
   }
 
-  async evaluateRisk(applicationId: number, context: Record<string, any>): Promise<number> {
+  async evaluateRisk(applicationId: number, context?: Record<string, any>): Promise<number> {
     try {
       const application = await this.getApplicationById(applicationId);
 
@@ -293,41 +307,24 @@ export class ApplicationsService {
         throw new Error(`Form with id ${application.formId} not found`);
       }
 
-      const xmlContent = await this.filesService
+      const { xml: xmlContent, riskId } = await this.filesService
         .downloadFile(form.dmnKey)
         .then(content => this.filterXmlNodes(content.toString('utf-8'), ['decision', 'inputData', 'input', 'output'])); // readFileSync(join(process.cwd(), 'personal_risk_assessment.dmn'), 'utf8');
 
       const decisions = await decisionTable.parseDmnXml(xmlContent);
 
       const risk = await (async () => {
-        const { risk } = decisionTable.evaluateDecision('Decision_risk', decisions, JSON.parse(application.data))
+        const { risk } = decisionTable.evaluateDecision(riskId, decisions, context || JSON.parse(application.data))
 
         if (!risk) {
           throw new Error("Failed to evaluate risk");
         }
 
         return { risk };
-      })()
-        .catch(e => {
-          return decisionTable.evaluateDecision('Decision_risk', decisions,
-            {
-              age: 22,
-              country: 'Bouvet Island',
-              employment: 'Accounts clerk',
-              transactionsVolume: 2,
-              expectedActivityValue: 550_000,
-              product: 3,
-              isPep: false,
-              isSanctionOrTerrorist: false,
-              isSubjectToCriminalInvestigation: false,
-              isConvictionStremming: false,
-              documentType: 'PASSPORT'
-            });
-        })
-        .then(({ risk }) => {
-          console.log('response', { risk });
-          return risk;
-        })
+      })().then(({ risk }) => {
+        console.log('response', { risk });
+        return risk;
+      })
 
       if (risk === undefined) {
         throw new Error("Failed to evaluate risk");

@@ -118,8 +118,12 @@ export class FormsService {
     return await this.db.select().from(forms);
   }
 
-  async setupInitialForms(userId: string) {
-    const features = ['Identity Validation', 'Proof of Life', 'Link Persons'];
+  async setupInitialForms(userId: string, contracts: {
+    person: string;
+    corporate: string;
+    'co-applicant': string;
+  }) {
+    const features = ['Identity Validation', 'Proof of Life', 'Link Persons', 'Signature'];
 
     await this.db.insert(validationFeatures).values(features.map(feature => ({
       id: feature,
@@ -136,6 +140,7 @@ export class FormsService {
       formKey: f.formKey,
       status: 'active',
       purpose: f.purpose,
+      contractKey: contracts[f.purpose],
     }))).returning().execute();
   }
 }

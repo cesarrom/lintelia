@@ -1,17 +1,18 @@
+'use server'
 import { getTenant } from "@/actions/tenants";
-import { session } from "@descope/nextjs-sdk/server";
 import { getApplicationsByUserId } from "@/actions/applications";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { ClipboardCheck } from "lucide-react";
-import AdditionalResponses from "./AdditionalResponses/AdditionalResponses";
-import { listPurposes } from "@/actions/forms";
-import { UserTypePicker } from "./UserTypePicker";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { getUser } from "@/actions/users";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { PlusCircle } from "lucide-react";
 
 export default async function ClientOnboardingPage({ searchParams }: { searchParams: any }) {
   const tenant = await getTenant();
-  const types = await listPurposes(tenant.domain, 'active');
-  const s = session();
-  const [application] = await getApplicationsByUserId(tenant.domain, s.token.sub!, searchParams.parentApplicationId ? Number(searchParams.parentApplicationId) : undefined);
+  const s = await getUser();
+  const applications = await getApplicationsByUserId(tenant.domain, s.userId, searchParams.parentApplicationId ? Number(searchParams.parentApplicationId) : undefined);
 
 
   // TODO: migrate to https://www.docuseal.co/nextjs-document-signing#
@@ -41,26 +42,51 @@ export default async function ClientOnboardingPage({ searchParams }: { searchPar
   // this means that other users can re-visit the application before submitting it, and modify it / sign it
   // for certain roles, like "Owner", the signature and information for all owners is needed. It is not necessarily limited to just owner
 
-  if (application) {
-  const data = JSON.parse(application.data);
-  return (
-      <Card>
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <ClipboardCheck className="w-6 h-6 text-primary" />
-          </div>
-          <CardTitle className="text-2xl font-bold">Application Under Review</CardTitle>
-          <CardDescription>Thank you for your submission</CardDescription>
-        </CardHeader>
-        <CardContent className="text-center">
-          <p className="text-muted-foreground">
-            We've received your application and our team is carefully reviewing it. This process typically takes 3-5 business days.
-          </p>
-        </CardContent>
-        <AdditionalResponses additionalRequests={(data.additionalRequests || []).filter(ar => ar.status === 'pending')} applicationId={application.id} domain={tenant.domain} />
-      </Card>
-    );
+  if (!applications.length) {
+    return redirect(`/onboarding/new`);
   }
 
-  return <UserTypePicker options={types} />
+  const additionalRequestsMap = Object.fromEntries(applications.map(({ id, data }) => [id, JSON.parse(data)?.additionalRequests?.filter?.(ar => ar.status === 'pending')?.length || 0]));
+
+  return (
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {applications.map((app) => (
+        <Card key={app.id}>
+          <CardHeader>
+            <CardTitle>{app.applicationPurpose} application</CardTitle>
+            <CardDescription>{additionalRequestsMap[app.id] ? `${additionalRequestsMap[app.id]} Pending requests` : ''}</CardDescription>
+            <CardDescription>Created on {app.createdAt}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Badge variant={app.status === 'Approved' ? 'outline' : app.status === 'Rejected' ? 'destructive' : 'default'}>
+              {app.status}
+            </Badge>
+          </CardContent>
+          <CardFooter>
+            <Button asChild>
+              <Link href={`/onboarding/${app.id}`}>View Details</Link>
+            </Button>
+          </CardFooter>
+        </Card>
+      ))}
+      <Card>
+        <CardHeader>
+          <CardTitle>New Application</CardTitle>
+          <CardDescription>{''}</CardDescription>
+          <CardDescription>{''}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Badge variant={'default'} className=" opacity-0"></Badge>
+        </CardContent>
+        <CardFooter>
+          <Button asChild>
+            <Link href={`/onboarding/new`}>
+              <PlusCircle></PlusCircle>
+            </Link>
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+
 }

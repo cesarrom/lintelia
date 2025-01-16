@@ -8,6 +8,13 @@
       "when": 1730390089189,
       "tag": "0000_daily_hex",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1732307664761,
+      "tag": "0001_dusty_doctor_faustus",
+      "breakpoints": true
     }
   ]
 }

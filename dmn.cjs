@@ -69,7 +69,7 @@ function filterXmlNodes(xml, allowedNodes) {
   });
 
   // Return the resulting XML string
-  return $.xml();
+  return $.xml().replace(/<(\/)?(\w+)/g, '<$1dmn:$2');
 }
 
 const filteredXml = filterXmlNodes(xml, ['decision', 'inputData', 'input', 'output']);

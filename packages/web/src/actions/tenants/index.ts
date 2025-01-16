@@ -1,13 +1,19 @@
 "use server";
 import { session } from '@descope/nextjs-sdk/server';
 import { auth } from '@fintivio-sst/core/clients/auth.client';
-import { type CreateTenant, FilesService, FormsService, InvitationsService, TenantsService, UserRolesService, env, getInjector } from '@fintivio-sst/core/index';
+import { type CreateTenant, DomainsService, FilesService, FormsService, InvitationsService, TenantsService, UserRolesService, env, getInjector } from '@fintivio-sst/core/index';
 import { ENVIRONMENT_TOKEN } from '@fintivio-sst/core/libs/injector/tokens';
 import { omit } from 'lodash';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-export const createTenant = async (tenant: CreateTenant) => {
+export type APICreateTenantRequest = CreateTenant & {
+  individualContract: string;
+  coApplicantContract: string;
+  businessContract: string;
+};
+
+export const createTenant = async (tenant: APICreateTenantRequest) => {
   const onError = [] as Array<() => Promise<void>>;
   try {
     const injector = await getInjector();
@@ -20,12 +26,14 @@ export const createTenant = async (tenant: CreateTenant) => {
 
     const tenantsService = injector.resolve(TenantsService);
     const domainObject = await tenantsService.create(tenant);
-    
+
     onError.push(async () => {
       await tenantsService.delete(tenant.domain);
     });
 
     const domainInjector = await getInjector(tenant.domain);
+
+    const domainsService = domainInjector.resolve(DomainsService);
 
     const invitationsService = domainInjector.resolve(InvitationsService);
 
@@ -40,7 +48,11 @@ export const createTenant = async (tenant: CreateTenant) => {
 
     const formsService = domainInjector.resolve(FormsService);
 
-    await formsService.setupInitialForms(currentSession.token.sub);
+    await formsService.setupInitialForms(currentSession.token.sub, {
+      person: tenant.individualContract,
+      'co-applicant': tenant.coApplicantContract,
+      corporate: tenant.businessContract,
+    });
 
     for (const { email, role } of tenant.invitee) {
       await invitationsService.createInvitation(
@@ -50,7 +62,17 @@ export const createTenant = async (tenant: CreateTenant) => {
       ).catch(console.error);
     }
 
-    return omit(domainObject, [
+    const cnameRecords = await domainsService.setupTenantDomains({
+      tenantDomains: tenant.allowedDomains,
+    }).catch(e => {
+      console.error(e);
+      return [];
+    });
+
+    return omit({
+      ...domainObject,
+      cnameRecords,
+    }, [
       'databaseAuthToken',
       'databaseUrl',
       'databaseName',
@@ -83,17 +105,17 @@ export const deleteTenant = async (userId: string, domain: string) => {
 export const getTenant = async () => {
   const headersList = headers();
   const headerUrl = 'https://' + headersList.get('x-forwarded-host') || "";
-
+  
   const url = new URL(headerUrl);
   // EX: https://galicia.fintivio.org/
   // tenant = galicia
   // domain = galicia.fintivio.org
-
+  
   const tenant = url.hostname.split(".")[0];
   const domain = url.hostname;
-
+  
   const injector = await getInjector();
-
+  
   const environment: typeof env = injector.resolve(ENVIRONMENT_TOKEN);
 
   const tenantsService = injector.resolve(TenantsService);

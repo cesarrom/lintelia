@@ -1,8 +1,17 @@
-import { Route53, CloudFront } from 'aws-sdk';
+import AWS, { Route53, CloudFront } from 'aws-sdk';
 import { DISTRIBUTION_ID_TOKEN, ENVIRONMENT_TOKEN } from '../libs/injector/tokens';
 import { env } from '../constants';
 import { Autowire, Injectable } from 'ts-injection';
 
+interface TenantDomainSetupParams {
+  tenantDomains: string[];
+}
+
+interface CNAMERecord {
+  Name: string;
+  Type: string;
+  Value: string;
+}
 @Injectable()
 export class DomainsService {
   private _route53: Route53;
@@ -224,5 +233,101 @@ export class DomainsService {
       console.error(`Error deleting subdomain ${subdomain}:`, error)
       throw error
     }
+  }
+
+
+  async setupTenantDomains({
+    tenantDomains,
+  }: TenantDomainSetupParams): Promise<CNAMERecord[]> {
+    // Configure AWS SDK
+    const acm = new AWS.ACM({
+      region: this._env.AWS_REGION,
+      accessKeyId: this._env.AWS_KEY,
+      secretAccessKey: this._env.AWS_SECRET,
+    });
+
+    const cloudfront = this.cloudFront;
+
+    // Request a certificate for the tenant domains
+    const certificateArn = await this.requestCertificate(acm, tenantDomains);
+
+    // Retrieve DNS validation records
+    const validationRecords = await this.getValidationRecords(acm, certificateArn);
+
+    // Update CloudFront to use the new domain(s)
+    await this.updateCloudFront(cloudfront, this.distributionId, tenantDomains, certificateArn);
+
+    return validationRecords;
+  }
+
+  async requestCertificate(acm: AWS.ACM, domains: string[]): Promise<string> {
+    const params = {
+      DomainName: domains[0], // Primary domain for the certificate
+      SubjectAlternativeNames: domains, // Additional domains
+      ValidationMethod: 'DNS',
+    };
+
+    const { CertificateArn } = await acm.requestCertificate(params).promise();
+    if (!CertificateArn) {
+      throw new Error('Failed to request certificate.');
+    }
+
+    console.log(`Requested certificate with ARN: ${CertificateArn}`);
+    return CertificateArn;
+  }
+
+  async getValidationRecords(acm: AWS.ACM, certificateArn: string): Promise<CNAMERecord[]> {
+    const { Certificate } = await acm.describeCertificate({ CertificateArn: certificateArn }).promise();
+    if (!Certificate || !Certificate.DomainValidationOptions) {
+      throw new Error('Failed to retrieve certificate details.');
+    }
+
+    // Extract CNAME records for DNS validation
+    const validationRecords: CNAMERecord[] = Certificate.DomainValidationOptions.map((option) => {
+      return {
+        Name: option.ResourceRecord?.Name || '',
+        Type: option.ResourceRecord?.Type || 'CNAME',
+        Value: option.ResourceRecord?.Value || '',
+      };
+    });
+
+    console.log('DNS validation records:', validationRecords);
+    return validationRecords;
+  }
+
+  async updateCloudFront(
+    cloudfront: AWS.CloudFront,
+    distributionId: string,
+    domains: string[],
+    certificateArn: string
+  ): Promise<void> {
+    const { DistributionConfig, ETag } = await cloudfront
+      .getDistributionConfig({ Id: distributionId })
+      .promise();
+
+    if (!DistributionConfig || !ETag) {
+      throw new Error('Failed to retrieve CloudFront distribution config.');
+    }
+
+    // Update the CloudFront distribution to include the new domains and SSL certificate
+    DistributionConfig.Aliases = {
+      Quantity: domains.length,
+      Items: domains,
+    };
+    DistributionConfig.ViewerCertificate = {
+      ACMCertificateArn: certificateArn,
+      SSLSupportMethod: 'sni-only',
+      MinimumProtocolVersion: 'TLSv1.2_2021',
+    };
+
+    await cloudfront
+      .updateDistribution({
+        Id: distributionId,
+        IfMatch: ETag,
+        DistributionConfig,
+      })
+      .promise();
+
+    console.log('Updated CloudFront distribution with new domains.');
   }
 }

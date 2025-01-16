@@ -108,6 +108,8 @@ export default $config({
     const databaseUrl = new sst.Secret("DatabaseUrl");
     const databaseAuthToken = new sst.Secret("DatabaseAuthToken");
     const kycToken = new sst.Secret("KYC_TOKEN");
+    const kycSecret = new sst.Secret("KYC_SECRET");
+    const kycEndpoint = new sst.Secret("KYC_ENDPOINT");
     const kycWorkflowId = new sst.Secret("KYC_WORKFLOW_ID");
     const smtpHost = new sst.Secret('SMTP_HOST');
     const smtpPort = new sst.Secret('SMTP_PORT');
@@ -150,6 +152,8 @@ export default $config({
             smtpUser,
             smtpPass,
             emailFrom,
+            kycSecret,
+            kycEndpoint,
           }).map(([key, value]) => [key, typeof value === 'string' ? value : value.value])
         )
       },

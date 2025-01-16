@@ -12,8 +12,9 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { DollarSignIcon, FileTextIcon, MessageCircleIcon, MoveHorizontalIcon, UserIcon, UserPlusIcon } from "lucide-react"
 import { useUser } from "@descope/nextjs-sdk/client"
+import { useEffect } from "react"
 
-export default function Dashboard() {
+function Dashboard() {
   const session = useUser();
 
   console.log(session);
@@ -182,3 +183,9 @@ export default function Dashboard() {
   );
 }
 
+export default function RedirectToApplications() {
+  useEffect(() => {
+    window.location.href = "/app/applications/reviews";
+  }, []);
+  return null;
+}

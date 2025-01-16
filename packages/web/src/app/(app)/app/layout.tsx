@@ -14,10 +14,14 @@ import { ChevronRightIcon, DollarSignIcon, FileTextIcon, HomeIcon, MenuIcon, Pac
 import { redirect } from "next/navigation"
 import { getTenant } from "@/actions/tenants"
 import { session } from "@descope/nextjs-sdk/server"
+import Image from "next/image"
+import { downloadFile } from "@/actions/files"
 
 export default async function AppLayout({ children }: React.PropsWithChildren<unknown>) {
   const tenant = await getTenant();
   const s = session();
+
+  const logoUrl = tenant.logoUrl ? await downloadFile(null, tenant.logoUrl).then(({ Body }) => Body) : tenant.logoUrl;
 
   if (!tenant || !s?.token?.sub) {
     return redirect("/");
@@ -45,11 +49,11 @@ export default async function AppLayout({ children }: React.PropsWithChildren<un
         }
       ]
     },
-    {
-      label: "Transactions",
-      icon: <DollarSignIcon className="h-5 w-5" />,
-      href: "/app/transactions",
-    },
+    // {
+    //   label: "Transactions",
+    //   icon: <DollarSignIcon className="h-5 w-5" />,
+    //   href: "/app/transactions",
+    // },
   ].map((item, i) => {
     if ('children' in item) {
       return (
@@ -95,8 +99,10 @@ export default async function AppLayout({ children }: React.PropsWithChildren<un
     <div className="flex min-h-screen w-full">
       <aside className="hidden w-64 flex-col border-r bg-background p-4 md:flex">
         <div className="mb-6 flex items-center gap-2">
-          <Package2Icon className="h-6 w-6" />
-          <span className="text-lg font-semibold">Fintivio</span>
+          {logoUrl ? 
+          <img src={logoUrl} alt={tenant.name} className="inline-block h-6 w-6" /> :
+          <Package2Icon className="h-6 w-6" />}
+          <span className="text-lg font-semibold">{tenant.name || 'Fintivio'}</span>
         </div>
         <nav className="flex flex-col gap-2">
           {menuItems}
@@ -118,7 +124,7 @@ export default async function AppLayout({ children }: React.PropsWithChildren<un
             </SheetContent>
           </Sheet>
           <div className="flex items-center gap-4">
-            <DropdownMenu>
+            {/* <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <img
@@ -149,9 +155,9 @@ export default async function AppLayout({ children }: React.PropsWithChildren<un
                   </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
-            </DropdownMenu>
+            </DropdownMenu> */}
           </div>
-          <Notifications />
+          {/* <Notifications /> */}
         </header>
         <main className="p-4 md:p-6">
           {children}

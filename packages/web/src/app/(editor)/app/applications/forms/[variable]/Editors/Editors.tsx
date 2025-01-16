@@ -16,9 +16,13 @@ import { Formik } from 'formik';
 import { upsertForm } from '@/actions/forms';
 import Autocomplete from '@/components/Autocomplete';
 import FormFeatures from '@/components/FormFeatures';
+import { uploadFile } from '@/actions/files';
+import { getTenant, GetTenant } from '@/actions/tenants';
+import base64 from 'base64-encode-file'
 
 export default function Editors({ form, formSchema, domain, validationFeatures }: { form?: Form; formSchema?: object; domain: string; userId: string, validationFeatures: ValidationFeature[] }) {
   const [_, startStateTransition] = React.useTransition();
+  const [tenant, setTenant] = React.useState<GetTenant | null>(null);
   const [sending, startSendTransition] = React.useTransition();
   const save$ = React.useRef<Subject<void>>(new Subject<void>());
   const form$ = React.useRef<Subject<Form>>(new BehaviorSubject<Form>(form));
@@ -26,19 +30,26 @@ export default function Editors({ form, formSchema, domain, validationFeatures }
   const xml$ = React.useRef<Subject<string>>(new Subject<string>());
   const [tab, setTab] = React.useState<"form" | "dmn">("form");
   const [purposes, setPurposes] = React.useState<string[]>([]);
+  const [contractKey, setContractKey] = React.useState<string>("");
 
   React.useEffect(() => {
     startStateTransition(async () => {
+      setTenant(await getTenant());
       const purposes = await listPurposes(domain);
       setPurposes(purposes);
     });
-
+  }, []);
+  React.useEffect(() => {
     const sub = combineLatest([form$.current, xml$.current, schema$.current])
       .pipe(
         debounceTime(500),
       )
       .subscribe(([form, xml, schema]) => {
         startSendTransition(async () => {
+          if (contractKey) {
+            console.log(contractKey.length, 'contractKey');
+            form.contractKey = await uploadFile(null, contractKey, tenant.domain + '__' + form.purpose + '_terms.pdf');
+          }
           await upsertForm(domain, form, xml, schema);
           window.location.href = `/app/applications/forms`;
         });
@@ -47,12 +58,13 @@ export default function Editors({ form, formSchema, domain, validationFeatures }
     return () => {
       sub.unsubscribe();
     };
-  }, []);
+  }, [contractKey]);
 
   return (
     <Formik
       initialValues={form}
-      onSubmit={(values: Form) => {
+      onSubmit={async (values: Form) => {
+
         save$.current.next();
         form$.current.next(values);
       }}
@@ -112,6 +124,23 @@ export default function Editors({ form, formSchema, domain, validationFeatures }
                       }
                     });
                   }} />
+                <Label htmlFor="terms" className="block mb-1">Terms and Conditions PDF</Label>
+                <Input
+                  type="file"
+                  accept=".pdf"
+                  id="contractKey"
+                  name="contractKey"
+                  disabled={isSubmitting || sending}
+                  onChange={async event => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      setContractKey(await base64(file) as string);
+                    }
+                  }}
+                  onBlur={handleBlur}
+                  className="mb-2"
+                />
+
 
                 <FormFeatures
                   value={form.validationFeatures}

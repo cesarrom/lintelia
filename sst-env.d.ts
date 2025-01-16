@@ -61,6 +61,14 @@ declare module "sst" {
       "type": "sst.sst.Secret"
       "value": string
     }
+    "KYC_ENDPOINT": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
+    "KYC_SECRET": {
+      "type": "sst.sst.Secret"
+      "value": string
+    }
     "KYC_TOKEN": {
       "type": "sst.sst.Secret"
       "value": string
@@ -87,6 +95,8 @@ declare module "sst" {
       "domain": string
       "emailFrom": string
       "host": string
+      "kycEndpoint": string
+      "kycSecret": string
       "kycToken": string
       "kycWorkflowId": string
       "smtpHost": string

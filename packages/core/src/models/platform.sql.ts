@@ -47,6 +47,7 @@ export const forms = sqliteTable('forms', {
   purpose: text('purpose').notNull(),
   formKey: text('form_key').notNull(),
   dmnKey: text('dmn_key').notNull(),
+  contractKey: text('contract_key').notNull(),
   status: text('status').notNull(),
   createdAt: text('created_at').default(sql`(CURRENT_TIMESTAMP)`).notNull(),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).$onUpdate(() => new Date()),
