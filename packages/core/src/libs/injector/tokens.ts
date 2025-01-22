@@ -1,6 +1,0 @@
-export const PLATFORM_DB_TOKEN = "PLATFORM_DB";
-export const TENANT_TOKEN = "TENANT";
-export const AUTH_TOKEN = "AUTH_TOKEN";
-export const ENVIRONMENT_TOKEN = "ENVIRONMENT";
-export const TENANTS_DB_TOKEN = "TENANTS_DB";
-export const DISTRIBUTION_ID_TOKEN = "DISTRIBUTION_ID";
