@@ -1,0 +1,259 @@
+import type { Node, Edge } from 'reactflow';
+import type { NodeData, Workflow } from '../nodes/types';
+import type { WorkflowTrigger } from '../triggers/TriggersSidebar';
+import type { WorkflowYamlSchema, StepExportYamlSchema } from './types';
+import yaml from 'yaml';
+
+// Helper to find all steps that can be reached from a given step
+function findReachableSteps(
+  stepId: string,
+  steps: WorkflowYamlSchema['steps'],
+  visited = new Set<string>()
+): Set<string> {
+  if (visited.has(stepId)) return visited;
+  visited.add(stepId);
+
+  const step = steps.find(s => s.id === stepId);
+  if (!step) return visited;
+
+  for (const event of step.events) {
+    for (const nextId of event.next) {
+      findReachableSteps(nextId, steps, visited);
+    }
+  }
+
+  return visited;
+}
+
+// Helper to validate that exports only reference reachable steps
+function validateExports(
+  stepId: string,
+  exports: StepExportYamlSchema[],
+  steps: WorkflowYamlSchema['steps']
+): boolean {
+  const reachableSteps = findReachableSteps(stepId, steps);
+
+  for (const exp of exports) {
+    for (const output of exp.outputs) {
+      if ('interpolation' in output.value) {
+        // Parse the value to get the step ID (format: stepId.outputs.outputName)
+        const stepId = output.value.interpolation.split('.')[0];
+        if (!reachableSteps.has(stepId)) {
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
+export function workflowToYaml(workflow: Workflow, nodes: Node<NodeData>[], edges: Edge[], triggers: WorkflowTrigger[]): string {
+  const schema: WorkflowYamlSchema = {
+    schemaVersion: '1.0',
+    name: workflow.name,
+    description: workflow.description,
+    version: workflow.version,
+    allowedRoles: workflow.allowedRoles,
+    allowedUsers: workflow.allowedUsers,
+    inputs: workflow.inputs || [],
+    
+    // Convert triggers
+    triggers: triggers.map(trigger => ({
+      id: trigger.id,
+      name: trigger.name,
+      type: trigger.type,
+      config: trigger.config || {},
+    })),
+    
+    // Convert nodes to steps
+    steps: nodes.map(node => {
+      const nodeData = node.data;
+      
+      return {
+        id: nodeData.id,
+        name: nodeData.name,
+        type: nodeData.type,
+        description: nodeData.description,
+        config: nodeData.config,
+        events: nodeData.events.map(e => ({ ...e, next: e.next || [] })),
+        isTerminal: nodeData.isTerminal,
+        exports: nodeData.exports,
+      };
+    }),
+  };
+  
+  return yaml.stringify(schema);
+}
+
+export function yamlToWorkflow(yamlContent: string, options: { id?: string } = {}): {
+  workflow: Workflow;
+  nodes: Node<NodeData>[];
+  edges: Edge[];
+  triggers: WorkflowTrigger[];
+  isDirty: boolean;
+  isSaving: boolean;
+  isLoading: boolean;
+} {
+  const schema = yaml.parse(yamlContent) as WorkflowYamlSchema;
+  
+  // Convert to workflow
+  const workflow: Workflow = {
+    id: options.id || '', // This should be generated or preserved
+    name: schema.name,
+    description: schema.description,
+    version: schema.version,
+    allowedRoles: schema.allowedRoles,
+    allowedUsers: schema.allowedUsers,
+    inputs: schema.inputs || [],
+  };
+  
+  // Convert to triggers
+  const triggers: WorkflowTrigger[] = schema.triggers.map(trigger => ({
+    id: trigger.id || '', // This should be generated
+    name: trigger.name,
+    type: trigger.type,
+    config: trigger.config,
+  }));
+  
+  // Convert steps to nodes and edges
+  const nodes: Node<NodeData>[] = schema.steps.map((step, index) => {
+    // Special handling for start node to sync with workflow inputs
+    if (step.type === 'start') {
+      return {
+        id: step.id,
+        type: step.type,
+        position: { x: 0, y: index * 100 },
+        data: {
+          id: step.id,
+          type: step.type,
+          name: step.name,
+          description: step.description || '',
+          inputs: [],
+          events: [{
+            name: 'started',
+            outputs: schema.inputs.map(input => ({
+              name: input.name,
+              type: input.type,
+              description: input.description,
+            })),
+            next: step.events[0]?.next || [],
+          }],
+          config: step.config,
+        },
+      };
+    }
+
+    // Regular node handling
+    return {
+      id: step.id,
+      type: step.type,
+      position: { x: 0, y: index * 100 },
+      data: {
+        id: step.id,
+        type: step.type,
+        name: step.name,
+        description: step.description || '',
+        inputs: [],
+        events: step.events,
+        config: step.config,
+        isTerminal: step.isTerminal,
+        exports: step.exports,
+      },
+    };
+  });
+  
+  // Create edges from event connections
+  const edges: Edge[] = schema.steps.flatMap(step =>
+    step.events.flatMap(event =>
+      event.next.map(targetId => ({
+        id: `${step.id}-${event.name}-${targetId}`,
+        source: step.id,
+        target: targetId,
+        sourceHandle: `${step.id}-${event.name}`,
+        targetHandle: 'input',
+      }))
+    )
+  );
+  
+  return {
+    workflow,
+    nodes,
+    edges,
+    triggers,
+    isDirty: false,
+    isSaving: false,
+    isLoading: false,
+  };
+}
+
+// Helper function to validate a YAML string against our schema
+export function validateWorkflowYaml(yamlContent: string): boolean {
+  try {
+    const schema = yaml.parse(yamlContent) as WorkflowYamlSchema;
+    
+    // Basic validation
+    if (!schema.name || !schema.version || !Array.isArray(schema.steps)) {
+      return false;
+    }
+
+    // Validate inputs
+    if (!Array.isArray(schema.inputs)) {
+      return false;
+    }
+
+    for (const input of schema.inputs) {
+      if (!input.id || !input.name || !input.type) {
+        return false;
+      }
+    }
+    
+    // Validate steps
+    for (const step of schema.steps) {
+      if (!step.id || !step.name || !step.type) {
+        return false;
+      }
+      
+      // Validate events reference existing steps
+      for (const event of step.events) {
+        if (!Array.isArray(event.next)) {
+          return false;
+        }
+        // Check that all referenced next steps exist
+        for (const nextId of event.next) {
+          if (!schema.steps.find(s => s.id === nextId)) {
+            return false;
+          }
+        }
+      }
+
+      // Validate exports for terminal nodes
+      if (step.isTerminal && step.exports) {
+        // Validate that exports only reference reachable steps
+        if (!validateExports(step.id, step.exports, schema.steps)) {
+          return false;
+        }
+
+        // Validate that all events referenced in exports exist in the step
+        for (const exp of step.exports) {
+          const event = step.events.find(e => e.name === exp.event);
+          if (!event) {
+            return false;
+          }
+
+          // Validate that output names and types match the event's outputs
+          for (const output of exp.outputs) {
+            const eventOutput = event.outputs.find(o => o.name === output.name);
+            if (!eventOutput || eventOutput.type !== output.type) {
+              return false;
+            }
+          }
+        }
+      }
+    }
+    
+    return true;
+  } catch {
+    return false;
+  }
+} 

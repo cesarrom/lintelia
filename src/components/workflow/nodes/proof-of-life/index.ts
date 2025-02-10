@@ -2,10 +2,11 @@ import { Fingerprint } from 'lucide-react';
 import { ProofOfLifeNode } from './ProofOfLifeNode';
 import { ProofOfLifeToolbar } from './ProofOfLifeToolbar';
 import { NodeDefinition } from '../types';
+import { v4 as uuid } from 'uuid';
 
 export const proofOfLifeNode: NodeDefinition = {
   get id() {
-    return crypto.randomUUID();
+    return uuid();
   },
   type: 'proofOfLife',
   name: 'Proof of Life',
@@ -13,6 +14,5 @@ export const proofOfLifeNode: NodeDefinition = {
   icon: Fingerprint,
   node: ProofOfLifeNode,
   toolbar: ProofOfLifeToolbar,
-  inputs: [],
   events: [],
 }; 

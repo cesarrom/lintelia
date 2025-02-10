@@ -2,10 +2,11 @@ import { NodeDefinition } from '../types';
 import { MapperNode } from './MapperNode';
 import { MapperToolbar } from './MapperToolbar';
 import { ArrowRightLeft } from 'lucide-react';
+import { v4 as uuid } from 'uuid';
 
 export const mapperNode: NodeDefinition = {
   get id() {
-    return crypto.randomUUID();
+    return uuid();
   },
   type: 'mapper',
   name: 'Mapper',
@@ -13,6 +14,5 @@ export const mapperNode: NodeDefinition = {
   icon: ArrowRightLeft,
   node: MapperNode,
   toolbar: MapperToolbar,
-  inputs: [],
   events: [],
 }; 

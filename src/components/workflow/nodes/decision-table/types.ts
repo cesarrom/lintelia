@@ -1,9 +1,8 @@
-export type DecisionTableNodeData = {
-  description: string;
-  rules: DecisionTableRule[];
-};
+import { z } from 'zod';
 
-export type DecisionTableRule = {
-  condition: string;
-  action: string;
-};
+export const DecisionTableNodeDataSchema = z.object({
+  xml: z.string(),
+  targetDmnId: z.string(),
+  outputName: z.string()
+});
+export type DecisionTableNodeData = z.infer<typeof DecisionTableNodeDataSchema>;

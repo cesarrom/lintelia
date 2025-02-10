@@ -2,10 +2,11 @@ import { FileSearch } from 'lucide-react';
 import { DocumentExtractorNode } from './DocumentExtractorNode';
 import { DocumentExtractorToolbar } from './DocumentExtractorToolbar';
 import { NodeDefinition } from '../types';
+import { v4 as uuid } from 'uuid';
 
 export const documentExtractorNode: NodeDefinition = {
   get id() {
-    return crypto.randomUUID();
+    return uuid();
   },
   type: 'documentExtractor',
   name: 'Document Extractor',
@@ -13,6 +14,5 @@ export const documentExtractorNode: NodeDefinition = {
   icon: FileSearch,
   node: DocumentExtractorNode,
   toolbar: DocumentExtractorToolbar,
-  inputs: [],
   events: [],
 }; 

@@ -6,6 +6,19 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const parseId = (idRef: string) => {
+  const [domain, id] = idRef.split('::');
+
+  return {
+    domain,
+    id,
+  };
+}
+
+export const serializeId = (domain: string, id: string) => {
+  return `${domain}::${id}`;
+}
+
 export function generateNodeName(type: string, existingNodes: { name: string }[]): string {
   // Get all existing names for this type
   const typeNames = existingNodes

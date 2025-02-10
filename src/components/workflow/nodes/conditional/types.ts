@@ -1,13 +1,41 @@
-export interface Condition {
-  field: string;
-  operator: 'equals' | 'notEquals' | 'greaterThan' | 'lessThan' | 'contains' | 'notContains' | 'startsWith' | 'endsWith' | 'expression';
-  value: string | number | boolean;
-}
+import { z } from 'zod';
 
-export interface ConditionalNodeData {
-  name: string;
-  description?: string;
-  condition: Condition;
-  // For complex conditions using JavaScript expressions
-  expression?: string;
-} 
+export const ComparisonValueSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.null()
+]);
+export type ComparisonValue = z.infer<typeof ComparisonValueSchema>;
+
+export const ConditionalNodeDataSchema = z.object({
+  // The type of comparison to perform
+  operator: z.enum([
+    // Basic equality
+    'equals',
+    'notEquals',
+    // Numeric comparisons
+    'greaterThan',
+    'greaterThanOrEqual',
+    'lessThan',
+    'lessThanOrEqual',
+    // String operations
+    'contains',
+    'notContains', 
+    'startsWith',
+    'endsWith',
+    'matches', // For regex matching
+    // Type checks
+    'isNull',
+    'isNotNull',
+    'isEmpty',
+    'isNotEmpty',
+    'isTrue',
+    'isFalse'
+  ]),
+  // The value to compare against
+  leftValue: ComparisonValueSchema.optional(),
+  rightValue: ComparisonValueSchema
+});
+
+export type ConditionalNodeData = z.infer<typeof ConditionalNodeDataSchema>;

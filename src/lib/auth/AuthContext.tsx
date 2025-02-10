@@ -1,30 +1,47 @@
 'use client';
 import { createContext, useContext, ReactNode, useEffect, useState } from 'react';
-import { User, useAuth0 } from '@auth0/auth0-react';
-import { isSuperAdmin } from '../auth0-config';
-import { RolePermissions } from '../permissions/types';
+import { useSession, useDescope, useUser } from '@descope/nextjs-sdk/client';
+import { AuthProvider } from '@descope/nextjs-sdk';
+
+export interface UserPermissions {
+  workflows: ('view' | 'create' | 'edit' | 'delete' | 'execute')[];
+  users: ('view' | 'invite' | 'edit' | 'delete')[];
+  roles: ('view' | 'create' | 'edit' | 'delete')[];
+  analytics: ('view' | 'export')[];
+}
+
+type User = ReturnType<typeof useUser>['user'];
 
 export interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: User | null;
   tenant: string | null;
-  permissions: RolePermissions;
+  permissions: UserPermissions;
   isSuperAdmin: boolean;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const { isAuthenticated, isLoading, user, logout: auth0Logout } = useAuth0();
-  const [permissions, setPermissions] = useState<RolePermissions>({});
+const AP = ({ children }: { children: ReactNode }) => {
+  const { isAuthenticated, isSessionLoading: isLoading } = useSession();
+  const { user } = useUser();
+  const { logout: descopeLogout } = useDescope();
+  const [permissions, setPermissions] = useState<UserPermissions>({
+    workflows: [],
+    users: [],
+    roles: [],
+    analytics: []
+  });
 
   // In a real implementation, you would fetch these from your backend
   useEffect(() => {
     if (user) {
-      const superAdmin = isSuperAdmin(user.email || '');
-      if (superAdmin) {
+      const roles = user.roleNames || [];
+      const isSuperAdmin = roles.includes('super_admin');
+
+      if (isSuperAdmin) {
         // Give all permissions to super admin
         setPermissions({
           workflows: ['view', 'create', 'edit', 'delete', 'execute'],
@@ -34,17 +51,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         });
       } else {
         // TODO: Fetch user's role permissions from backend
-        setPermissions({});
+        setPermissions({
+          workflows: [],
+          users: [],
+          roles: [],
+          analytics: []
+        });
       }
     }
   }, [user]);
 
   const handleLogout = async () => {
-    await auth0Logout({
-      logoutParams: {
-        returnTo: window.location.origin,
-      },
-    });
+    await descopeLogout();
   };
 
   const value = {
@@ -53,7 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     user: user || null,
     tenant: null, // This will be set based on subdomain
     permissions,
-    isSuperAdmin: user ? isSuperAdmin(user.email || '') : false,
+    isSuperAdmin: user?.roleNames?.includes('super_admin') || false,
     logout: handleLogout,
   };
 
@@ -66,4 +84,18 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-}; 
+};
+
+const WrappedAuthProvider = ({ children, projectId }: React.PropsWithChildren<{ projectId: string }>) => {
+  return (
+    <AuthProvider projectId={projectId}>
+      <AP>
+        {children}
+      </AP>
+    </AuthProvider>
+  )
+}
+
+export {
+  WrappedAuthProvider as AuthProvider
+}

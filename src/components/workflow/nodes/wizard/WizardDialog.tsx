@@ -14,6 +14,7 @@ import { VariableInput } from '@/components/ui/variable-input';
 import { Plus, Trash2, MoveUp, MoveDown } from 'lucide-react';
 import { DialogProps, NodeData } from '../types';
 import { useNodes } from 'reactflow';
+import { v4 as uuid } from 'uuid';
 
 export function WizardDialog({ open, onOpenChange, data, onSave }: DialogProps) {
   const nodes = useNodes();
@@ -27,7 +28,7 @@ export function WizardDialog({ open, onOpenChange, data, onSave }: DialogProps) 
 
   const addStep = () => {
     const newStep: WizardStep = {
-      id: crypto.randomUUID(),
+      id: uuid(),
       name: `Step ${nodeData.config.steps.length + 1}`,
       nodeId: '',
     };

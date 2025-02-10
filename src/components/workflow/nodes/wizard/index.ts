@@ -2,10 +2,11 @@ import { ListChecks } from 'lucide-react';
 import { WizardNode } from './WizardNode';
 import { WizardToolbar } from './WizardToolbar';
 import { NodeDefinition } from '../types';
+import { v4 as uuid } from 'uuid';
 
 export const wizardNode: NodeDefinition = {
   get id() {
-    return crypto.randomUUID();
+    return uuid();
   },
   type: 'wizard',
   name: 'Wizard',
@@ -13,7 +14,6 @@ export const wizardNode: NodeDefinition = {
   icon: ListChecks,
   node: WizardNode,
   toolbar: WizardToolbar,
-  inputs: [],
   events: [],
   initialConfig: {
     steps: [],

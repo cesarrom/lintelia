@@ -11,9 +11,16 @@ import {
   Shield,
   BarChart,
   LogOut,
+  ChevronLeft,
+  ChevronRight,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { PermissionGate } from '@/components/auth/PermissionGate';
+import { useState } from 'react';
+import { useTheme } from 'next-themes';
+import { Button } from '@/components/ui/button';
 
 const navigation = [
   {
@@ -55,6 +62,8 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { isAuthenticated, user, tenant, logout } = useAuth();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   if (!isAuthenticated) return null;
 
@@ -68,11 +77,22 @@ export function Sidebar() {
   };
 
   return (
-    <div className="flex h-full w-64 flex-col bg-gray-900">
-      <div className="flex h-16 items-center justify-center border-b border-gray-800 px-4">
-        <h1 className="text-xl font-bold text-white">
-          {tenant ? tenant.charAt(0).toUpperCase() + tenant.slice(1) : 'Workflow Engine'}
-        </h1>
+    <div className={cn(
+      "flex h-full flex-col bg-gray-900 transition-all duration-300",
+      isCollapsed ? "w-16" : "w-64"
+    )}>
+      <div className="flex h-16 items-center justify-between border-b border-gray-800 px-4">
+        {!isCollapsed && (
+          <h1 className="text-xl font-bold text-white truncate">
+            {tenant ? tenant.charAt(0).toUpperCase() + tenant.slice(1) : 'Workflow Engine'}
+          </h1>
+        )}
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="text-gray-300 hover:text-white"
+        >
+          {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+        </button>
       </div>
       <div className="flex flex-1 flex-col overflow-y-auto">
         <nav className="flex-1 space-y-1 px-2 py-4">
@@ -86,18 +106,21 @@ export function Sidebar() {
                   isActive
                     ? 'bg-gray-800 text-white'
                     : 'text-gray-300 hover:bg-gray-800 hover:text-white',
-                  'group flex items-center rounded-md px-2 py-2 text-sm font-medium'
+                  'group flex items-center rounded-md px-2 py-2 text-sm font-medium',
+                  isCollapsed && 'justify-center'
                 )}
+                title={isCollapsed ? item.name : undefined}
               >
                 <item.icon
                   className={cn(
                     isActive
                       ? 'text-white'
                       : 'text-gray-400 group-hover:text-white',
-                    'mr-3 h-5 w-5 flex-shrink-0'
+                    'h-5 w-5 flex-shrink-0',
+                    !isCollapsed && 'mr-3'
                   )}
                 />
-                {item.name}
+                {!isCollapsed && item.name}
               </Link>
             );
 
@@ -110,30 +133,60 @@ export function Sidebar() {
             );
           })}
         </nav>
-        <div className="border-t border-gray-800 p-4">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center">
-                <span className="text-white text-sm">
-                  {user?.email?.charAt(0).toUpperCase()}
-                </span>
+        <div className="border-t border-gray-800 p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center">
+                  <span className="text-white text-sm">
+                    {user?.email?.charAt(0).toUpperCase()}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-white">
-                {user?.email}
-              </p>
+              {!isCollapsed && (
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-white truncate">
+                    {user?.email}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
+
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+              className="w-full justify-start px-2 text-gray-300 hover:bg-gray-800 hover:text-white"
+            >
+              {theme === 'light' ? (
+                <>
+                  <Moon className="h-5 w-5 mr-3" />
+                  {!isCollapsed && "Dark Mode"}
+                </>
+              ) : (
+                <>
+                  <Sun className="h-5 w-5 mr-3" />
+                  {!isCollapsed && "Light Mode"}
+                </>
+              )}
+            </Button>
+          </div>
+
           <button
             onClick={handleLogout}
-            className="mt-4 flex w-full items-center rounded-md px-2 py-2 text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white"
+            className={cn(
+              "flex items-center rounded-md px-2 py-2 text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white w-full",
+              isCollapsed && "justify-center"
+            )}
+            title={isCollapsed ? "Sign out" : undefined}
           >
-            <LogOut className="mr-3 h-5 w-5 text-gray-400" />
-            Sign out
+            <LogOut className={cn("h-5 w-5", !isCollapsed && "mr-3")} />
+            {!isCollapsed && "Sign out"}
           </button>
         </div>
       </div>
     </div>
   );
-} 
+}

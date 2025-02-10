@@ -2,10 +2,11 @@ import { FileCheck } from 'lucide-react';
 import { IdentityValidationNode } from './IdentityValidationNode';
 import { IdentityValidationToolbar } from './IdentityValidationToolbar';
 import { NodeDefinition } from '../types';
+import { v4 as uuid } from 'uuid';
 
 export const identityValidationNode: NodeDefinition = {
   get id() {
-    return crypto.randomUUID();
+    return uuid();
   },
   type: 'identityValidation',
   name: 'Identity Validation',
@@ -13,7 +14,6 @@ export const identityValidationNode: NodeDefinition = {
   icon: FileCheck,
   node: IdentityValidationNode,
   toolbar: IdentityValidationToolbar,
-  inputs: [],
   events: [
     {
       name: 'validation_started',

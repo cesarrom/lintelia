@@ -1,22 +1,23 @@
-export type VerificationType = 'selfie' | 'video' | 'gesture' | 'voice';
+import { z } from 'zod';
 
-export interface VerificationStep {
-  type: VerificationType;
-  instructions?: string;
-  timeLimit?: number; // in seconds
-  requiredGestures?: string[];
-  requiredPhrase?: string;
-}
+export const VerificationTypeSchema = z.enum(['selfie', 'video', 'gesture', 'voice']);
+export type VerificationType = z.infer<typeof VerificationTypeSchema>;
 
-export interface ProofOfLifeNodeData {
-  name: string;
-  description?: string;
-  config: {
-    verificationSteps: VerificationStep[];
-    minConfidenceScore?: number; // 0-1
-    maxAttempts?: number;
-    timeoutDuration?: number; // in seconds
-    requireLocation?: boolean;
-    requireDeviceInfo?: boolean;
-  };
-} 
+export const VerificationStepSchema = z.object({
+  type: VerificationTypeSchema,
+  instructions: z.string().optional(),
+  timeLimit: z.number().optional(), // in seconds
+  requiredGestures: z.array(z.string()).optional(),
+  requiredPhrase: z.string().optional()
+});
+export type VerificationStep = z.infer<typeof VerificationStepSchema>;
+
+export const ProofOfLifeNodeDataSchema = z.object({
+  verificationSteps: z.array(VerificationStepSchema),
+  minConfidenceScore: z.number().min(0).max(1).optional(), // 0-1
+  maxAttempts: z.number().optional(),
+  timeoutDuration: z.number().optional(), // in seconds
+  requireLocation: z.boolean().optional(),
+  requireDeviceInfo: z.boolean().optional()
+});
+export type ProofOfLifeNodeData = z.infer<typeof ProofOfLifeNodeDataSchema>;

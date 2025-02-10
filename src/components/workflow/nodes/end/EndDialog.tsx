@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -19,14 +18,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Plus, Trash2 } from 'lucide-react';
-import { EndNodeData } from './types';
-import { NodeData } from '../types';
+import { NodeData, Port } from '../types';
+import { useNodeData } from '../../WorkflowContext';
+import { useCallback } from 'react';
 
 interface EndDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   data: NodeData;
-  onSave: (updates: Partial<NodeData>) => void;
 }
 
 const OUTPUT_TYPES = [
@@ -38,61 +37,59 @@ const OUTPUT_TYPES = [
   { value: 'array', label: 'Array' },
 ];
 
-export function EndDialog({ open, onOpenChange, data, onSave }: EndDialogProps) {
-  const [nodeData, setNodeData] = useState<EndNodeData>(() => {
-    if (data.config?.end) {
-      return data.config.end as EndNodeData;
-    }
-    return {
-      name: data.name || 'End',
-      description: '',
-      outputs: [],
-    };
-  });
+export function EndDialog({ open, onOpenChange }: EndDialogProps) {
+  const [nodeData, setNodeData] = useNodeData();
 
   const handleSave = () => {
-    onSave({
-      name: nodeData.name,
-      config: {
-        end: nodeData,
-      },
-    });
     onOpenChange(false);
   };
 
-  const addOutput = () => {
-    setNodeData(prev => ({
-      ...prev,
-      outputs: [
-        ...prev.outputs,
+  const returnData = useCallback((data: NodeData, outputs: Port[]) => {
+    if (!data.events || !data.events.length) {
+      data.events = [{
+        name: 'ended',
+        outputs: [],
+      }];
+    }
+
+    const [event] = data.events;
+    event.outputs = outputs;
+
+    return { ...data, events: [event] };
+  }, []);
+
+  const addOutput = useCallback(() => {
+    setNodeData(data => {
+      const currentOutputs = data.events?.[0]?.outputs || [];
+      const newOutputs = [
+        ...currentOutputs,
         {
-          id: crypto.randomUUID(),
           name: '',
           type: 'string',
-          description: '',
         },
-      ],
-    }));
+      ];
+
+      return returnData(data, newOutputs);
+    });
+  }, [returnData, setNodeData]);
+
+  const removeOutput = useCallback((index: number) => {
+    setNodeData(data => {
+      const currentOutputs = [...(data.events?.[0]?.outputs || [])];
+      currentOutputs.splice(index, 1);
+      return returnData(data, currentOutputs);
+    });
+  }, [returnData, setNodeData]);
+
+  const updateOutput = (index: number, updates: Partial<Port>) => {
+    setNodeData(data => {
+      const currentOutputs = [...(data.events?.[0]?.outputs || [])];
+      currentOutputs[index] = { ...currentOutputs[index], ...updates };
+      return returnData(data, currentOutputs);
+    });
   };
 
-  const removeOutput = (id: string) => {
-    setNodeData(prev => ({
-      ...prev,
-      outputs: prev.outputs.filter(output => output.id !== id),
-    }));
-  };
-
-  const updateOutput = (id: string, updates: Partial<EndNodeData['outputs'][0]>) => {
-    setNodeData(prev => ({
-      ...prev,
-      outputs: prev.outputs.map(output => {
-        if (output.id === id) {
-          return { ...output, ...updates };
-        }
-        return output;
-      }),
-    }));
-  };
+  const outputs = nodeData?.events?.[0]?.outputs || [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -106,7 +103,7 @@ export function EndDialog({ open, onOpenChange, data, onSave }: EndDialogProps) 
             <div className="space-y-2">
               <Label>Name</Label>
               <Input
-                value={nodeData.name}
+                value={nodeData?.name}
                 onChange={(e) => setNodeData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="Enter node name"
               />
@@ -114,7 +111,7 @@ export function EndDialog({ open, onOpenChange, data, onSave }: EndDialogProps) 
             <div className="space-y-2">
               <Label>Description</Label>
               <Textarea
-                value={nodeData.description || ''}
+                value={nodeData?.description || ''}
                 onChange={(e) => setNodeData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="Enter node description"
               />
@@ -136,18 +133,18 @@ export function EndDialog({ open, onOpenChange, data, onSave }: EndDialogProps) 
               </Button>
             </div>
             <div className="space-y-4">
-              {nodeData.outputs.map((output) => (
-                <div key={output.id} className="flex gap-2 items-start">
+              {outputs.map((output, index) => (
+                <div key={index} className="flex gap-2 items-start">
                   <div className="flex-1 space-y-2">
                     <Input
                       value={output.name}
-                      onChange={(e) => updateOutput(output.id, { name: e.target.value })}
+                      onChange={(e) => updateOutput(index, { name: e.target.value })}
                       placeholder="Parameter name"
                     />
                     <div className="flex gap-2">
                       <Select
                         value={output.type}
-                        onValueChange={(value) => updateOutput(output.id, { type: value })}
+                        onValueChange={(value) => updateOutput(index, { type: value })}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -161,16 +158,11 @@ export function EndDialog({ open, onOpenChange, data, onSave }: EndDialogProps) 
                         </SelectContent>
                       </Select>
                     </div>
-                    <Input
-                      value={output.description || ''}
-                      onChange={(e) => updateOutput(output.id, { description: e.target.value })}
-                      placeholder="Parameter description"
-                    />
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => removeOutput(output.id)}
+                    onClick={() => removeOutput(index)}
                     className="h-10 w-10 text-destructive hover:text-destructive hover:bg-destructive/10"
                   >
                     <Trash2 className="w-4 h-4" />

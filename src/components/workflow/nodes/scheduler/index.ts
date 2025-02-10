@@ -2,39 +2,31 @@ import { Clock } from 'lucide-react';
 import { SchedulerNode } from './SchedulerNode';
 import { SchedulerToolbar } from './SchedulerToolbar';
 import { NodeDefinition } from '../types';
+import { v4 as uuid } from 'uuid';
 
 export const schedulerNode: NodeDefinition = {
-  id: crypto.randomUUID(),
+  get id() {
+    return uuid();
+  },
   type: 'scheduler',
   name: 'Scheduler',
   description: 'Schedule workflow execution',
   icon: Clock,
   node: SchedulerNode,
   toolbar: SchedulerToolbar,
-  inputs: [
-    {
-      name: 'input',
-      type: 'any',
-    },
-  ],
   events: [
     {
-      name: 'output',
-      outputs: [
-        {
-          name: 'output',
-          type: 'any',
-        },
-      ],
+      name: 'on_timer_start',
+      outputs: [],
+    },
+    {
+      name: 'on_timer_end',
+      outputs: [],
     },
   ],
   initialConfig: {
     type: 'relative',
-    amount: '1',
+    amount: 1,
     unit: 'hours',
-    settings: {
-      retryOnFailure: false,
-      timezone: 'UTC',
-    },
   },
 }; 

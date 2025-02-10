@@ -21,6 +21,7 @@ import { Plus } from 'lucide-react';
 import { FormBuilder } from '@/components/form-builder/FormBuilder';
 import { DialogProps } from '../types';
 import { FormConfig } from '@/components/form-builder/types';
+import { v4 as uuid } from 'uuid';
 
 // Mock forms data - later this will come from an API
 const MOCK_FORMS: FormConfig[] = [
@@ -149,7 +150,7 @@ export function FormDialog({ open, onOpenChange, data, onSave }: DialogProps) {
                   size="icon"
                   onClick={() => {
                     setNewForm({
-                      id: crypto.randomUUID(),
+                      id: uuid(),
                       name: 'New Form',
                       fields: [],
                     });

@@ -10,7 +10,6 @@ import {
   PointerSensor,
   useDroppable,
   DragOverlay,
-  useDndContext,
 } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -21,6 +20,8 @@ import { Separator } from '@/components/ui/separator';
 import { GripVertical } from 'lucide-react';
 import * as components from './components';
 import { Button } from '../ui/button';
+import { v4 as uuid } from 'uuid';
+import { Input } from '@/components/ui/input';
 
 interface FormBuilderProps {
   initialConfig?: FormConfig;
@@ -96,8 +97,9 @@ function Droppable({ children, id, overChange, className }: React.PropsWithChild
 
 export function FormBuilder({ initialConfig, onChange, className, onSave, onCancel }: FormBuilderProps) {
   const [config, setConfig] = useState<FormConfig>(() => initialConfig || {
-    id: crypto.randomUUID(),
+    id: uuid(),
     name: 'New Form',
+    description: '',
     fields: [],
   });
   const [selectedField, setSelectedField] = useState<FormField | null>(null);
@@ -134,7 +136,7 @@ export function FormBuilder({ initialConfig, onChange, className, onSave, onCanc
       if (!component) return;
 
       const newField: FormField = {
-        id: crypto.randomUUID(),
+        id: uuid(),
         type: component.type,
         label: component.label,
       };
@@ -198,99 +200,124 @@ export function FormBuilder({ initialConfig, onChange, className, onSave, onCanc
     return <Toolbar />;
   };
 
+  const updateForm = (updates: Partial<FormConfig>) => {
+    setConfig(prevConfig => ({ ...prevConfig, ...updates }));
+    onChange?.(config);
+  };
+
   return (
     <div className={cn('relative flex h-full gap-4 p-4', className)}>
-      {/* Here we are going to add a button to save the form and one to cancel */}
-      <div className="absolute top-0 right-0">
-        <Button variant="outline" onClick={() => onSave?.(config)}>Save</Button>
-        <Button variant="outline" onClick={() => onCancel?.()}>Cancel</Button>
-      </div>
-      {/* Properties Panel */}
-      <div className="w-80 flex flex-col rounded-lg border bg-card text-card-foreground shadow-sm">
-        <div className="p-4 font-semibold">Properties</div>
-        <Separator />
-        <ScrollArea className="flex-1 p-4">
-          {selectedField ? (
-            (() => {
-              const component = COMPONENTS.find(c => c.type === selectedField.type);
-              if (!component) return null;
-
-              const Properties = component.properties;
-              return (
-                <Properties
-                  field={selectedField}
-                  onChange={handleFieldChange}
-                />
-              );
-            })()
-          ) : (
-            <div className="text-sm text-muted-foreground">
-              Select a field to edit its properties
-            </div>
-          )}
-        </ScrollArea>
-      </div>
-
-      {/* Canvas */}
-      <DndContext
-        sensors={sensors}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="flex-1 flex flex-col rounded-lg border bg-card text-card-foreground shadow-sm">
-          <div className="p-4 font-semibold">Canvas</div>
-          <Separator />
-          <ScrollArea className="flex-1 p-4">
-            <Droppable
-              id="canvas"
-              overChange={setIsOverCanvas}
-              className={cn(
-                'min-h-[400px] h-full w-full rounded-lg border-2 border-dashed transition-colors',
-                isOverCanvas ? 'border-primary bg-accent/50' : 'border-muted-foreground/25'
-              )}
-            >
-              <div className="p-4">
-                <SortableContext items={config.fields.map(f => f.id)} strategy={verticalListSortingStrategy}>
-                  {config.fields.length === 0 ? (
-                    <div className="h-[360px] flex items-center justify-center text-muted-foreground">
-                      Drag and drop fields here
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {config.fields.map(field => (
-                        <SortableField
-                          key={field.id}
-                          field={field}
-                          onSelect={() => setSelectedField(field)}
-                          isSelected={selectedField?.id === field.id}
-                          onChange={handleFieldChange}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </SortableContext>
-              </div>
-            </Droppable>
-          </ScrollArea>
+      {/* Form Header */}
+      <div className="absolute top-0 left-0 right-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex h-14 items-center justify-between px-4">
+          <div className="flex items-center gap-4">
+            <Input
+              value={config.name}
+              onChange={(e) => updateForm({ name: e.target.value })}
+              placeholder="Enter form name"
+              className="w-[300px]"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => onCancel?.()}>
+              Cancel
+            </Button>
+            <Button onClick={() => onSave?.(config)}>
+              Save Form
+            </Button>
+          </div>
         </div>
+      </div>
 
-        {/* Components Panel */}
+      {/* Main Content - adjust top margin to account for header */}
+      <div className="flex w-full gap-4 mt-[70px]">
+        {/* Properties Panel */}
         <div className="w-80 flex flex-col rounded-lg border bg-card text-card-foreground shadow-sm">
-          <div className="p-4 font-semibold">Components</div>
+          <div className="p-4 font-semibold">Properties</div>
           <Separator />
           <ScrollArea className="flex-1 p-4">
-            <div className="grid grid-cols-2 gap-2">
-              {COMPONENTS.map(({ type, toolbar: Toolbar }) => (
-                <Toolbar key={type} />
-              ))}
-            </div>
+            {selectedField ? (
+              (() => {
+                const component = COMPONENTS.find(c => c.type === selectedField.type);
+                if (!component) return null;
+
+                const Properties = component.properties;
+                return (
+                  <Properties
+                    field={selectedField}
+                    onChange={handleFieldChange}
+                  />
+                );
+              })()
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                Select a field to edit its properties
+              </div>
+            )}
           </ScrollArea>
         </div>
 
-        <DragOverlay>
-          {renderDragOverlay()}
-        </DragOverlay>
-      </DndContext>
+        {/* Canvas */}
+        <DndContext
+          sensors={sensors}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="flex-1 flex flex-col rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div className="p-4 font-semibold">Canvas</div>
+            <Separator />
+            <ScrollArea className="flex-1 p-4">
+              <Droppable
+                id="canvas"
+                overChange={setIsOverCanvas}
+                className={cn(
+                  'min-h-[400px] h-full w-full rounded-lg border-2 border-dashed transition-colors',
+                  isOverCanvas ? 'border-primary bg-accent/50' : 'border-muted-foreground/25'
+                )}
+              >
+                <div className="p-4">
+                  <SortableContext items={config.fields.map(f => f.id)} strategy={verticalListSortingStrategy}>
+                    {config.fields.length === 0 ? (
+                      <div className="h-[360px] flex items-center justify-center text-muted-foreground">
+                        Drag and drop fields here
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {config.fields.map(field => (
+                          <SortableField
+                            key={field.id}
+                            field={field}
+                            onSelect={() => setSelectedField(field)}
+                            isSelected={selectedField?.id === field.id}
+                            onChange={handleFieldChange}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </SortableContext>
+                </div>
+              </Droppable>
+            </ScrollArea>
+          </div>
+
+          {/* Components Panel */}
+          <div className="w-80 flex flex-col rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div className="p-4 font-semibold">Components</div>
+            <Separator />
+            <ScrollArea className="flex-1 p-4">
+              <div className="grid grid-cols-2 gap-2">
+                {COMPONENTS.map(({ type, toolbar: Toolbar }) => (
+                  <Toolbar key={type} />
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+
+          <DragOverlay>
+            {renderDragOverlay()}
+          </DragOverlay>
+        </DndContext>
+      </div>
     </div>
   );
 } 

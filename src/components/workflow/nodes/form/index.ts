@@ -2,10 +2,11 @@ import { FormNode } from './FormNode';
 import { FormInput } from 'lucide-react';
 import { NodeDefinition } from '../types';
 import { FormToolbar } from './FormToolbar';
+import { v4 as uuid } from 'uuid';
 
 export const formNode: NodeDefinition = {
   get id() {
-    return crypto.randomUUID();
+    return uuid();
   },
   type: 'form',
   name: 'Form',
@@ -13,7 +14,6 @@ export const formNode: NodeDefinition = {
   icon: FormInput,
   node: FormNode,
   toolbar: FormToolbar,
-  inputs: [],
   events: [
     {
       name: 'url_available',

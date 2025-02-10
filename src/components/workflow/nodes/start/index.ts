@@ -2,10 +2,11 @@ import { Play } from 'lucide-react';
 import { StartNode } from './StartNode';
 import { NodeDefinition } from '../types';
 import React from 'react';
+import { v4 as uuid } from 'uuid';
 
 export const startNode: NodeDefinition = {
   get id() {
-    return crypto.randomUUID();
+    return uuid();
   },
   type: 'start',
   name: 'Start',
@@ -17,13 +18,16 @@ export const startNode: NodeDefinition = {
     start: {
       name: 'Start',
       description: '',
-      inputs: [],
       trigger: {
         type: 'webhook',
         config: {},
       },
     },
   },
-  inputs: [],
-  events: [],
+  events: [
+    {
+      name: 'started',
+      outputs: [],
+    }
+  ],
 }; 
