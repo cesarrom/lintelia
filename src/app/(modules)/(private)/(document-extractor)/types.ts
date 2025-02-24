@@ -6,5 +6,5 @@ export const DocumentExtractorNodeDataSchema = z.object({
 export type DocumentExtractorNodeData = z.infer<typeof DocumentExtractorNodeDataSchema>;
 export const events = {
   success: 'success',
-  publicUrl: 'public_url',
+  failure: 'failure',
 } as const;

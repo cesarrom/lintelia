@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
-import { events } from "../types";
+import { DocumentExtractorNodeData, DocumentExtractorNodeDataSchema, events } from "../types";
 import * as restate from "@restatedev/restate-sdk/fetch";
-import { nextOrEndExecution } from "@/lib/restate-utils";
+import { getConfiguration, nextOrEndExecution } from "@/lib/restate-utils";
 import { env } from '@/lib/constants';
 import { inject } from '@/lib/injector/utils';
 import { downloadFile } from '../../(shared)/(actions)/files';
@@ -24,6 +24,8 @@ const prompts = {
     - expirationMonth (2 digits)
     - expirationYear (4 digits)
     - expirationDate (in ISO format).
+
+    if there are any errors, return a { error: string } with a human readable error message.
     
     Do not include any additional text or explanations in your response.
   `,
@@ -33,13 +35,13 @@ export const documentExtractorService = restate.object({
   name: "documentExtractor",
   handlers: {
     executeNode: async (c: restate.ObjectContext, { executionId, nodeData, yaml, domain, token, result: r }: ExecuteNodeFunctionProps) => {
-      const resolvablePromise = c.awakeable<string>();
+      const configRef = await c.run('validate-config', () => {
+        return DocumentExtractorNodeDataSchema.parse(nodeData.config || {});
+      });
 
-      const publicUrl = `${process.env.NEXT_PUBLIC_URL}/document-extractor?promiseId=${resolvablePromise.id}`;
+      const config = await getConfiguration(c, executionId, configRef, r) as DocumentExtractorNodeData;
 
-      await nextOrEndExecution(c, { nodeData, event: events.publicUrl, executionId, globalResult: r, localResult: { url: publicUrl }, yaml, domain, token });
-
-      const fileId = await resolvablePromise.promise;
+      const { file: fileId } = config
 
       const openai = new OpenAI({
         apiKey: env.OPENAI_API_KEY,
@@ -71,7 +73,11 @@ export const documentExtractorService = restate.object({
       });
 
       const reply = chatCompletion.choices[0].message.content;
-      const result = JSON.parse(reply || '{}');
+      const result = JSON.parse(reply || '{ "error": "No response from OpenAI" }');
+
+      if (result.error) {
+        return nextOrEndExecution(c, { nodeData, event: events.failure, executionId, globalResult: r, localResult: { error: result.error }, yaml, domain, token });
+      }
 
       return nextOrEndExecution(c, { nodeData, event: events.success, executionId, globalResult: r, localResult: result, yaml, domain, token });
     },
