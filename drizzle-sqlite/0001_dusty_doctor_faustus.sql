@@ -1,1 +1,0 @@
-ALTER TABLE `forms` ADD `contract_key` text NOT NULL;

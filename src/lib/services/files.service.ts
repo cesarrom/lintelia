@@ -1,15 +1,15 @@
 import { ENVIRONMENT_TOKEN } from "../injector/tokens";
-import { Autowire, Injectable } from "ts-injection";
+import { injectable, inject } from "tsyringe";
 import { env } from "../constants";
 import { S3 } from "aws-sdk";
 
-@Injectable()
+@injectable()
 export class FilesService {
-  @Autowire(ENVIRONMENT_TOKEN)
-  private _env: typeof env
+  private _s3?: S3;
 
-
-  private _s3: S3;
+  constructor(
+    @inject(ENVIRONMENT_TOKEN) private _env: typeof env
+  ) {}
 
   private get s3() {
     if (!this._s3) {

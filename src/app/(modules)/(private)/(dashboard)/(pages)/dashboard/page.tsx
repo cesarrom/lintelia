@@ -73,14 +73,14 @@ export default function DashboardPage() {
             <Card key={stat.name} className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <stat.icon className="h-8 w-8 text-gray-400" />
+                  <stat.icon className="h-8 w-8 text-muted-foreground" />
                 </div>
                 <div className="ml-4">
-                  <h3 className="text-sm font-medium text-gray-500">{stat.name}</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">{stat.name}</h3>
                   <div className="flex items-baseline">
-                    <p className="text-2xl font-semibold text-gray-900">{stat.value}</p>
+                    <p className="text-2xl font-semibold">{stat.value}</p>
                     <p className={`ml-2 text-sm ${
-                      stat.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
+                      stat.changeType === 'increase' ? 'text-green-500' : 'text-red-500'
                     }`}>
                       {stat.change}
                     </p>
@@ -93,21 +93,21 @@ export default function DashboardPage() {
 
         {/* Recent Activity */}
         <Card className="overflow-hidden">
-          <div className="px-6 py-5 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
+          <div className="px-6 py-5 border-b">
+            <h3 className="text-lg font-medium">Recent Activity</h3>
           </div>
-          <ul className="divide-y divide-gray-200">
+          <ul className="divide-y">
             {recentActivity.map((activity) => (
               <li key={activity.id} className="px-6 py-4">
                 <div className="flex space-x-3">
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-medium text-gray-900">
+                      <h3 className="text-sm font-medium">
                         {activity.user}
                       </h3>
-                      <p className="text-sm text-gray-500">{activity.time}</p>
+                      <p className="text-sm text-muted-foreground">{activity.time}</p>
                     </div>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       {activity.action} <span className="font-medium">{activity.target}</span>
                     </p>
                   </div>
@@ -119,4 +119,4 @@ export default function DashboardPage() {
       </div>
     </div>
   );
-} 
+}

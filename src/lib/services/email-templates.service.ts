@@ -1,72 +1,73 @@
-import { eq } from "drizzle-orm";
-import { emailTemplates } from "../models/platform.sql";
-import { Injectable } from "ts-injection";
-import type { PlatformDB } from "./tenants.service";
+import { injectable, inject } from 'tsyringe';
+import { EmailTemplate } from "../entities/tenant/email-template.entity";
+import { DataSource, Repository } from "typeorm";
+import { TENANT_DB_TOKEN } from "../injector/tokens";
 import { v4 as uuid } from 'uuid';
 
-@Injectable()
+@injectable()
 export class EmailTemplatesService {
-  constructor(private readonly db: PlatformDB) {}
+  private emailTemplateRepository: Repository<EmailTemplate>;
 
-  async create(data: CreateEmailTemplateInput) {
-    const [template] = await this.db.insert(emailTemplates).values({
-      id: uuid(),
-      name: data.name,
-      description: data.description || '',
-      subject: data.subject,
-      body: data.body,
-      variables: JSON.stringify(data.variables),
-      createdBy: data.createdBy,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    }).returning();
-
-    return {
-      ...template,
-      variables: JSON.parse(template.variables),
-    };
+  constructor(
+    @inject(TENANT_DB_TOKEN) private conn: DataSource
+  ) {
+    this.emailTemplateRepository = this.conn.getRepository(EmailTemplate);
   }
 
-  async update(id: string, data: UpdateEmailTemplateInput) {
-    const [template] = await this.db.update(emailTemplates)
-      .set({
-        name: data.name,
-        description: data.description || '',
-        subject: data.subject,
-        body: data.body,
-        variables: data.variables ? JSON.stringify(data.variables) : undefined,
-        updatedAt: Date.now(),
-      })
-      .where(eq(emailTemplates.id, id))
-      .returning();
+  async create(data: CreateEmailTemplateInput): Promise<EmailTemplate> {
+    const template = new EmailTemplate();
+    template.id = uuid();
+    template.name = data.name;
+    template.description = data.description || '';
+    template.subject = data.subject;
+    template.body = data.body;
+    template.variables = data.variables;
+    template.createdBy = data.createdBy;
 
-    return {
-      ...template,
-      variables: JSON.parse(template.variables),
-    };
+    return await this.emailTemplateRepository.save(template);
   }
 
-  async delete(id: string) {
-    const [template] = await this.db.delete(emailTemplates).where(eq(emailTemplates.id, id)).returning();
+  async update(id: string, data: UpdateEmailTemplateInput): Promise<EmailTemplate> {
+    const template = await this.emailTemplateRepository.findOne({
+      where: { id }
+    });
+
+    if (!template) {
+      throw new Error("Email template not found");
+    }
+
+    if (data.name !== undefined) template.name = data.name;
+    if (data.description !== undefined) template.description = data.description;
+    if (data.subject !== undefined) template.subject = data.subject;
+    if (data.body !== undefined) template.body = data.body;
+    if (data.variables !== undefined) template.variables = data.variables;
+
+    return await this.emailTemplateRepository.save(template);
+  }
+
+  async delete(id: string): Promise<EmailTemplate> {
+    const template = await this.emailTemplateRepository.findOne({
+      where: { id }
+    });
+
+    if (!template) {
+      throw new Error("Email template not found");
+    }
+
+    return await this.emailTemplateRepository.remove(template);
+  }
+
+  async getById(id: string): Promise<EmailTemplate | null> {
+    const template = await this.emailTemplateRepository.findOne({
+      where: { id }
+    });
+
+    if (!template) return null;
     return template;
   }
 
-  async getById(id: string) {
-    const template = await this.db.select().from(emailTemplates).where(eq(emailTemplates.id, id)).limit(1).then(res => res[0]);
-    if (!template) return null;
-
-    return {
-      ...template,
-      variables: JSON.parse(template.variables),
-    };
-  }
-
-  async list() {
-    const templates = await this.db.select().from(emailTemplates);
-    return templates.map(template => ({
-      ...template,
-      variables: JSON.parse(template.variables),
-    }));
+  async list(): Promise<EmailTemplate[]> {
+    return await this.emailTemplateRepository.find();
   }
 }
 
@@ -83,7 +84,7 @@ export interface CreateEmailTemplateInput {
   description?: string;
   subject: string;
   body: string;
-  variables: EmailTemplateVariable[];
+  variables: Record<string, EmailTemplateVariable>;
   createdBy: string;
 }
 
@@ -92,5 +93,5 @@ export interface UpdateEmailTemplateInput {
   description?: string;
   subject?: string;
   body?: string;
-  variables?: EmailTemplateVariable[];
-} 
+  variables?: Record<string, EmailTemplateVariable>;
+}

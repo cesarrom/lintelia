@@ -1,0 +1,64 @@
+import { z } from "zod";
+
+export const OnboardingDataSchema = z.object({
+  name: z.string().max(255, 'Cannot exceed 255 characters'),
+  domain: z.string().regex(/^[a-z0-9-]+$/, 'May only contain numbers, lowercase letters, and dashes').max(255, 'Cannot exceed 255 characters'),
+  logoUrl: z.string().optional(),
+  logoName: z.string().optional(),
+  plan: z.string().max(255, 'Cannot exceed 255 characters').optional(),
+  pallette: z.object({
+    primary: z.string().max(255, 'Cannot exceed 255 characters'),
+    secondary: z.string().max(255, 'Cannot exceed 255 characters'),
+    accent: z.string().max(255, 'Cannot exceed 255 characters'),
+  }),
+  invitee: z.array(z.object({
+    email: z.string().email('Invalid email').max(255, 'Cannot exceed 255 characters'),
+    role: z.string().max(255, 'Cannot exceed 255 characters'),
+  })),
+  allowedDomains: z.array(z.string().max(255, 'Cannot exceed 255 characters')),
+  addressLine1: z.string().max(255, 'Cannot exceed 255 characters'),
+  addressLine2: z.string().max(255, 'Cannot exceed 255 characters').optional(),
+  city: z.string().max(255, 'Cannot exceed 255 characters'),
+  state: z.string().max(255, 'Cannot exceed 255 characters'),
+  country: z.string().max(255, 'Cannot exceed 255 characters'),
+  zipCode: z.string().max(255, 'Cannot exceed 255 characters'),
+  startWorkingHour: z.string().max(255, 'Cannot exceed 255 characters'),
+  endWorkingHour: z.string().max(255, 'Cannot exceed 255 characters'),
+  individualContract: z.string(),
+  coApplicantContract: z.string(),
+  businessContract: z.string(),
+  timezone: z.string().max(255, 'Cannot exceed 255 characters'),
+  currentEmail: z.string().optional(),
+  currentDomain: z.string().optional(),
+});
+
+export type OnboardingData = z.infer<typeof OnboardingDataSchema>;
+
+export const onboardingDefaultValues: OnboardingData = {
+  name: '',
+  domain: '',
+  logoUrl: '',
+  plan: '',
+  pallette: {
+    primary: '#000000',
+    secondary: '#000000',
+    accent: '#000000',
+  },
+  invitee: [],
+  allowedDomains: [],
+  currentEmail: '',
+  currentDomain: '',
+  logoName: '',
+  addressLine1: '',
+  addressLine2: '',
+  city: '',
+  state: '',
+  country: '',
+  zipCode: '',
+  startWorkingHour: '',
+  endWorkingHour: '',
+  individualContract: '',
+  coApplicantContract: '',
+  businessContract: '',
+  timezone: '',
+};

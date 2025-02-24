@@ -1,26 +1,28 @@
 import AWS, { Route53, CloudFront } from 'aws-sdk';
 import { DISTRIBUTION_ID_TOKEN, ENVIRONMENT_TOKEN } from '../../lib/injector/tokens';
 import { env } from '../constants';
-import { Autowire, Injectable } from 'ts-injection';
+import { injectable, inject } from 'tsyringe';
+import assert from 'assert';
 
 interface TenantDomainSetupParams {
   tenantDomains: string[];
 }
 
-interface CNAMERecord {
+export interface CNAMERecord {
   Name: string;
   Type: string;
   Value: string;
 }
-@Injectable()
-export class DomainsService {
-  private _route53: Route53;
-  private _cloudFront: CloudFront;
 
-  @Autowire(ENVIRONMENT_TOKEN)
-  private _env: typeof env
-  @Autowire(DISTRIBUTION_ID_TOKEN)
-  private distributionId: string;
+@injectable()
+export class DomainsService {
+  private _route53?: Route53;
+  private _cloudFront?: CloudFront;
+
+  constructor(
+    @inject(ENVIRONMENT_TOKEN) private _env: typeof env,
+    @inject(DISTRIBUTION_ID_TOKEN) private distributionId: string
+  ) {}
 
   private get hostedZoneId() {
     return this._env.AWS_HOSTED_ZONE_ID;
@@ -67,6 +69,9 @@ export class DomainsService {
     try {
       const { DistributionConfig, ETag } = await this.getDistributionConfig();
 
+      assert(DistributionConfig, 'DistributionConfig is required');
+      assert(ETag, 'ETag is required');
+
       // Update the ViewerCertificate with the new ARN
       DistributionConfig.ViewerCertificate = {
         ACMCertificateArn: arn,
@@ -84,7 +89,7 @@ export class DomainsService {
     }
   }
 
-  async updateDistribution(config: CloudFront.DistributionConfig, etag: string, certificateProcessDone = false) {
+  async updateDistribution(config: CloudFront.DistributionConfig, etag: string, certificateProcessDone = false): Promise<CloudFront.UpdateDistributionResult> {
     try {
       const params = {
         Id: this.distributionId,
@@ -112,8 +117,14 @@ export class DomainsService {
     try {
       const { DistributionConfig, ETag } = await this.getDistributionConfig();
 
+      assert(DistributionConfig, 'DistributionConfig is required');
+      assert(ETag, 'ETag is required');
+
       // Check if the alias already exists
-      if (!DistributionConfig.Aliases.Items.includes(newAlias)) {
+      if (!DistributionConfig.Aliases?.Items?.includes(newAlias)) {
+        assert(DistributionConfig.Aliases, 'Aliases is required');
+        assert(DistributionConfig.Aliases.Items, 'Aliases.Items is required');
+
         DistributionConfig.Aliases.Items.push(newAlias);
         DistributionConfig.Aliases.Quantity += 1;
       }
@@ -132,6 +143,11 @@ export class DomainsService {
     }
     try {
       const { DistributionConfig, ETag } = await this.getDistributionConfig();
+
+      assert(DistributionConfig, 'DistributionConfig is required');
+      assert(ETag, 'ETag is required');
+      assert(DistributionConfig.Aliases, 'Aliases is required');
+      assert(DistributionConfig.Aliases.Items, 'Aliases.Items is required');
 
       const aliasIndex = DistributionConfig.Aliases.Items.indexOf(aliasToRemove);
       if (aliasIndex !== -1) {
@@ -335,9 +351,10 @@ export class DomainsService {
         .getDistributionConfig({ Id: distributionId })
         .promise();
 
-      if (!DistributionConfig || !ETag) {
-        throw new Error('Failed to retrieve CloudFront distribution config');
-      }
+      assert(DistributionConfig, 'DistributionConfig is required');
+      assert(ETag, 'ETag is required');
+      assert(DistributionConfig.Aliases, 'Aliases is required');
+      assert(DistributionConfig.Aliases.Items, 'Aliases.Items is required');
 
       // Preserve existing aliases and add new ones
       const existingAliases = DistributionConfig.Aliases.Items || [];

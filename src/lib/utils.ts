@@ -1,4 +1,4 @@
-import { NodeData } from "@/components/workflow/nodes/types";
+import { NodeData } from "@/app/(modules)/(private)/(workflows)/(components)/yaml/types";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -61,3 +61,5 @@ export type WorkflowSchema = {
   inputs?: { name: string; type: string }[];
   outputs?: { name: string; type: string }[];
 }; 
+
+export const wait = (ms: number) => new Promise(resolve => { setTimeout(resolve, ms) });

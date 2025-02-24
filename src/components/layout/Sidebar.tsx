@@ -4,12 +4,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import {
-  LayoutDashboard,
-  Users,
-  Settings,
-  Workflow,
-  Shield,
-  BarChart,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -17,46 +11,17 @@ import {
   Sun,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/AuthContext';
-import { PermissionGate } from '@/components/auth/PermissionGate';
+import { PermissionGate } from '@/app/(modules)/(private)/(auth)/(components)/auth/PermissionGate';
 import { useState } from 'react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
+import { routes } from '@/lib/routes/routes';
+import { routeIcons } from '@/lib/routes/routeIcons';
 
-const navigation = [
-  {
-    name: 'Dashboard',
-    href: '/dashboard',
-    icon: LayoutDashboard,
-  },
-  {
-    name: 'Workflows',
-    href: '/workflows',
-    icon: Workflow,
-    permission: 'canManageWorkflows',
-  },
-  {
-    name: 'Users',
-    href: '/settings/users',
-    icon: Users,
-    permission: 'canManageUsers',
-  },
-  {
-    name: 'Roles',
-    href: '/settings/roles',
-    icon: Shield,
-    permission: 'canManageRoles',
-  },
-  {
-    name: 'Analytics',
-    href: '/analytics',
-    icon: BarChart,
-  },
-  {
-    name: 'Settings',
-    href: '/settings',
-    icon: Settings,
-  },
-];
+const navigation = routes.map((route) => ({
+  ...route,
+  icon: routeIcons[route.name as keyof typeof routeIcons],
+}));
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -78,18 +43,18 @@ export function Sidebar() {
 
   return (
     <div className={cn(
-      "flex h-full flex-col bg-gray-900 transition-all duration-300",
+      "flex h-full flex-col border-r transition-all duration-300",
       isCollapsed ? "w-16" : "w-64"
     )}>
-      <div className="flex h-16 items-center justify-between border-b border-gray-800 px-4">
+      <div className="flex h-16 items-center justify-between border-b px-4">
         {!isCollapsed && (
-          <h1 className="text-xl font-bold text-white truncate">
+          <h1 className="text-xl font-bold truncate">
             {tenant ? tenant.charAt(0).toUpperCase() + tenant.slice(1) : 'Workflow Engine'}
           </h1>
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="text-gray-300 hover:text-white"
+          className="hover:text-foreground"
         >
           {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
         </button>
@@ -104,8 +69,8 @@ export function Sidebar() {
                 href={item.href}
                 className={cn(
                   isActive
-                    ? 'bg-gray-800 text-white'
-                    : 'text-gray-300 hover:bg-gray-800 hover:text-white',
+                    ? 'bg-accent text-accent-foreground'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                   'group flex items-center rounded-md px-2 py-2 text-sm font-medium',
                   isCollapsed && 'justify-center'
                 )}
@@ -114,8 +79,8 @@ export function Sidebar() {
                 <item.icon
                   className={cn(
                     isActive
-                      ? 'text-white'
-                      : 'text-gray-400 group-hover:text-white',
+                      ? 'text-accent-foreground'
+                      : 'text-muted-foreground group-hover:text-accent-foreground',
                     'h-5 w-5 flex-shrink-0',
                     !isCollapsed && 'mr-3'
                   )}
@@ -125,7 +90,7 @@ export function Sidebar() {
             );
 
             return item.permission ? (
-              <PermissionGate key={item.name} permissions={{ [item.permission]: true }}>
+              <PermissionGate key={item.name} permissions={[item.permission]}>
                 <MenuItem />
               </PermissionGate>
             ) : (
@@ -133,19 +98,19 @@ export function Sidebar() {
             );
           })}
         </nav>
-        <div className="border-t border-gray-800 p-4 space-y-4">
+        <div className="border-t p-4 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center">
-                  <span className="text-white text-sm">
+                <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center">
+                  <span className="text-accent-foreground text-sm">
                     {user?.email?.charAt(0).toUpperCase()}
                   </span>
                 </div>
               </div>
               {!isCollapsed && (
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-white truncate">
+                  <p className="text-sm font-medium truncate">
                     {user?.email}
                   </p>
                 </div>
@@ -158,7 +123,7 @@ export function Sidebar() {
               variant="ghost"
               size="sm"
               onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-              className="w-full justify-start px-2 text-gray-300 hover:bg-gray-800 hover:text-white"
+              className="w-full justify-start px-2"
             >
               {theme === 'light' ? (
                 <>
@@ -177,7 +142,7 @@ export function Sidebar() {
           <button
             onClick={handleLogout}
             className={cn(
-              "flex items-center rounded-md px-2 py-2 text-sm font-medium text-gray-300 hover:bg-gray-800 hover:text-white w-full",
+              "flex items-center rounded-md px-2 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground w-full",
               isCollapsed && "justify-center"
             )}
             title={isCollapsed ? "Sign out" : undefined}

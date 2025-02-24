@@ -1,15 +1,17 @@
 import axios, { Axios } from "axios";
 import { env } from "../constants";
-import { Autowire, Injectable } from "ts-injection";
+import { inject, injectable } from "tsyringe";
 import FormData from "form-data";
 import { ENVIRONMENT_TOKEN } from "../injector/tokens";
 
-@Injectable()
+@injectable()
 export class KYCService {
-  @Autowire(ENVIRONMENT_TOKEN)
-  private _env: typeof env
   private static BASE_URL = 'https://api.kycaid.com';
-  private _api: Axios;
+  private _api?: Axios;
+
+  constructor(
+    @inject(ENVIRONMENT_TOKEN) private _env: typeof env
+  ) {}
 
   private get api() {
     if (!this._api) {

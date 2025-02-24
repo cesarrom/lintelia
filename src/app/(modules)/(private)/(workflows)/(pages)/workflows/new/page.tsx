@@ -1,51 +1,49 @@
 'use client';
 
-import { save } from '@/components/workflow/server/save';
 import dynamic from 'next/dynamic';
-import { redirect } from 'next/navigation';
-import { useEffect, useState, useTransition } from 'react';
+import { save } from '../../../(actions)';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 const WorkflowEditor = dynamic(
-  () => import('@/components/workflow/WorkflowEditor'),
+  () => import('../../../(components)/WorkflowEditor'),
   { ssr: false }
 );
 
 const DEFAULT_WORKFLOW_YAML = `
 name: "Untitled Workflow"
 description: ""
-version: "1.0"
+version: 1
 triggers: []
 steps: []
 `;
 
 export default function NewWorkflowPage() {
-  const [, startTransition] = useTransition();
-  const [state, setState] = useState<{
-    yaml: string;
-    workflowId: string | null;
-  }>({
-    yaml: DEFAULT_WORKFLOW_YAML,
-    workflowId: null,
-  });
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
 
   const handleSave = async (yaml: string) => {
-    startTransition(async () => {
-      const { workflowId, yaml: savedYaml } = await save({
-        yaml,
-      });
+    try {
+      const { id: workflowId } = await save({ yaml });
+      router.push(`/workflows/${workflowId}`);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to save workflow');
+    }
+  };
 
-      setState({
-        yaml: savedYaml,
-        workflowId,
-      });
-    });
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-destructive">{error}</div>
+      </div>
+    );
   }
 
-  useEffect(() => {
-    if (state.workflowId) {
-      redirect(`/workflows/${state.workflowId}`);
-    }
-  }, [state.workflowId])
-
-  return <WorkflowEditor key="new" onSave={handleSave} initialYaml={state.yaml} />;
+  return (
+    <WorkflowEditor 
+      key="new" 
+      initialYaml={DEFAULT_WORKFLOW_YAML} 
+      onSave={handleSave} 
+    />
+  );
 }

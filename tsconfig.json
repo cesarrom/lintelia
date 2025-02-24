@@ -9,17 +9,18 @@
     "typeRoots": ["sst-env.d.ts"],
     "allowJs": true,
     "skipLibCheck": true,
-    "strict": false,
-    "alwaysStrict": false,
+    "strict": true,
+    "alwaysStrict": true,
     "noEmit": true,
     "esModuleInterop": true,
-    "module": "esnext",
+    "module": "esnext", 
     "target": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+    "strictNullChecks": true,
     "plugins": [
       {
         "name": "next"
@@ -38,9 +39,12 @@
     ".next/types/**/*.ts",
     "**/*.ts",
     "**/*.tsx",
-    "sst.config.ts"
-, "next.config.js"  ],
+    "sst.config.ts",
+    "next.config.js"
+, "tailwind.config.js"  ],
   "exclude": [
-    "node_modules","sst.config.ts","sst.config.ts"
+    "node_modules",
+    "sst.config.ts",
+    "sst.config.ts"
   ]
 }

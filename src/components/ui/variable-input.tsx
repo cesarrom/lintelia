@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useState, useRef, useEffect } from 'react';
 import { Input } from './input';
 import { cn } from '@/lib/utils';
-import { useWorkflow, useNodeData } from '@/components/workflow/WorkflowContext';
+import { useNodeData, useWorkflow } from '@/app/(modules)/(private)/(workflows)/(components)/WorkflowContext';
 
 interface Suggestion {
   label: string;

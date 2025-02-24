@@ -5,7 +5,15 @@ const nextConfig = {
       bodySizeLimit: '5mb',
     }
   },
-  transpilePackages: ['@descope/node-sdk'],
+  transpilePackages: ['@descope/node-sdk', 'typeorm'],
+  webpack: (config, { isServer }) => {
+    
+    if (isServer) {
+      config.externals.push('typeorm');
+    }
+    
+    return config;
+  },
 };
 
 export default nextConfig;

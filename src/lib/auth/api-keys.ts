@@ -1,13 +1,13 @@
 'use server';
 
 import { getInjector } from "@/lib/injector/injector";
-import { PLATFORM_DB_TOKEN } from "@/lib/injector/tokens";
+import { TENANT_DB_TOKEN } from "@/lib/injector/tokens";
 import { createHash } from "crypto";
 
 export async function verifyApiKey(apiKeyId: string, providedKey: string): Promise<boolean> {
   try {
     const injector = await getInjector();
-    const platformDb = injector.resolve(PLATFORM_DB_TOKEN);
+    const platformDb = injector.resolve(TENANT_DB_TOKEN);
 
     const apiKey = await platformDb.query.apiKeys.findFirst({
       where: (apiKeys, { eq }) => eq(apiKeys.id, apiKeyId),

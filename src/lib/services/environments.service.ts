@@ -1,19 +1,75 @@
-import { eq } from "drizzle-orm";
-import { environments, tenantsDB } from "../models/tenants.sql";
+import { injectable, inject } from 'tsyringe';
+import { Environment } from "../entities/global/environment.entity";
+import { Repository } from "typeorm";
 import { Resource } from "sst";
-import { Autowire, Injectable } from "ts-injection";
-import { TENANTS_DB_TOKEN } from "../injector/tokens";
+import { DatabaseService } from "./database.service";
 
-@Injectable()
+@injectable()
 export class EnvironmentsService {
-  @Autowire(TENANTS_DB_TOKEN)
-  private db: typeof tenantsDB
+  private static environmentRepository: Repository<Environment>;
 
-  async getCurrentEnvironment() {
-    const [env] = await this.db.select().from(environments).where(eq(environments.name, Resource.App.stage)).limit(1).execute();
+  constructor(
+    @inject(DatabaseService) private databaseService: DatabaseService
+  ) {}
 
-    return env;
+  async getEnvironmentRepository(): Promise<Repository<Environment>> {
+    if (EnvironmentsService.environmentRepository) {
+      return EnvironmentsService.environmentRepository;
+    }
+
+    const conn = await this.databaseService.getGlobalConnection();
+    EnvironmentsService.environmentRepository = conn.getRepository(Environment);
+    return EnvironmentsService.environmentRepository;
+  }
+
+  async getCurrentEnvironment(): Promise<Environment | null> {
+    const environmentRepository = await this.getEnvironmentRepository();
+    return await environmentRepository.findOne({
+      where: { name: Resource.App.stage }
+    });
+  }
+
+  async getEnvironmentByName(name: string): Promise<Environment | null> {
+    const environmentRepository = await this.getEnvironmentRepository();
+    return await environmentRepository.findOne({
+      where: { name }
+    });
+  }
+
+  async listEnvironments(): Promise<Environment[]> {
+    const environmentRepository = await this.getEnvironmentRepository();
+    return await environmentRepository.find();
+  }
+
+  async createEnvironment(name: string, distributionArn: string): Promise<Environment> {
+    const environment = new Environment();
+    environment.name = name;
+    environment.distributionArn = distributionArn;
+
+    const environmentRepository = await this.getEnvironmentRepository();
+    return await environmentRepository.save(environment);
+  }
+
+  async updateEnvironment(name: string, distributionArn: string): Promise<Environment> {
+    const environment = await this.getEnvironmentByName(name);
+    if (!environment) {
+      throw new Error("Environment not found");
+    }
+
+    environment.distributionArn = distributionArn;
+    const environmentRepository = await this.getEnvironmentRepository();
+    return await environmentRepository.save(environment);
+  }
+
+  async deleteEnvironment(name: string): Promise<void> {
+    const environment = await this.getEnvironmentByName(name);
+    if (!environment) {
+      throw new Error("Environment not found");
+    }
+
+    const environmentRepository = await this.getEnvironmentRepository();
+    await environmentRepository.remove(environment);
   }
 }
 
-export type Environment = Awaited<ReturnType<EnvironmentsService['getCurrentEnvironment']>>;
+export type { Environment } from "../entities/global/environment.entity";

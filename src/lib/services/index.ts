@@ -6,7 +6,6 @@ export * from './files.service';
 export * from './forms.service';
 export * from './invitations.service';
 export * from './kyc.service';
-export  * from './roles.service';
 export * from './tenants.service';
 export * from './users.service';
 export * from './workflow-executions.service';

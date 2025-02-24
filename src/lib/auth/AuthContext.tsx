@@ -1,14 +1,9 @@
 'use client';
-import { createContext, useContext, ReactNode, useEffect, useState } from 'react';
-import { useSession, useDescope, useUser } from '@descope/nextjs-sdk/client';
+import { createContext, useContext, ReactNode, useEffect, useState, useTransition } from 'react';
+import { useSession, useUser } from '@descope/nextjs-sdk/client';
 import { AuthProvider } from '@descope/nextjs-sdk';
-
-export interface UserPermissions {
-  workflows: ('view' | 'create' | 'edit' | 'delete' | 'execute')[];
-  users: ('view' | 'invite' | 'edit' | 'delete')[];
-  roles: ('view' | 'create' | 'edit' | 'delete')[];
-  analytics: ('view' | 'export')[];
-}
+import { useRouter } from 'next/navigation';
+import { getUserRoles } from '@/app/(modules)/(public)/(auth)/(actions)/actions';
 
 type User = ReturnType<typeof useUser>['user'];
 
@@ -17,8 +12,9 @@ export interface AuthContextType {
   isLoading: boolean;
   user: User | null;
   tenant: string | null;
-  permissions: UserPermissions;
+  permissions: string[];
   isSuperAdmin: boolean;
+  isAdmin: boolean;
   logout: () => Promise<void>;
 }
 
@@ -27,43 +23,31 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const AP = ({ children }: { children: ReactNode }) => {
   const { isAuthenticated, isSessionLoading: isLoading } = useSession();
   const { user } = useUser();
-  const { logout: descopeLogout } = useDescope();
-  const [permissions, setPermissions] = useState<UserPermissions>({
-    workflows: [],
-    users: [],
-    roles: [],
-    analytics: []
-  });
+  const navigate = useRouter();
+  const [_, startTransition] = useTransition();
+  const [permissions, setPermissions] = useState<string[]>([]);
 
   // In a real implementation, you would fetch these from your backend
   useEffect(() => {
-    if (user) {
-      const roles = user.roleNames || [];
-      const isSuperAdmin = roles.includes('super_admin');
-
-      if (isSuperAdmin) {
-        // Give all permissions to super admin
-        setPermissions({
-          workflows: ['view', 'create', 'edit', 'delete', 'execute'],
-          users: ['view', 'invite', 'edit', 'delete'],
-          roles: ['view', 'create', 'edit', 'delete'],
-          analytics: ['view', 'export'],
-        });
-      } else {
-        // TODO: Fetch user's role permissions from backend
-        setPermissions({
-          workflows: [],
-          users: [],
-          roles: [],
-          analytics: []
-        });
+    if (!user) { return };
+    startTransition(async () => {
+      try {
+        const roles = await getUserRoles();
+        setPermissions(roles);
+      } catch (error) {
+        console.error(error);
       }
-    }
+    });
   }, [user]);
 
   const handleLogout = async () => {
-    await descopeLogout();
+    navigate.replace('/sign-out');
   };
+
+  console.log({
+    permissions,
+    user,
+  });
 
   const value = {
     isAuthenticated,
@@ -71,7 +55,8 @@ const AP = ({ children }: { children: ReactNode }) => {
     user: user || null,
     tenant: null, // This will be set based on subdomain
     permissions,
-    isSuperAdmin: user?.roleNames?.includes('super_admin') || false,
+    isSuperAdmin: permissions.includes('super_admin'),
+    isAdmin: permissions.includes('admin'),
     logout: handleLogout,
   };
 

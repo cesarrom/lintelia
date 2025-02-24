@@ -1,37 +1,36 @@
-import { Autowire, Injectable } from 'ts-injection'
-import { EmailsService } from './emails.service'
-import { Resource } from 'sst'
-import { TenantsService, type PlatformDB } from './tenants.service';
-import { eq } from 'drizzle-orm';
-import { PLATFORM_DB_TOKEN } from '../injector/tokens';
-import { invitations } from '../models/platform.sql';
+import { injectable, inject } from 'tsyringe';
+import { EmailsService } from './emails.service';
+import { Resource } from 'sst';
+import { TenantsService } from './tenants.service';
+import { DataSource, Repository } from 'typeorm';
+import { TENANT_DB_TOKEN } from '../injector/tokens';
+import { Invitation } from '../entities/tenant/invitation.entity';
+import { v4 as uuid } from 'uuid';
+import assert from 'assert';
 
-export type Invitation = typeof invitations.$inferSelect;
-
-@Injectable()
+@injectable()
 export class InvitationsService {
-  @Autowire(EmailsService)
-  private emailsService: EmailsService;
+  private invitationRepository: Repository<Invitation>;
 
-  @Autowire(PLATFORM_DB_TOKEN)
-  private db: PlatformDB;
-
-  @Autowire(TenantsService)
-  private tenantsService: TenantsService;
-
-  constructor() { }
+  constructor(
+    @inject(EmailsService) private emailsService: EmailsService,
+    @inject(TENANT_DB_TOKEN) private conn: DataSource,
+    @inject(TenantsService) private tenantsService: TenantsService
+  ) {
+    this.invitationRepository = this.conn.getRepository(Invitation);
+  }
 
   async createInvitation(email: string, role: string, domain: string): Promise<Invitation> {
     const tenant = await this.tenantsService.getByDomain(domain);
 
-    const invitation = await this.db.insert(invitations).values({
-      email,
-      purpose: 'invitation',
-      data: JSON.stringify({
-        domain,
-        role,
-      }),
-    } as any).returning().execute();
+    assert(tenant, 'Tenant not found');
+
+    const invitation = new Invitation();
+    invitation.id = uuid();
+    invitation.email = email;
+    invitation.roleId = role;
+
+    const savedInvitation = await this.invitationRepository.save(invitation);
 
     const htmlMessage = `
         <html>
@@ -49,28 +48,26 @@ export class InvitationsService {
         </html>
         `;
 
-    await this.emailsService.sendEmail(
-      email,
-      `Invitation to join ${tenant.name}`,
-      '',
-      htmlMessage
-    );
+    await this.emailsService.sendEmail({
+      to: email,
+      subject: `Invitation to join ${tenant.name}`,
+      text: '',
+      html: htmlMessage
+    });
 
-    return invitation[0];
-
+    return savedInvitation;
   }
 
   async inviteApplicant(email: string, formName: string, applicationId: number, domain: string): Promise<Invitation> {
     const tenant = await this.tenantsService.getByDomain(domain);
+    assert(tenant, 'Tenant not found');
 
-    const [invitation] = await this.db.insert(invitations).values({
-      email,
-      purpose: 'co-applicant',
-      data: JSON.stringify({
-        role: formName,
-        applicationId,
-      }),
-    }).returning().execute();
+    const invitation = new Invitation();
+    invitation.id = uuid();
+    invitation.email = email;
+    invitation.roleId = formName;
+
+    const savedInvitation = await this.invitationRepository.save(invitation);
 
     const htmlMessage = `
         <html>
@@ -88,26 +85,19 @@ export class InvitationsService {
         </html>
         `;
 
-    await this.emailsService.sendEmail(
-      email,
-      `Invitation to apply to ${tenant.name}`,
-      '',
-      htmlMessage
-    );
+    await this.emailsService.sendEmail({
+      to: email,
+      subject: `Invitation to apply to ${tenant.name}`,
+      text: '',
+      html: htmlMessage
+    });
 
-
-    return invitation;
+    return savedInvitation;
   }
 
   async getInvitationByEmail(email: string): Promise<Invitation | null> {
-    const invitation = await this.db
-      .select()
-      .from(invitations)
-      .where(eq(invitations.email, email))
-      .limit(1)
-      .execute();
-
-    return invitation[0] || null;
+    return await this.invitationRepository.findOne({
+      where: { email },
+    });
   }
-
 }
