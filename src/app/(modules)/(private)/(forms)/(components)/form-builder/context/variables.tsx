@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext } from 'react';
-import { FormVariable } from '../types';
+import { FormVariable } from '../schemas';
 
 interface VariablesContextValue {
   variables: Record<string, unknown>;

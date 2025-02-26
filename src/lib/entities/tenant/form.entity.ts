@@ -29,4 +29,7 @@ export class Form {
 
     @UpdateDateColumn({ name: "updated_at" })
     updatedAt!: Date;
+
+    @Column({ type: "jsonb", nullable: true })
+    variables?: Record<string, string>;
 } 

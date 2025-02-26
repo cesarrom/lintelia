@@ -48,6 +48,8 @@ export function VariableInput({
 
   // Helper to get variable type from path
   const getVariableType = React.useCallback((path: string): string | null => {
+    if (!path) return null;
+    
     if (!path.startsWith('{{') || !path.endsWith('}}')) return null;
     
     const parts = path.slice(2, -2).split('.');

@@ -7,3 +7,5 @@ export * from './workflow-trigger.entity';
 export * from './form.entity';
 export * from './email-template.entity';
 export * from './invitation.entity';
+export * from './form-instance.entity';
+export * from './form-answer.entity';

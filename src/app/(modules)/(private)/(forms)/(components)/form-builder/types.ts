@@ -1,5 +1,6 @@
 import { LucideIcon } from 'lucide-react';
 import { z } from 'zod';
+import { FormVariable, FormConfig } from './schemas';
 
 // Component Category
 export type ComponentCategory = 'input' | 'layout' | 'container';
@@ -15,6 +16,7 @@ export interface EditorProps<TConfig extends z.ZodType> extends BaseComponentPro
   isSelected?: boolean;
   onSelect?: () => void;
   onConfigChange?: (config: z.infer<TConfig>) => void;
+  index?: number;
 }
 
 // Viewer specific props
@@ -23,10 +25,12 @@ export interface ViewerProps<
   TInput extends z.ZodType,
   TOutput extends z.ZodType
 > extends BaseComponentProps<TConfig> {
+  id: string;
   value?: z.infer<TInput>;
   onChange?: (value: z.infer<TOutput>) => void;
   onBlur?: () => void;
   error?: string;
+  index?: number;
 }
 
 // Properties panel props
@@ -39,6 +43,7 @@ export interface PropertiesProps<TConfig extends z.ZodType> {
 export interface ToolbarProps {
   onDragStart?: () => void;
   onDragEnd?: () => void;
+  disabled?: boolean;
 }
 
 // Component Definition
@@ -64,36 +69,22 @@ export interface ComponentDefinition<
   };
 }
 
-// Form Configuration
-export interface FormVariable {
-  name: string;
-  type: 'string' | 'number' | 'boolean' | 'array' | 'object';
-  description?: string;
-  required?: boolean;
-  defaultValue?: unknown;
-}
-
-export interface FormConfig {
-  id: string;
-  name: string;
-  description?: string;
-  variables: Record<string, FormVariable>;
-  components: Array<{
-    id: string;
-    type: string;
-    config: Record<string, unknown>;
-  }>;
-}
-
 // Form Engine Props
 export interface FormEngineProps {
   mode: 'editor' | 'viewer';
   config: FormConfig;
   initialValues?: Record<string, unknown>;
   variables?: Record<string, unknown>;
+  variableDefinitions?: Record<string, FormVariable>;
   onChange?: (values: Record<string, unknown>) => void;
   onSubmit?: (values: Record<string, unknown>) => void;
   onConfigChange?: (config: FormConfig) => void;
   selectedId?: string | null;
   onSelectComponent?: (id: string | null) => void;
-} 
+}
+
+export const baseComponentSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  config: z.object({}),
+}); 

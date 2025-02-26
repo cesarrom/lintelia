@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FormConfig, FormVariable } from '../types';
+import { FormConfig, FormVariable } from '../schemas';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';

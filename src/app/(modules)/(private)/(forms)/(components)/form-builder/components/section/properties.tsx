@@ -1,67 +1,74 @@
 'use client';
 
-import { FormComponentProps } from '../../types';
-import { BaseProperties } from '../base-properties';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { PropertiesProps } from '../../types';
+import { sectionConfigSchema } from './schema';
 
-export function SectionProperties({ field, onChange }: FormComponentProps) {
-  if (!onChange) return null;
-
-  const columns = field.config?.columns || 1;
+export function SectionProperties({
+  config,
+  onChange,
+}: PropertiesProps<typeof sectionConfigSchema>) {
+  const updateConfig = (updates: Partial<typeof config>) => {
+    onChange({
+      ...config,
+      ...updates,
+    });
+  };
 
   return (
     <div className="space-y-4">
-      <BaseProperties field={field} onChange={onChange} />
-
-      {/* Section-specific properties */}
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label>Columns</Label>
-          <RadioGroup
-            value={columns.toString()}
-            onValueChange={(value) => onChange({
-              ...field,
-              config: { ...field.config, columns: parseInt(value, 10) }
-            })}
-            className="grid grid-cols-4 gap-4"
-          >
-            {[1, 2, 3, 4].map((cols) => (
-              <div key={cols}>
-                <RadioGroupItem
-                  value={cols.toString()}
-                  id={`cols-${cols}`}
-                  className="peer sr-only"
-                />
-                <Label
-                  htmlFor={`cols-${cols}`}
-                  className={cn(
-                    'flex aspect-video items-center justify-center rounded-lg border-2 border-muted bg-popover p-2',
-                    'hover:bg-accent hover:text-accent-foreground',
-                    'peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary'
-                  )}
-                >
-                  <div className={cn(
-                    'grid h-full w-full gap-2',
-                    cols === 1 && 'grid-cols-1',
-                    cols === 2 && 'grid-cols-2',
-                    cols === 3 && 'grid-cols-3',
-                    cols === 4 && 'grid-cols-4'
-                  )}>
-                    {Array.from({ length: cols }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="rounded-sm bg-muted"
-                      />
-                    ))}
-                  </div>
-                </Label>
-              </div>
-            ))}
-          </RadioGroup>
-        </div>
+      <div className="space-y-2">
+        <Label>Label</Label>
+        <Input
+          value={config.label}
+          onChange={(e) => updateConfig({ label: e.target.value })}
+        />
       </div>
+
+      <div className="space-y-2">
+        <Label>Description</Label>
+        <Textarea
+          value={config.description}
+          onChange={(e) => updateConfig({ description: e.target.value })}
+        />
+      </div>
+
+      <div className="flex items-center justify-between">
+        <Label>Required</Label>
+        <Switch
+          checked={config.required}
+          onCheckedChange={(checked) => updateConfig({ required: checked })}
+        />
+      </div>
+
+      <div className="flex items-center justify-between">
+        <Label>Show Border</Label>
+        <Switch
+          checked={config.showBorder}
+          onCheckedChange={(checked) => updateConfig({ showBorder: checked })}
+        />
+      </div>
+
+      <div className="flex items-center justify-between">
+        <Label>Collapsible</Label>
+        <Switch
+          checked={config.collapsible}
+          onCheckedChange={(checked) => updateConfig({ collapsible: checked })}
+        />
+      </div>
+
+      {config.collapsible && (
+        <div className="flex items-center justify-between">
+          <Label>Default Collapsed</Label>
+          <Switch
+            checked={config.defaultCollapsed}
+            onCheckedChange={(checked) => updateConfig({ defaultCollapsed: checked })}
+          />
+        </div>
+      )}
     </div>
   );
 } 

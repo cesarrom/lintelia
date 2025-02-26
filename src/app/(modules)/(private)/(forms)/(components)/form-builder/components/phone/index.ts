@@ -1,14 +1,29 @@
 import { Phone } from 'lucide-react';
-import { FormComponentDefinition } from '../../types';
-import { PhoneToolbar } from './toolbar';
-import { PhoneCanvas } from './canvas';
+import { ComponentDefinition } from '../../types';
+import { phoneConfigSchema, phoneInputSchema, phoneOutputSchema } from './schema';
+import { PhoneEditor } from './editor';
+import { PhoneViewer } from './viewer';
 import { PhoneProperties } from './properties';
+import { PhoneToolbar } from './toolbar';
 
-export const phoneComponent: FormComponentDefinition = {
+export const phoneComponent: ComponentDefinition<
+  typeof phoneConfigSchema,
+  typeof phoneInputSchema,
+  typeof phoneOutputSchema
+> = {
   type: 'phone',
-  label: 'Phone Number',
+  label: 'Phone',
   icon: Phone,
-  toolbar: PhoneToolbar,
-  canvas: PhoneCanvas,
-  properties: PhoneProperties,
+  category: 'input',
+  schema: {
+    config: phoneConfigSchema,
+    input: phoneInputSchema,
+    output: phoneOutputSchema,
+  },
+  components: {
+    Editor: PhoneEditor,
+    Viewer: PhoneViewer,
+    Properties: PhoneProperties,
+    Toolbar: PhoneToolbar,
+  },
 }; 

@@ -1,14 +1,28 @@
 'use client';
 
 import { Palette } from 'lucide-react';
-import { ToolbarButton } from '../toolbar-button';
+import { ToolbarProps } from '../../types';
+import { Button } from '@/components/ui/button';
+import { useDraggable } from '@dnd-kit/core';
 
-export function ColorToolbar() {
+export function ColorToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
+  const { attributes, listeners, setNodeRef } = useDraggable({
+    id: 'color',
+    data: {
+      type: 'color',
+    },
+  });
+
   return (
-    <ToolbarButton
-      type="color"
-      label="Color Picker"
-      icon={Palette}
-    />
+    <Button
+      ref={setNodeRef}
+      variant="ghost"
+      className="w-full justify-start gap-2"
+      {...attributes}
+      {...listeners}
+    >
+      <Palette className="h-4 w-4" />
+      <span>Color</span>
+    </Button>
   );
 } 

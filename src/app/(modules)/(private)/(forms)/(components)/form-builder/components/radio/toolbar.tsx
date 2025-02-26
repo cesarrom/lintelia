@@ -1,14 +1,28 @@
 'use client';
 
-import { Radio as RadioIcon } from 'lucide-react';
-import { ToolbarButton } from '../toolbar-button';
+import { Radio } from 'lucide-react';
+import { ToolbarProps } from '../../types';
+import { Button } from '@/components/ui/button';
+import { useDraggable } from '@dnd-kit/core';
 
-export function RadioToolbar() {
+export function RadioToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
+  const { attributes, listeners, setNodeRef } = useDraggable({
+    id: 'radio',
+    data: {
+      type: 'radio',
+    },
+  });
+
   return (
-    <ToolbarButton
-      type="radio"
-      label="Radio Group"
-      icon={RadioIcon}
-    />
+    <Button
+      ref={setNodeRef}
+      variant="ghost"
+      className="w-full justify-start gap-2"
+      {...attributes}
+      {...listeners}
+    >
+      <Radio className="h-4 w-4" />
+      <span>Radio</span>
+    </Button>
   );
 } 

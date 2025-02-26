@@ -1,14 +1,29 @@
 import { Star } from 'lucide-react';
-import { FormComponentDefinition } from '../../types';
-import { RatingToolbar } from './toolbar';
-import { RatingCanvas } from './canvas';
+import { ComponentDefinition } from '../../types';
+import { ratingConfigSchema, ratingInputSchema, ratingOutputSchema } from './schema';
+import { RatingEditor } from './editor';
+import { RatingViewer } from './viewer';
 import { RatingProperties } from './properties';
+import { RatingToolbar } from './toolbar';
 
-export const ratingComponent: FormComponentDefinition = {
+export const ratingComponent: ComponentDefinition<
+  typeof ratingConfigSchema,
+  typeof ratingInputSchema,
+  typeof ratingOutputSchema
+> = {
   type: 'rating',
   label: 'Rating',
   icon: Star,
-  toolbar: RatingToolbar,
-  canvas: RatingCanvas,
-  properties: RatingProperties,
+  category: 'input',
+  schema: {
+    config: ratingConfigSchema,
+    input: ratingInputSchema,
+    output: ratingOutputSchema,
+  },
+  components: {
+    Editor: RatingEditor,
+    Viewer: RatingViewer,
+    Properties: RatingProperties,
+    Toolbar: RatingToolbar,
+  },
 }; 

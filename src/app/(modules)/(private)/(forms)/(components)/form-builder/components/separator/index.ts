@@ -1,14 +1,29 @@
 import { SeparatorHorizontal } from 'lucide-react';
-import { FormComponentDefinition } from '../../types';
-import { SeparatorToolbar } from './toolbar';
-import { SeparatorCanvas } from './canvas';
+import { ComponentDefinition } from '../../types';
+import { separatorConfigSchema, separatorInputSchema, separatorOutputSchema } from './schema';
+import { SeparatorEditor } from './editor';
+import { SeparatorViewer } from './viewer';
 import { SeparatorProperties } from './properties';
+import { SeparatorToolbar } from './toolbar';
 
-export const separatorComponent: FormComponentDefinition = {
+export const separatorComponent: ComponentDefinition<
+  typeof separatorConfigSchema,
+  typeof separatorInputSchema,
+  typeof separatorOutputSchema
+> = {
   type: 'separator',
-  label: 'Page Separator',
+  label: 'Separator',
   icon: SeparatorHorizontal,
-  toolbar: SeparatorToolbar,
-  canvas: SeparatorCanvas,
-  properties: SeparatorProperties,
+  category: 'layout',
+  schema: {
+    config: separatorConfigSchema,
+    input: separatorInputSchema,
+    output: separatorOutputSchema,
+  },
+  components: {
+    Editor: SeparatorEditor,
+    Viewer: SeparatorViewer,
+    Properties: SeparatorProperties,
+    Toolbar: SeparatorToolbar,
+  },
 }; 

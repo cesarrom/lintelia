@@ -1,58 +1,94 @@
 'use client';
 
-import { FormComponentProps } from '../../types';
-import { BaseProperties } from '../base-properties';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
-import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
+import { PropertiesProps } from '../../types';
+import { dateConfigSchema } from './schema';
 
-export function DateProperties({ field, onChange }: FormComponentProps) {
-  if (!onChange) return null;
-
-  const date = field.defaultValue ? new Date(field.defaultValue as string) : undefined;
+export function DateProperties({
+  config,
+  onChange,
+}: PropertiesProps<typeof dateConfigSchema>) {
+  const updateConfig = (updates: Partial<typeof config>) => {
+    onChange({ ...config, ...updates });
+  };
 
   return (
     <div className="space-y-4">
-      <BaseProperties field={field} onChange={onChange} />
+      <div className="space-y-2">
+        <Label>Label</Label>
+        <Input
+          value={config.label}
+          onChange={(e) => updateConfig({ label: e.target.value })}
+        />
+      </div>
 
-      {/* Date-specific properties */}
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label>Default Date</Label>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className={cn(
-                'w-full justify-start text-left font-normal',
-                !date && 'text-muted-foreground'
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {date ? format(date, 'PPP') : 'Pick a date'}
-            </Button>
-            {date && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onChange({ ...field, defaultValue: undefined })}
-                className="h-10 w-10 text-destructive hover:text-destructive hover:bg-destructive/10"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-          <div className="rounded-lg border">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={(date) => onChange({ ...field, defaultValue: date?.toISOString() })}
-              initialFocus
-            />
-          </div>
-        </div>
+      <div className="space-y-2">
+        <Label>Placeholder</Label>
+        <Input
+          value={config.placeholder || ''}
+          onChange={(e) => updateConfig({ placeholder: e.target.value })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Description</Label>
+        <Input
+          value={config.description || ''}
+          onChange={(e) => updateConfig({ description: e.target.value })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Format</Label>
+        <Input
+          value={config.format}
+          onChange={(e) => updateConfig({ format: e.target.value })}
+          placeholder="YYYY-MM-DD"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Min Date</Label>
+        <Input
+          type="date"
+          value={config.minDate || ''}
+          onChange={(e) => updateConfig({ minDate: e.target.value || undefined })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Max Date</Label>
+        <Input
+          type="date"
+          value={config.maxDate || ''}
+          onChange={(e) => updateConfig({ maxDate: e.target.value || undefined })}
+        />
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Switch
+          checked={config.required}
+          onCheckedChange={(checked) => updateConfig({ required: checked })}
+        />
+        <Label>Required</Label>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Switch
+          checked={config.disablePastDates}
+          onCheckedChange={(checked) => updateConfig({ disablePastDates: checked })}
+        />
+        <Label>Disable Past Dates</Label>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Switch
+          checked={config.disableFutureDates}
+          onCheckedChange={(checked) => updateConfig({ disableFutureDates: checked })}
+        />
+        <Label>Disable Future Dates</Label>
       </div>
     </div>
   );

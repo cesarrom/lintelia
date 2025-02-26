@@ -1,14 +1,29 @@
 import { FileUp } from 'lucide-react';
-import { FormComponentDefinition } from '../../types';
-import { FileToolbar } from './toolbar';
-import { FileCanvas } from './canvas';
+import { ComponentDefinition } from '../../types';
+import { fileConfigSchema, fileInputSchema, fileOutputSchema } from './schema';
+import { FileEditor } from './editor';
+import { FileViewer } from './viewer';
 import { FileProperties } from './properties';
+import { FileToolbar } from './toolbar';
 
-export const fileComponent: FormComponentDefinition = {
+export const fileComponent: ComponentDefinition<
+  typeof fileConfigSchema,
+  typeof fileInputSchema,
+  typeof fileOutputSchema
+> = {
   type: 'file',
   label: 'File Upload',
   icon: FileUp,
-  toolbar: FileToolbar,
-  canvas: FileCanvas,
-  properties: FileProperties,
+  category: 'input',
+  schema: {
+    config: fileConfigSchema,
+    input: fileInputSchema,
+    output: fileOutputSchema,
+  },
+  components: {
+    Editor: FileEditor,
+    Viewer: FileViewer,
+    Properties: FileProperties,
+    Toolbar: FileToolbar,
+  },
 }; 

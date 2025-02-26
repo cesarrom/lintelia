@@ -1,14 +1,28 @@
 'use client';
 
-import { List } from 'lucide-react';
-import { ToolbarButton } from '../toolbar-button';
+import { ListFilter } from 'lucide-react';
+import { ToolbarProps } from '../../types';
+import { Button } from '@/components/ui/button';
+import { useDraggable } from '@dnd-kit/core';
 
-export function SelectToolbar() {
+export function SelectToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
+  const { attributes, listeners, setNodeRef } = useDraggable({
+    id: 'select',
+    data: {
+      type: 'select',
+    },
+  });
+
   return (
-    <ToolbarButton
-      type="select"
-      label="Select"
-      icon={List}
-    />
+    <Button
+      ref={setNodeRef}
+      variant="ghost"
+      className="w-full justify-start gap-2"
+      {...attributes}
+      {...listeners}
+    >
+      <ListFilter className="h-4 w-4" />
+      <span>Select</span>
+    </Button>
   );
 } 

@@ -1,35 +1,45 @@
 'use client';
 
 import { SlidersHorizontal } from 'lucide-react';
-import { ToolbarButton } from '../toolbar-button';
+import { Button } from '@/components/ui/button';
+import { useDraggable } from '@dnd-kit/core';
+import { ToolbarProps } from '../../types';
 
-interface RangeConfig {
-  min: number;
-  max: number;
-  step: number;
-  showValue: boolean;
-  showLimits: boolean;
-  showTicks: boolean;
-  tickCount: number;
-}
+export function RangeToolbar({
+  onDragStart,
+  onDragEnd,
+}: ToolbarProps) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: 'range',
+    data: {
+      type: 'range',
+      config: {
+        label: 'Range',
+        description: '',
+        required: false,
+        min: 0,
+        max: 100,
+        step: 1,
+        showValue: true,
+        valuePrefix: '',
+        valueSuffix: '',
+      },
+    },
+  });
 
-const defaultConfig: RangeConfig = {
-  min: 0,
-  max: 100,
-  step: 1,
-  showValue: true,
-  showLimits: true,
-  showTicks: false,
-  tickCount: 5
-};
-
-export function RangeToolbar() {
   return (
-    <ToolbarButton
-      type="range"
-      label="Range Slider"
-      icon={SlidersHorizontal}
-      config={defaultConfig}
-    />
+    <Button
+      ref={setNodeRef}
+      variant="outline"
+      className="w-full justify-start gap-2"
+      {...attributes}
+      {...listeners}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      data-dragging={isDragging}
+    >
+      <SlidersHorizontal className="h-4 w-4" />
+      Range
+    </Button>
   );
 } 

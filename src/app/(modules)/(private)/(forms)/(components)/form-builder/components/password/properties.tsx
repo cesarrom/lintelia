@@ -3,98 +3,97 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { PropertiesProps } from '../../types';
+import { passwordConfigSchema } from './schema';
 
-interface PasswordConfig {
-  minLength?: number;
-  maxLength?: number;
-  requireUppercase?: boolean;
-  requireLowercase?: boolean;
-  requireNumbers?: boolean;
-  requireSpecialChars?: boolean;
-  showStrengthMeter?: boolean;
-  showToggleVisibility?: boolean;
-}
-
-const defaultConfig: PasswordConfig = {
-  minLength: 8,
-  maxLength: 32,
-  requireUppercase: true,
-  requireLowercase: true,
-  requireNumbers: true,
-  requireSpecialChars: true,
-  showStrengthMeter: true,
-  showToggleVisibility: true,
-};
-
-export function PasswordProperties({ field, onChange }: { field: { config?: Partial<PasswordConfig> }, onChange: (config: Partial<PasswordConfig>) => void }) {
-  const config = { ...defaultConfig, ...field.config };
-
-  const handleChange = (key: keyof PasswordConfig, value: PasswordConfig[keyof PasswordConfig]) => {
-    onChange({ ...config, [key]: value });
+export function PasswordProperties({
+  config,
+  onChange,
+}: PropertiesProps<typeof passwordConfigSchema>) {
+  const updateConfig = (updates: Partial<typeof config>) => {
+    onChange({ ...config, ...updates });
   };
 
   return (
-    <div className="grid gap-4">
-      <div className="grid gap-2">
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Label</Label>
+        <Input
+          value={config.label}
+          onChange={(e) => updateConfig({ label: e.target.value })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Placeholder</Label>
+        <Input
+          value={config.placeholder || ''}
+          onChange={(e) => updateConfig({ placeholder: e.target.value })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Description</Label>
+        <Input
+          value={config.description || ''}
+          onChange={(e) => updateConfig({ description: e.target.value })}
+        />
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Switch
+          checked={config.required}
+          onCheckedChange={(checked) => updateConfig({ required: checked })}
+        />
+        <Label>Required</Label>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Switch
+          checked={config.showStrengthIndicator}
+          onCheckedChange={(checked) => updateConfig({ showStrengthIndicator: checked })}
+        />
+        <Label>Show Strength Indicator</Label>
+      </div>
+
+      <div className="space-y-2">
         <Label>Minimum Length</Label>
         <Input
           type="number"
-          value={config.minLength}
-          onChange={(e) => handleChange('minLength', parseInt(e.target.value))}
           min={1}
-          max={config.maxLength}
+          value={config.minLength}
+          onChange={(e) => updateConfig({ minLength: parseInt(e.target.value) || 1 })}
         />
       </div>
-      <div className="grid gap-2">
-        <Label>Maximum Length</Label>
-        <Input
-          type="number"
-          value={config.maxLength}
-          onChange={(e) => handleChange('maxLength', parseInt(e.target.value))}
-          min={config.minLength}
-        />
-      </div>
-      <div className="flex items-center justify-between">
-        <Label>Require Uppercase</Label>
-        <Switch
-          checked={config.requireUppercase}
-          onCheckedChange={(checked) => handleChange('requireUppercase', checked)}
-        />
-      </div>
-      <div className="flex items-center justify-between">
-        <Label>Require Lowercase</Label>
-        <Switch
-          checked={config.requireLowercase}
-          onCheckedChange={(checked) => handleChange('requireLowercase', checked)}
-        />
-      </div>
-      <div className="flex items-center justify-between">
-        <Label>Require Numbers</Label>
-        <Switch
-          checked={config.requireNumbers}
-          onCheckedChange={(checked) => handleChange('requireNumbers', checked)}
-        />
-      </div>
-      <div className="flex items-center justify-between">
-        <Label>Require Special Characters</Label>
-        <Switch
-          checked={config.requireSpecialChars}
-          onCheckedChange={(checked) => handleChange('requireSpecialChars', checked)}
-        />
-      </div>
-      <div className="flex items-center justify-between">
-        <Label>Show Strength Meter</Label>
-        <Switch
-          checked={config.showStrengthMeter}
-          onCheckedChange={(checked) => handleChange('showStrengthMeter', checked)}
-        />
-      </div>
-      <div className="flex items-center justify-between">
-        <Label>Show Toggle Visibility</Label>
-        <Switch
-          checked={config.showToggleVisibility}
-          onCheckedChange={(checked) => handleChange('showToggleVisibility', checked)}
-        />
+
+      <div className="space-y-4">
+        <Label className="block">Password Requirements</Label>
+
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={config.requireNumbers}
+              onCheckedChange={(checked) => updateConfig({ requireNumbers: checked })}
+            />
+            <Label>Require Numbers</Label>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={config.requireLetters}
+              onCheckedChange={(checked) => updateConfig({ requireLetters: checked })}
+            />
+            <Label>Require Letters</Label>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={config.requireSymbols}
+              onCheckedChange={(checked) => updateConfig({ requireSymbols: checked })}
+            />
+            <Label>Require Symbols</Label>
+          </div>
+        </div>
       </div>
     </div>
   );

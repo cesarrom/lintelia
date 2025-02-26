@@ -1,84 +1,74 @@
 'use client';
 
-import { FormComponentProps } from '../../types';
-import { BaseProperties } from '../base-properties';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PropertiesProps } from '../../types';
+import { phoneConfigSchema } from './schema';
 
-interface PhoneConfig {
-  format: string;
-  placeholder: string;
-  countryCode: string;
-  showCountryCode: boolean;
-}
-
-const defaultConfig: PhoneConfig = {
-  format: '(###) ###-####',
-  placeholder: 'Enter phone number',
-  countryCode: '+1',
-  showCountryCode: true
-};
-
-export function PhoneProperties({ field, onChange }: FormComponentProps) {
-  if (!onChange) return null;
-
-  const config = field.config ? { ...defaultConfig, ...field.config as Partial<PhoneConfig> } : defaultConfig;
-
-  const updateConfig = (updates: Partial<PhoneConfig>) => {
-    onChange({ ...field, config: { ...config, ...updates } });
+export function PhoneProperties({
+  config,
+  onChange,
+}: PropertiesProps<typeof phoneConfigSchema>) {
+  const updateConfig = <K extends keyof typeof config>(
+    key: K,
+    value: (typeof config)[K]
+  ) => {
+    onChange?.({
+      ...config,
+      [key]: value,
+    });
   };
 
   return (
     <div className="space-y-4">
-      <BaseProperties field={field} onChange={onChange} />
+      <div className="space-y-2">
+        <Label>Label</Label>
+        <Input
+          value={config.label}
+          onChange={(e) => updateConfig('label', e.target.value)}
+        />
+      </div>
 
-      {/* Phone-specific properties */}
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="format">Format Pattern</Label>
-          <Input
-            id="format"
-            value={config.format}
-            onChange={(e) => updateConfig({ format: e.target.value })}
-            placeholder="(###) ###-####"
-          />
-          <p className="text-xs text-muted-foreground">
-            Use # to represent a digit in the format pattern
-          </p>
-        </div>
+      <div className="space-y-2">
+        <Label>Placeholder</Label>
+        <Input
+          value={config.placeholder}
+          onChange={(e) => updateConfig('placeholder', e.target.value)}
+        />
+      </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="placeholder">Placeholder</Label>
-          <Input
-            id="placeholder"
-            value={config.placeholder}
-            onChange={(e) => updateConfig({ placeholder: e.target.value })}
-          />
-        </div>
+      <div className="space-y-2">
+        <Label>Description</Label>
+        <Input
+          value={config.description}
+          onChange={(e) => updateConfig('description', e.target.value)}
+        />
+      </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="showCountryCode">Show Country Code</Label>
-            <Switch
-              id="showCountryCode"
-              checked={config.showCountryCode}
-              onCheckedChange={(checked) => updateConfig({ showCountryCode: checked })}
-            />
-          </div>
+      <div className="flex items-center justify-between">
+        <Label>Required</Label>
+        <Switch
+          checked={config.required}
+          onCheckedChange={(checked) => updateConfig('required', checked)}
+        />
+      </div>
 
-          {config.showCountryCode && (
-            <div className="space-y-2">
-              <Label htmlFor="countryCode">Country Code</Label>
-              <Input
-                id="countryCode"
-                value={config.countryCode}
-                onChange={(e) => updateConfig({ countryCode: e.target.value })}
-                placeholder="+1"
-              />
-            </div>
-          )}
-        </div>
+      <div className="space-y-2">
+        <Label>Format</Label>
+        <Select
+          value={config.format}
+          onValueChange={(value) => updateConfig('format', value as 'international' | 'national')}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select format" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="international">International (+1 XXX-XXX-XXXX)</SelectItem>
+            <SelectItem value="national">(XXX) XXX-XXXX</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );

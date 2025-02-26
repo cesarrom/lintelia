@@ -1,14 +1,29 @@
 import { Image } from 'lucide-react';
-import { FormComponentDefinition } from '../../types';
-import { ImageToolbar } from './toolbar';
-import { ImageCanvas } from './canvas';
+import { ComponentDefinition } from '../../types';
+import { imageConfigSchema, imageInputSchema, imageOutputSchema } from './schema';
+import { ImageEditor } from './editor';
+import { ImageViewer } from './viewer';
 import { ImageProperties } from './properties';
+import { ImageToolbar } from './toolbar';
 
-export const imageComponent: FormComponentDefinition = {
+export const imageComponent: ComponentDefinition<
+  typeof imageConfigSchema,
+  typeof imageInputSchema,
+  typeof imageOutputSchema
+> = {
   type: 'image',
   label: 'Image Upload',
   icon: Image,
-  toolbar: ImageToolbar,
-  canvas: ImageCanvas,
-  properties: ImageProperties,
+  category: 'input',
+  schema: {
+    config: imageConfigSchema,
+    input: imageInputSchema,
+    output: imageOutputSchema,
+  },
+  components: {
+    Editor: ImageEditor,
+    Viewer: ImageViewer,
+    Properties: ImageProperties,
+    Toolbar: ImageToolbar,
+  },
 }; 

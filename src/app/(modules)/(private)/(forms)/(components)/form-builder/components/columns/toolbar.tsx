@@ -1,19 +1,28 @@
 'use client';
 
 import { Columns } from 'lucide-react';
-import { ToolbarButton } from '../toolbar-button';
+import { ToolbarProps } from '../../types';
+import { Button } from '@/components/ui/button';
+import { useDraggable } from '@dnd-kit/core';
 
-export function ColumnsToolbar() {
+export function ColumnsToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
+  const { attributes, listeners, setNodeRef } = useDraggable({
+    id: 'columns',
+    data: {
+      type: 'columns',
+    },
+  });
+
   return (
-    <ToolbarButton
-      type="columns"
-      label="Columns"
-      icon={Columns}
-      defaultConfig={{
-        count: 2,
-        widths: ['1fr', '1fr'],
-        gap: 4
-      }}
-    />
+    <Button
+      ref={setNodeRef}
+      variant="ghost"
+      className="w-full justify-start gap-2"
+      {...attributes}
+      {...listeners}
+    >
+      <Columns className="h-4 w-4" />
+      <span>Columns</span>
+    </Button>
   );
 } 

@@ -1,14 +1,29 @@
 import { SlidersHorizontal } from 'lucide-react';
-import { FormComponentDefinition } from '../../types';
-import { RangeToolbar } from './toolbar';
-import { RangeCanvas } from './canvas';
+import { ComponentDefinition } from '../../types';
+import { RangeEditor } from './editor';
+import { RangeViewer } from './viewer';
 import { RangeProperties } from './properties';
+import { RangeToolbar } from './toolbar';
+import { rangeConfigSchema, rangeInputSchema, rangeOutputSchema } from './schema';
 
-export const rangeComponent: FormComponentDefinition = {
+export const rangeComponent: ComponentDefinition<
+  typeof rangeConfigSchema,
+  typeof rangeInputSchema,
+  typeof rangeOutputSchema
+> = {
   type: 'range',
-  label: 'Range Slider',
+  label: 'Range',
+  category: 'input',
   icon: SlidersHorizontal,
-  toolbar: RangeToolbar,
-  canvas: RangeCanvas,
-  properties: RangeProperties,
+  schema: {
+    config: rangeConfigSchema,
+    input: rangeInputSchema,
+    output: rangeOutputSchema,
+  },
+  components: {
+    Editor: RangeEditor,
+    Viewer: RangeViewer,
+    Properties: RangeProperties,
+    Toolbar: RangeToolbar,
+  },
 }; 

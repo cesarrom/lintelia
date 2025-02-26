@@ -1,29 +1,30 @@
 'use client';
 
 import { Phone } from 'lucide-react';
-import { ToolbarButton } from '../toolbar-button';
+import { useDraggable } from '@dnd-kit/core';
+import { Button } from '@/components/ui/button';
+import { ToolbarProps } from '../../types';
 
-interface PhoneConfig {
-  format: string;
-  placeholder: string;
-  countryCode: string;
-  showCountryCode: boolean;
-}
+export function PhoneToolbar({ disabled }: ToolbarProps) {
+  const { attributes, listeners, setNodeRef } = useDraggable({
+    id: 'phone',
+    data: {
+      type: 'phone',
+    },
+    disabled,
+  });
 
-const defaultConfig: PhoneConfig = {
-  format: '(###) ###-####',
-  placeholder: 'Enter phone number',
-  countryCode: '+1',
-  showCountryCode: true
-};
-
-export function PhoneToolbar() {
   return (
-    <ToolbarButton
-      type="phone"
-      label="Phone Number"
-      icon={Phone}
-      config={defaultConfig}
-    />
+    <Button
+      ref={setNodeRef}
+      variant="ghost"
+      className="w-full justify-start"
+      {...attributes}
+      {...listeners}
+      disabled={disabled}
+    >
+      <Phone className="mr-2 h-4 w-4" />
+      Phone
+    </Button>
   );
 } 

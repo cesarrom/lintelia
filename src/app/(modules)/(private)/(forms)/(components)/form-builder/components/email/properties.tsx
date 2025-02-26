@@ -1,49 +1,51 @@
 'use client';
 
-import { FormComponentProps } from '../../types';
-import { BaseProperties } from '../base-properties';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { PropertiesProps } from '../../types';
+import { emailConfigSchema } from './schema';
 
-export function EmailProperties({ field, onChange }: FormComponentProps) {
-  if (!onChange) return null;
-
-  const hasEmailValidation = field.validation?.some(v => v.type === 'pattern' && v.value === '^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$');
+export function EmailProperties({
+  config,
+  onChange,
+}: PropertiesProps<typeof emailConfigSchema>) {
+  const updateConfig = (updates: Partial<typeof config>) => {
+    onChange({ ...config, ...updates });
+  };
 
   return (
     <div className="space-y-4">
-      <BaseProperties field={field} onChange={onChange} />
+      <div className="space-y-2">
+        <Label>Label</Label>
+        <Input
+          value={config.label}
+          onChange={(e) => updateConfig({ label: e.target.value })}
+        />
+      </div>
 
-      {/* Email-specific properties */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label>Email Format Validation</Label>
-          <Switch
-            checked={hasEmailValidation}
-            onCheckedChange={(checked) => {
-              const validation = field.validation || [];
-              const index = validation.findIndex(v => v.type === 'pattern');
+      <div className="space-y-2">
+        <Label>Placeholder</Label>
+        <Input
+          value={config.placeholder || ''}
+          onChange={(e) => updateConfig({ placeholder: e.target.value })}
+        />
+      </div>
 
-              if (checked) {
-                const rule = {
-                  type: 'pattern' as const,
-                  value: '^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$',
-                  message: 'Please enter a valid email address',
-                };
+      <div className="space-y-2">
+        <Label>Description</Label>
+        <Input
+          value={config.description || ''}
+          onChange={(e) => updateConfig({ description: e.target.value })}
+        />
+      </div>
 
-                if (index >= 0) {
-                  validation[index] = rule;
-                } else {
-                  validation.push(rule);
-                }
-              } else if (index >= 0) {
-                validation.splice(index, 1);
-              }
-
-              onChange({ ...field, validation });
-            }}
-          />
-        </div>
+      <div className="flex items-center space-x-2">
+        <Switch
+          checked={config.required}
+          onCheckedChange={(checked) => updateConfig({ required: checked })}
+        />
+        <Label>Required</Label>
       </div>
     </div>
   );

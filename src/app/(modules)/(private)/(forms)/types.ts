@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
 export const FormNodeDataSchema = z.object({
-  formId: z.string()
+  formId: z.string(),
+  variables: z.record(z.string(), z.any()),
 });
 
 export type FormNodeData = z.infer<typeof FormNodeDataSchema>;

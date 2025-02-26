@@ -1,8 +1,8 @@
 import { FormNode } from './FormNode';
 import { FormInput } from 'lucide-react';
-import { NodeDefinition } from '../types';
 import { FormToolbar } from './FormToolbar';
 import { v4 as uuid } from 'uuid';
+import { NodeDefinition } from '../../(workflows)/(components)/nodes/types';
 
 export const formNode: NodeDefinition = {
   get id() {

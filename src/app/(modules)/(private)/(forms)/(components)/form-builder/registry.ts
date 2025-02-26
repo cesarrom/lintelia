@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ComponentDefinition } from './types';
+import { ComponentDefinition, ComponentCategory } from './types';
 
 class ComponentRegistry {
   private components: Map<string, ComponentDefinition<any, any, any>> = new Map();
@@ -31,7 +31,7 @@ class ComponentRegistry {
     return Array.from(this.components.values());
   }
 
-  getByCategory(category: string): ComponentDefinition<any, any, any>[] {
+  getByCategory(category: ComponentCategory): ComponentDefinition<any, any, any>[] {
     return this.getAll().filter(component => component.category === category);
   }
 }

@@ -1,101 +1,95 @@
 'use client';
 
-import { FormComponentProps } from '../../types';
-import { BaseProperties } from '../base-properties';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { PropertiesProps } from '../../types';
+import { textareaConfigSchema } from './schema';
 
-export function TextareaProperties({ field, onChange }: FormComponentProps) {
-  if (!onChange) return null;
-
-  const getValidationValue = (type: 'minLength' | 'maxLength') => {
-    const value = field.validation?.find(v => v.type === type)?.value;
-    return value !== undefined ? String(value) : '';
+export function TextareaProperties({
+  config,
+  onChange,
+}: PropertiesProps<typeof textareaConfigSchema>) {
+  const updateConfig = (updates: Partial<typeof config>) => {
+    onChange({ ...config, ...updates });
   };
 
   return (
     <div className="space-y-4">
-      <BaseProperties field={field} onChange={onChange} />
+      <div className="space-y-2">
+        <Label>Label</Label>
+        <Input
+          value={config.label}
+          onChange={(e) => updateConfig({ label: e.target.value })}
+        />
+      </div>
 
-      {/* Textarea-specific properties */}
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label>Min Length</Label>
-          <Input
-            type="number"
-            value={getValidationValue('minLength')}
-            onChange={(e) => {
-              const value = parseInt(e.target.value);
-              const validation = field.validation || [];
-              const index = validation.findIndex(v => v.type === 'minLength');
+      <div className="space-y-2">
+        <Label>Placeholder</Label>
+        <Input
+          value={config.placeholder || ''}
+          onChange={(e) => updateConfig({ placeholder: e.target.value })}
+        />
+      </div>
 
-              if (value > 0) {
-                const rule = {
-                  type: 'minLength' as const,
-                  value: value as number,
-                  message: `Minimum length is ${value} characters`,
-                };
+      <div className="space-y-2">
+        <Label>Description</Label>
+        <Input
+          value={config.description || ''}
+          onChange={(e) => updateConfig({ description: e.target.value })}
+        />
+      </div>
 
-                if (index >= 0) {
-                  validation[index] = rule;
-                } else {
-                  validation.push(rule);
-                }
-              } else if (index >= 0) {
-                validation.splice(index, 1);
-              }
+      <div className="space-y-2">
+        <Label>Number of Rows</Label>
+        <Input
+          type="number"
+          min={2}
+          value={config.rows}
+          onChange={(e) => updateConfig({ rows: parseInt(e.target.value) || 2 })}
+        />
+      </div>
 
-              onChange({ ...field, validation });
-            }}
-          />
-        </div>
+      <div className="space-y-2">
+        <Label>Minimum Length</Label>
+        <Input
+          type="number"
+          min={0}
+          value={config.minLength || ''}
+          onChange={(e) => {
+            const value = e.target.value ? parseInt(e.target.value) : undefined;
+            updateConfig({ minLength: value });
+          }}
+        />
+      </div>
 
-        <div className="space-y-2">
-          <Label>Max Length</Label>
-          <Input
-            type="number"
-            value={getValidationValue('maxLength')}
-            onChange={(e) => {
-              const value = parseInt(e.target.value);
-              const validation = field.validation || [];
-              const index = validation.findIndex(v => v.type === 'maxLength');
+      <div className="space-y-2">
+        <Label>Maximum Length</Label>
+        <Input
+          type="number"
+          min={0}
+          value={config.maxLength || ''}
+          onChange={(e) => {
+            const value = e.target.value ? parseInt(e.target.value) : undefined;
+            updateConfig({ maxLength: value });
+          }}
+        />
+      </div>
 
-              if (value > 0) {
-                const rule = {
-                  type: 'maxLength' as const,
-                  value: value as number,
-                  message: `Maximum length is ${value} characters`,
-                };
+      <div className="flex items-center space-x-2">
+        <Switch
+          checked={config.required}
+          onCheckedChange={(checked) => updateConfig({ required: checked })}
+        />
+        <Label>Required</Label>
+      </div>
 
-                if (index >= 0) {
-                  validation[index] = rule;
-                } else {
-                  validation.push(rule);
-                }
-              } else if (index >= 0) {
-                validation.splice(index, 1);
-              }
-
-              onChange({ ...field, validation });
-            }}
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <Label>Allow Resize</Label>
-          <Switch
-            checked={!field.className?.includes('resize-none')}
-            onCheckedChange={(checked) => {
-              const className = field.className || '';
-              const newClassName = checked
-                ? className.replace('resize-none', '').trim()
-                : `${className} resize-none`.trim();
-
-              onChange({ ...field, className: newClassName || undefined });
-            }}
-          />
-        </div>
+      <div className="flex items-center space-x-2">
+        <Switch
+          checked={config.resizable}
+          onCheckedChange={(checked) => updateConfig({ resizable: checked })}
+        />
+        <Label>Allow Resize</Label>
       </div>
     </div>
   );

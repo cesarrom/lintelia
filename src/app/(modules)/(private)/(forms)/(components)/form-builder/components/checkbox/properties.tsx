@@ -1,36 +1,59 @@
 'use client';
 
-import { FormComponentProps } from '../../types';
-import { BaseProperties } from '../base-properties';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { PropertiesProps } from '../../types';
+import { checkboxConfigSchema } from './schema';
 
-export function CheckboxProperties({ field, onChange }: FormComponentProps) {
-  if (!onChange) return null;
+export function CheckboxProperties({
+  config,
+  onChange,
+}: PropertiesProps<typeof checkboxConfigSchema>) {
+  const updateConfig = (updates: Partial<typeof config>) => {
+    onChange({ ...config, ...updates });
+  };
 
   return (
     <div className="space-y-4">
-      <BaseProperties field={field} onChange={onChange} />
+      <div className="space-y-2">
+        <Label>Label</Label>
+        <Input
+          value={config.label}
+          onChange={(e) => updateConfig({ label: e.target.value })}
+        />
+      </div>
 
-      {/* Checkbox-specific properties */}
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label>Checkbox Text</Label>
-          <Input
-            value={field.placeholder || ''}
-            onChange={(e) => onChange({ ...field, placeholder: e.target.value })}
-            placeholder="Text to display next to checkbox"
-          />
-        </div>
+      <div className="space-y-2">
+        <Label>Checkbox Text</Label>
+        <Input
+          value={config.text}
+          onChange={(e) => updateConfig({ text: e.target.value })}
+        />
+      </div>
 
-        <div className="flex items-center justify-between">
-          <Label>Default Checked</Label>
-          <Switch
-            checked={field.defaultValue as boolean || false}
-            onCheckedChange={(checked) => onChange({ ...field, defaultValue: checked })}
-          />
-        </div>
+      <div className="space-y-2">
+        <Label>Description</Label>
+        <Input
+          value={config.description || ''}
+          onChange={(e) => updateConfig({ description: e.target.value })}
+        />
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Switch
+          checked={config.required}
+          onCheckedChange={(checked) => updateConfig({ required: checked })}
+        />
+        <Label>Required</Label>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Switch
+          checked={config.defaultChecked}
+          onCheckedChange={(checked) => updateConfig({ defaultChecked: checked })}
+        />
+        <Label>Default Checked</Label>
       </div>
     </div>
   );

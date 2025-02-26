@@ -1,14 +1,29 @@
-import { LayoutGrid } from 'lucide-react';
-import { FormComponentDefinition } from '../../types';
-import { SectionToolbar } from './toolbar';
-import { SectionCanvas } from './canvas';
+import { LayoutPanelTop } from 'lucide-react';
+import { ComponentDefinition } from '../../types';
+import { sectionConfigSchema, sectionInputSchema, sectionOutputSchema } from './schema';
+import { SectionEditor } from './editor';
+import { SectionViewer } from './viewer';
 import { SectionProperties } from './properties';
+import { SectionToolbar } from './toolbar';
 
-export const sectionComponent: FormComponentDefinition = {
+export const sectionComponent: ComponentDefinition<
+  typeof sectionConfigSchema,
+  typeof sectionInputSchema,
+  typeof sectionOutputSchema
+> = {
   type: 'section',
   label: 'Section',
-  icon: LayoutGrid,
-  toolbar: SectionToolbar,
-  canvas: SectionCanvas,
-  properties: SectionProperties,
+  category: 'layout',
+  icon: LayoutPanelTop,
+  schema: {
+    config: sectionConfigSchema,
+    input: sectionInputSchema,
+    output: sectionOutputSchema,
+  },
+  components: {
+    Editor: SectionEditor,
+    Viewer: SectionViewer,
+    Properties: SectionProperties,
+    Toolbar: SectionToolbar,
+  },
 }; 

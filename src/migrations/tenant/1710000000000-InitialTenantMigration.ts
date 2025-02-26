@@ -18,7 +18,7 @@ export class InitialTenantMigration1710000000000 implements MigrationInterface {
         // Forms table
         await queryRunner.query(`
             CREATE TABLE "sys_forms" (
-                "id" varchar PRIMARY KEY NOT NULL,
+                "id" uuid PRIMARY KEY NOT NULL,
                 "name" varchar(255) NOT NULL,
                 "description" text,
                 "config" text NOT NULL,

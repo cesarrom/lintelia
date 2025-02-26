@@ -1,194 +1,302 @@
 'use client';
 
-import { useState } from 'react';
-import { FormComponentProps } from '../../types';
-import { BaseProperties } from '../base-properties';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { PropertiesProps } from '../../types';
+import { selectConfigSchema } from './schema';
+import { useVariables } from '../../context/variables';
 import {
   Select,
-  SelectTrigger,
-  SelectValue,
   SelectContent,
   SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
-import { DndContext, DragEndEvent, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
-import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { cn } from '@/lib/utils';
+import { Plus, Trash2 } from 'lucide-react';
+import { z } from 'zod';
+import { useState } from 'react';
 
-interface SortableOptionProps {
-  id: string;
-  label: string;
-  value: string;
-  onLabelChange: (value: string) => void;
-  onValueChange: (value: string) => void;
-  onRemove: () => void;
-}
+type SelectConfig = z.infer<typeof selectConfigSchema>;
+type StaticSource = Extract<SelectConfig['source'], { type: 'static' }>;
+type VariableSource = Extract<SelectConfig['source'], { type: 'variable' }>;
 
-function SortableOption({ id, label, value, onLabelChange, onValueChange, onRemove }: SortableOptionProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
+export function SelectProperties({
+  config,
+  onChange,
+}: PropertiesProps<typeof selectConfigSchema>) {
+  const { definitions } = useVariables();
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
+  const updateConfig = (updates: Partial<SelectConfig>) => {
+    onChange({ ...config, ...updates });
+  };
+
+  const validateAndUpdateOptions = (newOptions: StaticSource['options']) => {
+    const errors: Record<string, string> = {};
+    let hasErrors = false;
+
+    newOptions.forEach((option, index) => {
+      if (!option.label.trim()) {
+        errors[`label-${index}`] = 'Label cannot be empty';
+        hasErrors = true;
+      }
+      if (!option.value.trim()) {
+        errors[`value-${index}`] = 'Value cannot be empty';
+        hasErrors = true;
+      }
+    });
+
+    setValidationErrors(errors);
+    return !hasErrors;
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={cn(
-        'flex items-center gap-2 p-2 rounded-lg border bg-card',
-        isDragging && 'opacity-50'
-      )}
-    >
-      <button
-        className="p-1 hover:bg-accent rounded-md cursor-grab"
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="h-4 w-4" />
-      </button>
-      <div className="flex-1 flex gap-2">
-        <Input
-          placeholder="Label"
-          value={label}
-          onChange={(e) => onLabelChange(e.target.value)}
-        />
-        <Input
-          placeholder="Value"
-          value={value}
-          onChange={(e) => onValueChange(e.target.value)}
-        />
-      </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={onRemove}
-        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
-    </div>
-  );
-}
-
-export function SelectProperties({ field, onChange }: FormComponentProps) {
-  const [options, setOptions] = useState(field.options || []);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
-
-  if (!onChange) return null;
-
-  const updateOptions = (newOptions: typeof options) => {
-    setOptions(newOptions);
-    onChange({ ...field, options: newOptions });
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = options.findIndex((opt) => opt.value === active.id);
-    const newIndex = options.findIndex((opt) => opt.value === over.id);
-
-    const newOptions = [...options];
-    const [removed] = newOptions.splice(oldIndex, 1);
-    newOptions.splice(newIndex, 0, removed);
-
-    updateOptions(newOptions);
-  };
-
-  return (
-    <div className="space-y-4">
-      <BaseProperties field={field} onChange={onChange} />
-
-      {/* Select-specific properties */}
+    <div className="space-y-6">
+      {/* Basic Properties */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label>Default Value</Label>
-          <Select
-            value={field.defaultValue as string}
-            onValueChange={(value) => onChange({ ...field, defaultValue: value })}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select default" />
-            </SelectTrigger>
-            <SelectContent>
-              {options.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="space-y-2">
+          <Label>Label</Label>
+          <Input
+            value={config.label}
+            onChange={(e) => updateConfig({ label: e.target.value })}
+          />
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label>Options</Label>
+          <Label>Placeholder</Label>
+          <Input
+            value={config.placeholder || ''}
+            onChange={(e) => updateConfig({ placeholder: e.target.value })}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Description</Label>
+          <Input
+            value={config.description || ''}
+            onChange={(e) => updateConfig({ description: e.target.value })}
+          />
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Switch
+            checked={config.required}
+            onCheckedChange={(checked) => updateConfig({ required: checked })}
+          />
+          <Label>Required</Label>
+        </div>
+      </div>
+
+      {/* Options Source */}
+      <div className="space-y-4">
+        <Label>Options Source</Label>
+        <Select
+          value={config.source?.type || 'static'}
+          onValueChange={(value: 'static' | 'variable') => {
+            if (value === 'static') {
+              updateConfig({
+                source: {
+                  type: 'static',
+                  options: [],
+                },
+              });
+            } else {
+              updateConfig({
+                source: {
+                  type: 'variable',
+                  variableId: '',
+                },
+              });
+            }
+          }}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select options source" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="static">Static Options</SelectItem>
+            <SelectItem value="variable">From Variable</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Static Options */}
+        {config.source?.type === 'static' && (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              {config.source.options.map((option, index) => (
+                <div key={index} className="space-y-2">
+                  <div className="flex gap-2">
+                    <div className="flex-1 space-y-1">
+                      <Input
+                        value={option.label}
+                        onChange={(e) => {
+                          if (config.source.type !== 'static') return;
+                          const newOptions = [...config.source.options];
+                          newOptions[index] = {
+                            ...newOptions[index],
+                            label: e.target.value,
+                          };
+                          validateAndUpdateOptions(newOptions);
+                          updateConfig({
+                            source: {
+                              type: 'static',
+                              options: newOptions,
+                            },
+                          });
+                        }}
+                        placeholder="Option label"
+                        className={validationErrors[`label-${index}`] ? 'border-red-500' : ''}
+                      />
+                      {validationErrors[`label-${index}`] && (
+                        <p className="text-xs text-red-500">{validationErrors[`label-${index}`]}</p>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <Input
+                        value={option.value}
+                        onChange={(e) => {
+                          if (config.source.type !== 'static') return;
+                          const newOptions = [...config.source.options];
+                          newOptions[index] = {
+                            ...newOptions[index],
+                            value: e.target.value,
+                          };
+                          validateAndUpdateOptions(newOptions);
+                          updateConfig({
+                            source: {
+                              type: 'static',
+                              options: newOptions,
+                            },
+                          });
+                        }}
+                        placeholder="Option value"
+                        className={validationErrors[`value-${index}`] ? 'border-red-500' : ''}
+                      />
+                      {validationErrors[`value-${index}`] && (
+                        <p className="text-xs text-red-500">{validationErrors[`value-${index}`]}</p>
+                      )}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        if (config.source.type !== 'static') return;
+                        const newOptions = [...config.source.options];
+                        newOptions.splice(index, 1);
+                        updateConfig({
+                          source: {
+                            type: 'static',
+                            options: newOptions,
+                          },
+                        });
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
             <Button
               variant="outline"
               size="sm"
-              className="h-8 gap-1"
+              className="w-full"
               onClick={() => {
-                const newOption = {
-                  label: `Option ${options.length + 1}`,
-                  value: `option_${options.length + 1}`,
-                };
-                updateOptions([...options, newOption]);
+                if (config.source.type !== 'static') return;
+                const newOptions = [...config.source.options];
+                const newOptionNumber = newOptions.length + 1;
+                newOptions.push({ 
+                  label: `Option ${newOptionNumber}`, 
+                  value: `option_${newOptionNumber}` 
+                });
+                updateConfig({
+                  source: {
+                    type: 'static',
+                    options: newOptions,
+                  },
+                });
               }}
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="mr-2 h-4 w-4" />
               Add Option
             </Button>
           </div>
+        )}
 
-          <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-            <SortableContext items={options.map(opt => opt.value)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-2">
-                {options.map((option, index) => (
-                  <SortableOption
-                    key={option.value}
-                    id={option.value}
-                    label={option.label}
-                    value={option.value}
-                    onLabelChange={(label) => {
-                      const newOptions = [...options];
-                      newOptions[index] = { ...option, label };
-                      updateOptions(newOptions);
-                    }}
-                    onValueChange={(value) => {
-                      const newOptions = [...options];
-                      newOptions[index] = { ...option, value };
-                      updateOptions(newOptions);
-                    }}
-                    onRemove={() => {
-                      const newOptions = options.filter((_, i) => i !== index);
-                      updateOptions(newOptions);
-                    }}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-        </div>
+        {/* Variable Source */}
+        {config.source?.type === 'variable' && (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Variable</Label>
+              <Select
+                value={config.source.variableId}
+                onValueChange={(value) => {
+                  updateConfig({
+                    source: {
+                      type: 'variable',
+                      variableId: value,
+                      labelPath: config.source.type === 'variable' ? config.source.labelPath : undefined,
+                      valuePath: config.source.type === 'variable' ? config.source.valuePath : undefined,
+                    },
+                  });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a variable" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(definitions)
+                    .filter(([_, def]) => def.type === 'array')
+                    .map(([id, def]) => (
+                      <SelectItem key={id} value={id}>
+                        {def.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Label Path</Label>
+              <Input
+                value={config.source.labelPath || ''}
+                onChange={(e) => {
+                  if (config.source.type !== 'variable') return;
+                  updateConfig({
+                    source: {
+                      type: 'variable',
+                      variableId: config.source.variableId,
+                      labelPath: e.target.value,
+                      valuePath: config.source.valuePath,
+                    },
+                  });
+                }}
+                placeholder="e.g., name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Value Path</Label>
+              <Input
+                value={config.source.valuePath || ''}
+                onChange={(e) => {
+                  if (config.source.type !== 'variable') return;
+                  updateConfig({
+                    source: {
+                      type: 'variable',
+                      variableId: config.source.variableId,
+                      labelPath: config.source.labelPath,
+                      valuePath: e.target.value,
+                    },
+                  });
+                }}
+                placeholder="e.g., id"
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

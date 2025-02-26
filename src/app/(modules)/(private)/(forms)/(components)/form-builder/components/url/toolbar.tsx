@@ -1,33 +1,28 @@
 'use client';
 
 import { Link } from 'lucide-react';
-import { ToolbarButton } from '../toolbar-button';
+import { ToolbarProps } from '../../types';
+import { Button } from '@/components/ui/button';
+import { useDraggable } from '@dnd-kit/core';
 
-interface UrlConfig {
-  prefix: string;
-  showPrefix: boolean;
-  validateUrl: boolean;
-  allowedProtocols: string[];
-  openInNewTab: boolean;
-  showLinkPreview: boolean;
-}
+export function UrlToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
+  const { attributes, listeners, setNodeRef } = useDraggable({
+    id: 'url',
+    data: {
+      type: 'url',
+    },
+  });
 
-const defaultConfig: UrlConfig = {
-  prefix: 'https://',
-  showPrefix: true,
-  validateUrl: true,
-  allowedProtocols: ['http://', 'https://'],
-  openInNewTab: true,
-  showLinkPreview: true
-};
-
-export function UrlToolbar() {
   return (
-    <ToolbarButton
-      type="url"
-      label="URL"
-      icon={Link}
-      config={defaultConfig}
-    />
+    <Button
+      ref={setNodeRef}
+      variant="ghost"
+      className="w-full justify-start gap-2"
+      {...attributes}
+      {...listeners}
+    >
+      <Link className="h-4 w-4" />
+      <span>URL</span>
+    </Button>
   );
 } 

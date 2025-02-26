@@ -1,14 +1,29 @@
 import { Palette } from 'lucide-react';
-import { FormComponentDefinition } from '../../types';
-import { ColorToolbar } from './toolbar';
-import { ColorCanvas } from './canvas';
+import { ComponentDefinition } from '../../types';
+import { colorConfigSchema, colorInputSchema, colorOutputSchema } from './schema';
+import { ColorEditor } from './editor';
+import { ColorViewer } from './viewer';
 import { ColorProperties } from './properties';
+import { ColorToolbar } from './toolbar';
 
-export const colorComponent: FormComponentDefinition = {
+export const colorComponent: ComponentDefinition<
+  typeof colorConfigSchema,
+  typeof colorInputSchema,
+  typeof colorOutputSchema
+> = {
   type: 'color',
-  label: 'Color Picker',
+  label: 'Color',
   icon: Palette,
-  toolbar: ColorToolbar,
-  canvas: ColorCanvas,
-  properties: ColorProperties,
+  category: 'input',
+  schema: {
+    config: colorConfigSchema,
+    input: colorInputSchema,
+    output: colorOutputSchema,
+  },
+  components: {
+    Editor: ColorEditor,
+    Viewer: ColorViewer,
+    Properties: ColorProperties,
+    Toolbar: ColorToolbar,
+  },
 }; 

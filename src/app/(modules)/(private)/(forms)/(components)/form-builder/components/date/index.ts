@@ -1,14 +1,29 @@
-import { Calendar } from 'lucide-react';
-import { FormComponentDefinition } from '../../types';
-import { DateToolbar } from './toolbar';
-import { DateCanvas } from './canvas';
+import { CalendarDays } from 'lucide-react';
+import { ComponentDefinition } from '../../types';
+import { dateConfigSchema, dateInputSchema, dateOutputSchema } from './schema';
+import { DateEditor } from './editor';
+import { DateViewer } from './viewer';
 import { DateProperties } from './properties';
+import { DateToolbar } from './toolbar';
 
-export const dateComponent: FormComponentDefinition = {
+export const dateComponent: ComponentDefinition<
+  typeof dateConfigSchema,
+  typeof dateInputSchema,
+  typeof dateOutputSchema
+> = {
   type: 'date',
-  label: 'Date Picker',
-  icon: Calendar,
-  toolbar: DateToolbar,
-  canvas: DateCanvas,
-  properties: DateProperties,
+  label: 'Date',
+  icon: CalendarDays,
+  category: 'input',
+  schema: {
+    config: dateConfigSchema,
+    input: dateInputSchema,
+    output: dateOutputSchema,
+  },
+  components: {
+    Editor: DateEditor,
+    Viewer: DateViewer,
+    Properties: DateProperties,
+    Toolbar: DateToolbar,
+  },
 }; 

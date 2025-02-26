@@ -1,89 +1,168 @@
 'use client';
 
-import { FormComponentProps } from '../../types';
-import { BaseProperties } from '../base-properties';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { PropertiesProps } from '../../types';
+import { numberConfigSchema } from './schema';
 
-export function NumberProperties({ field, onChange }: FormComponentProps) {
-  if (!onChange) return null;
-
-  const value = field.defaultValue as number;
-  const config = field.config || {};
+export function NumberProperties({
+  config,
+  onChange,
+}: PropertiesProps<typeof numberConfigSchema>) {
+  const updateConfig = (updates: Partial<typeof config>) => {
+    onChange({ ...config, ...updates });
+  };
 
   return (
     <div className="space-y-4">
-      <BaseProperties field={field} onChange={onChange} />
+      <div className="space-y-2">
+        <Label>Label</Label>
+        <Input
+          value={config.label}
+          onChange={(e) => updateConfig({ label: e.target.value })}
+        />
+      </div>
 
-      {/* Number-specific properties */}
-      <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Placeholder</Label>
+        <Input
+          value={config.placeholder || ''}
+          onChange={(e) => updateConfig({ placeholder: e.target.value })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Description</Label>
+        <Input
+          value={config.description || ''}
+          onChange={(e) => updateConfig({ description: e.target.value })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Format</Label>
+        <Select
+          value={config.format}
+          onValueChange={(value) => updateConfig({ format: value as typeof config.format })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="decimal">Decimal</SelectItem>
+            <SelectItem value="integer">Integer</SelectItem>
+            <SelectItem value="currency">Currency</SelectItem>
+            <SelectItem value="percentage">Percentage</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {config.format === 'currency' && (
         <div className="space-y-2">
-          <Label>Default Value</Label>
-          <div className="flex gap-2">
-            <Input
-              type="number"
-              value={value || ''}
-              min={config.min}
-              max={config.max}
-              step={config.step}
-              onChange={(e) => onChange({
-                ...field,
-                defaultValue: e.target.value ? Number(e.target.value) : undefined
-              })}
-              className="w-full"
-            />
-            {value && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onChange({ ...field, defaultValue: undefined })}
-                className="h-10 w-10 text-destructive hover:text-destructive hover:bg-destructive/10"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
+          <Label>Currency</Label>
+          <Select
+            value={config.currency}
+            onValueChange={(value) => updateConfig({ currency: value })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="USD">USD ($)</SelectItem>
+              <SelectItem value="EUR">EUR (€)</SelectItem>
+              <SelectItem value="GBP">GBP (£)</SelectItem>
+              <SelectItem value="JPY">JPY (¥)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
+      )}
 
-        <div className="grid grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label>Min Value</Label>
-            <Input
-              type="number"
-              value={config.min || ''}
-              onChange={(e) => onChange({
-                ...field,
-                config: { ...config, min: e.target.value ? Number(e.target.value) : undefined }
-              })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Max Value</Label>
-            <Input
-              type="number"
-              value={config.max || ''}
-              onChange={(e) => onChange({
-                ...field,
-                config: { ...config, max: e.target.value ? Number(e.target.value) : undefined }
-              })}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Step</Label>
-            <Input
-              type="number"
-              value={config.step || ''}
-              min="0"
-              step="any"
-              onChange={(e) => onChange({
-                ...field,
-                config: { ...config, step: e.target.value ? Number(e.target.value) : undefined }
-              })}
-            />
-          </div>
-        </div>
+      <div className="space-y-2">
+        <Label>Precision (Decimal Places)</Label>
+        <Input
+          type="number"
+          min={0}
+          max={10}
+          value={config.precision}
+          onChange={(e) => updateConfig({ precision: parseInt(e.target.value) })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Step</Label>
+        <Input
+          type="number"
+          min={0}
+          step="any"
+          value={config.step}
+          onChange={(e) => updateConfig({ step: parseFloat(e.target.value) })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Minimum Value</Label>
+        <Input
+          type="number"
+          step="any"
+          value={config.minValue || ''}
+          onChange={(e) => {
+            const value = e.target.value ? parseFloat(e.target.value) : undefined;
+            updateConfig({ minValue: value });
+          }}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Maximum Value</Label>
+        <Input
+          type="number"
+          step="any"
+          value={config.maxValue || ''}
+          onChange={(e) => {
+            const value = e.target.value ? parseFloat(e.target.value) : undefined;
+            updateConfig({ maxValue: value });
+          }}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Prefix</Label>
+        <Input
+          value={config.prefix || ''}
+          onChange={(e) => updateConfig({ prefix: e.target.value || undefined })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Suffix</Label>
+        <Input
+          value={config.suffix || ''}
+          onChange={(e) => updateConfig({ suffix: e.target.value || undefined })}
+        />
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Switch
+          checked={config.required}
+          onCheckedChange={(checked) => updateConfig({ required: checked })}
+        />
+        <Label>Required</Label>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Switch
+          checked={config.allowNegative}
+          onCheckedChange={(checked) => updateConfig({ allowNegative: checked })}
+        />
+        <Label>Allow Negative Numbers</Label>
       </div>
     </div>
   );

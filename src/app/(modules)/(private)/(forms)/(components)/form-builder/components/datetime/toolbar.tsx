@@ -1,19 +1,28 @@
 'use client';
 
-import { CalendarClock } from 'lucide-react';
-import { ToolbarButton } from '../toolbar-button';
+import { Clock } from 'lucide-react';
+import { ToolbarProps } from '../../types';
+import { Button } from '@/components/ui/button';
+import { useDraggable } from '@dnd-kit/core';
 
-export function DateTimeToolbar() {
+export function DateTimeToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
+  const { attributes, listeners, setNodeRef } = useDraggable({
+    id: 'datetime',
+    data: {
+      type: 'datetime',
+    },
+  });
+
   return (
-    <ToolbarButton
-      type="datetime"
-      label="Date & Time"
-      icon={CalendarClock}
-      defaultConfig={{
-        showDate: true,
-        showTime: true,
-        format: 'yyyy-MM-dd HH:mm:ss'
-      }}
-    />
+    <Button
+      ref={setNodeRef}
+      variant="ghost"
+      className="w-full justify-start gap-2"
+      {...attributes}
+      {...listeners}
+    >
+      <Clock className="h-4 w-4" />
+      <span>Date & Time</span>
+    </Button>
   );
 } 

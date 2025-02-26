@@ -1,14 +1,29 @@
 import { ListChecks } from 'lucide-react';
-import { FormComponentDefinition } from '../../types';
-import { MultiselectToolbar } from './toolbar';
-import { MultiselectCanvas } from './canvas';
+import { ComponentDefinition } from '../../types';
+import { multiselectConfigSchema, multiselectInputSchema, multiselectOutputSchema } from './schema';
+import { MultiselectEditor } from './editor';
+import { MultiselectViewer } from './viewer';
 import { MultiselectProperties } from './properties';
+import { MultiselectToolbar } from './toolbar';
 
-export const multiselectComponent: FormComponentDefinition = {
+export const multiselectComponent: ComponentDefinition<
+  typeof multiselectConfigSchema,
+  typeof multiselectInputSchema,
+  typeof multiselectOutputSchema
+> = {
   type: 'multiselect',
-  label: 'Multi Select',
+  label: 'Multi-Select',
   icon: ListChecks,
-  toolbar: MultiselectToolbar,
-  canvas: MultiselectCanvas,
-  properties: MultiselectProperties,
+  category: 'input',
+  schema: {
+    config: multiselectConfigSchema,
+    input: multiselectInputSchema,
+    output: multiselectOutputSchema,
+  },
+  components: {
+    Editor: MultiselectEditor,
+    Viewer: MultiselectViewer,
+    Properties: MultiselectProperties,
+    Toolbar: MultiselectToolbar,
+  },
 }; 

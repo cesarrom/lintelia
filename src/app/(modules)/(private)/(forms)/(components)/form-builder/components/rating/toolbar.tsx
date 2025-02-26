@@ -1,33 +1,28 @@
 'use client';
 
 import { Star } from 'lucide-react';
-import { ToolbarButton } from '../toolbar-button';
+import { ToolbarProps } from '../../types';
+import { Button } from '@/components/ui/button';
+import { useDraggable } from '@dnd-kit/core';
 
-interface RatingConfig {
-  maxRating: number;
-  showLabels: boolean;
-  labels: string[];
-  icon: 'star' | 'heart' | 'thumbsUp';
-  size: 'sm' | 'md' | 'lg';
-  showValue: boolean;
-}
+export function RatingToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
+  const { attributes, listeners, setNodeRef } = useDraggable({
+    id: 'rating',
+    data: {
+      type: 'rating',
+    },
+  });
 
-const defaultConfig: RatingConfig = {
-  maxRating: 5,
-  showLabels: true,
-  labels: ['Poor', 'Fair', 'Good', 'Very Good', 'Excellent'],
-  icon: 'star',
-  size: 'md',
-  showValue: true
-};
-
-export function RatingToolbar() {
   return (
-    <ToolbarButton
-      type="rating"
-      label="Rating"
-      icon={Star}
-      config={defaultConfig}
-    />
+    <Button
+      ref={setNodeRef}
+      variant="ghost"
+      className="w-full justify-start gap-2"
+      {...attributes}
+      {...listeners}
+    >
+      <Star className="h-4 w-4" />
+      <span>Rating</span>
+    </Button>
   );
 } 
