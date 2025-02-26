@@ -20,8 +20,8 @@ import {
 import { Plus } from 'lucide-react';
 import { v4 as uuid } from 'uuid';
 import { FormConfig } from '../(components)/form-builder/types';
-import { FormBuilder } from '../(components)/form-builder/FormBuilder';
 import { DialogProps } from '../../(workflows)/(components)/nodes/types';
+import { FormBuilder } from '../(components)/form-builder';
 
 // Mock forms data - later this will come from an API
 const MOCK_FORMS: FormConfig[] = [
@@ -29,52 +29,70 @@ const MOCK_FORMS: FormConfig[] = [
     id: 'contact',
     name: 'Contact Form',
     description: 'Basic contact form with name, email, and message',
-    fields: [
+    components: [
       {
         id: 'name',
         type: 'text',
-        label: 'name',
-        required: true,
+        config: {
+          label: 'Name',
+          required: true,
+          placeholder: 'Enter your name'
+        }
       },
       {
         id: 'email',
-        type: 'email',
-        label: 'email',
-        required: true,
+        type: 'text',
+        config: {
+          label: 'Email',
+          required: true,
+          placeholder: 'Enter your email'
+        }
       },
       {
         id: 'message',
         type: 'text',
-        label: 'Message',
-        required: true,
-      },
-    ],
+        config: {
+          label: 'Message',
+          required: true,
+          placeholder: 'Enter your message'
+        }
+      }
+    ]
   },
   {
     id: 'signup',
     name: 'Sign Up Form',
     description: 'User registration form with account details',
-    fields: [
+    components: [
       {
         id: 'username',
         type: 'text',
-        label: 'Username',
-        required: true,
+        config: {
+          label: 'Username',
+          required: true,
+          placeholder: 'Choose a username'
+        }
       },
       {
         id: 'email',
-        type: 'email',
-        label: 'Email',
-        required: true,
+        type: 'text',
+        config: {
+          label: 'Email',
+          required: true,
+          placeholder: 'Enter your email'
+        }
       },
       {
         id: 'password',
-        type: 'password',
-        label: 'Password',
-        required: true,
-      },
-    ],
-  },
+        type: 'text',
+        config: {
+          label: 'Password',
+          required: true,
+          placeholder: 'Choose a password'
+        }
+      }
+    ]
+  }
 ];
 
 interface FormNodeConfig {
@@ -152,7 +170,8 @@ export function FormDialog({ open, onOpenChange, data, onSave }: DialogProps) {
                     setNewForm({
                       id: uuid(),
                       name: 'New Form',
-                      fields: [],
+                      description: '',
+                      components: []
                     });
                     setBuilderOpen(true);
                   }}
@@ -173,10 +192,10 @@ export function FormDialog({ open, onOpenChange, data, onSave }: DialogProps) {
                     </div>
                   )}
                   <div className="mt-4 space-y-2">
-                    {formConfig.config.fields.map((field) => (
-                      <div key={field.id} className="text-sm">
-                        • {field.label} ({field.type})
-                        {field.required && ' *'}
+                    {formConfig.config.components.map((component) => (
+                      <div key={component.id} className="text-sm">
+                        • {component.config.label} ({component.type})
+                        {component.config.required && ' *'}
                       </div>
                     ))}
                   </div>
@@ -191,15 +210,7 @@ export function FormDialog({ open, onOpenChange, data, onSave }: DialogProps) {
       </Dialog>
 
       {/* Form Builder Dialog */}
-      <Dialog
-        open={builderOpen}
-        onOpenChange={open => {
-          console.trace('onOpenChange', open);
-          if (open) {
-            setBuilderOpen(open);
-          }
-        }}
-      >
+      <Dialog open={builderOpen} onOpenChange={setBuilderOpen}>
         <DialogContent className="max-w-7xl h-[90vh]">
           <DialogHeader>
             <DialogTitle>Form Builder</DialogTitle>
@@ -207,13 +218,8 @@ export function FormDialog({ open, onOpenChange, data, onSave }: DialogProps) {
           {newForm && (
             <FormBuilder
               initialConfig={newForm}
-              className="h-[calc(90vh-8rem)]"
-              onSave={(e) => {
-                handleSave(e);
-              }}
-              onCancel={() => {
-                setBuilderOpen(false);
-              }}
+              onSave={handleSave}
+              onCancel={() => setBuilderOpen(false)}
             />
           )}
         </DialogContent>

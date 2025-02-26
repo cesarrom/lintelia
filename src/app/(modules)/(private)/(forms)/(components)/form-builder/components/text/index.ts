@@ -1,14 +1,29 @@
 import { Type } from 'lucide-react';
-import { FormComponentDefinition } from '../../types';
-import { TextToolbar } from './toolbar';
-import { TextCanvas } from './canvas';
+import { ComponentDefinition } from '../../types';
+import { textConfigSchema, textInputSchema, textOutputSchema } from './schema';
+import { TextEditor } from './editor';
+import { TextViewer } from './viewer';
 import { TextProperties } from './properties';
+import { TextToolbar } from './toolbar';
 
-export const textComponent: FormComponentDefinition = {
+export const textComponent: ComponentDefinition<
+  typeof textConfigSchema,
+  typeof textInputSchema,
+  typeof textOutputSchema
+> = {
   type: 'text',
   label: 'Text',
   icon: Type,
-  toolbar: TextToolbar,
-  canvas: TextCanvas,
-  properties: TextProperties,
+  category: 'input',
+  schema: {
+    config: textConfigSchema,
+    input: textInputSchema,
+    output: textOutputSchema,
+  },
+  components: {
+    Editor: TextEditor,
+    Viewer: TextViewer,
+    Properties: TextProperties,
+    Toolbar: TextToolbar,
+  },
 }; 

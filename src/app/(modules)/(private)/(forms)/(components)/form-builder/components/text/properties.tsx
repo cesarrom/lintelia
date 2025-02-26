@@ -1,113 +1,110 @@
 'use client';
 
-import { FormComponentProps } from '../../types';
-import { BaseProperties } from '../base-properties';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { PropertiesProps } from '../../types';
+import { textConfigSchema } from './schema';
 
-export function TextProperties({ field, onChange }: FormComponentProps) {
-  if (!onChange) return null;
+export function TextProperties({
+  config,
+  onChange,
+}: PropertiesProps<typeof textConfigSchema>) {
+  const updateConfig = (updates: Partial<typeof config>) => {
+    onChange({ ...config, ...updates });
+  };
 
   const getValidationValue = (type: 'minLength' | 'maxLength' | 'pattern') => {
-    const value = field.validation?.find(v => v.type === type)?.value;
+    const value = config.validation?.find(v => v.type === type)?.value;
     return value !== undefined ? String(value) : '';
+  };
+
+  const updateValidation = (
+    type: 'minLength' | 'maxLength' | 'pattern',
+    value: string | number
+  ) => {
+    const validation = config.validation || [];
+    const index = validation.findIndex(v => v.type === type);
+
+    if (value) {
+      const rule = {
+        type,
+        value,
+        message: `${type === 'pattern' ? 'Invalid format' : `${type} is ${value} characters`}`,
+      };
+
+      if (index >= 0) {
+        validation[index] = rule;
+      } else {
+        validation.push(rule);
+      }
+    } else if (index >= 0) {
+      validation.splice(index, 1);
+    }
+
+    updateConfig({ validation });
   };
 
   return (
     <div className="space-y-4">
-      <BaseProperties field={field} onChange={onChange} />
+      <div className="space-y-2">
+        <Label>Label</Label>
+        <Input
+          value={config.label}
+          onChange={(e) => updateConfig({ label: e.target.value })}
+        />
+      </div>
 
-      {/* Text-specific properties */}
+      <div className="space-y-2">
+        <Label>Placeholder</Label>
+        <Input
+          value={config.placeholder || ''}
+          onChange={(e) => updateConfig({ placeholder: e.target.value })}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Description</Label>
+        <Input
+          value={config.description || ''}
+          onChange={(e) => updateConfig({ description: e.target.value })}
+        />
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Switch
+          checked={config.required}
+          onCheckedChange={(checked) => updateConfig({ required: checked })}
+        />
+        <Label>Required</Label>
+      </div>
+
       <div className="space-y-4">
+        <Label className="block">Validation</Label>
+
         <div className="space-y-2">
-          <Label>Min Length</Label>
+          <Label className="text-sm">Min Length</Label>
           <Input
             type="number"
             value={getValidationValue('minLength')}
-            onChange={(e) => {
-              const value = parseInt(e.target.value);
-              const validation = field.validation || [];
-              const index = validation.findIndex(v => v.type === 'minLength');
-
-              if (value > 0) {
-                const rule = {
-                  type: 'minLength' as const,
-                  value: value as number,
-                  message: `Minimum length is ${value} characters`,
-                };
-
-                if (index >= 0) {
-                  validation[index] = rule;
-                } else {
-                  validation.push(rule);
-                }
-              } else if (index >= 0) {
-                validation.splice(index, 1);
-              }
-
-              onChange({ ...field, validation });
-            }}
+            onChange={(e) => updateValidation('minLength', parseInt(e.target.value))}
           />
         </div>
 
         <div className="space-y-2">
-          <Label>Max Length</Label>
+          <Label className="text-sm">Max Length</Label>
           <Input
             type="number"
             value={getValidationValue('maxLength')}
-            onChange={(e) => {
-              const value = parseInt(e.target.value);
-              const validation = field.validation || [];
-              const index = validation.findIndex(v => v.type === 'maxLength');
-
-              if (value > 0) {
-                const rule = {
-                  type: 'maxLength' as const,
-                  value: value as number,
-                  message: `Maximum length is ${value} characters`,
-                };
-
-                if (index >= 0) {
-                  validation[index] = rule;
-                } else {
-                  validation.push(rule);
-                }
-              } else if (index >= 0) {
-                validation.splice(index, 1);
-              }
-
-              onChange({ ...field, validation });
-            }}
+            onChange={(e) => updateValidation('maxLength', parseInt(e.target.value))}
           />
         </div>
 
         <div className="space-y-2">
-          <Label>Pattern</Label>
+          <Label className="text-sm">Pattern (Regex)</Label>
           <Input
             value={getValidationValue('pattern')}
-            onChange={(e) => {
-              const value = e.target.value;
-              const validation = field.validation || [];
-              const index = validation.findIndex(v => v.type === 'pattern');
-
-              if (value) {
-                const rule = {
-                  type: 'pattern' as const,
-                  value: value as string,
-                  message: 'Invalid format',
-                };
-
-                if (index >= 0) {
-                  validation[index] = rule;
-                } else {
-                  validation.push(rule);
-                }
-              } else if (index >= 0) {
-                validation.splice(index, 1);
-              }
-
-              onChange({ ...field, validation });
-            }}
+            onChange={(e) => updateValidation('pattern', e.target.value)}
           />
         </div>
       </div>

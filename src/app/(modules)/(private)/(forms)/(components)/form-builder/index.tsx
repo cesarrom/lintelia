@@ -1,231 +1,245 @@
 'use client';
-import { FormConfig } from "@/types/form";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useState } from 'react';
+import { FormConfig } from './types';
+import { FormEngine } from './form-engine';
+import { registry } from './registry';
+import { textComponent } from './components/text';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import { v4 as uuid } from 'uuid';
+import {
+  DndContext,
+  DragEndEvent,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+} from '@dnd-kit/core';
+import { FormSettings } from './components/form-settings';
+import { Settings2 } from 'lucide-react';
+
+// Register components
+registry.register(textComponent);
 
 interface FormBuilderProps {
-  value: FormConfig | null;
-  onChange: (value: FormConfig) => void;
+  initialConfig?: FormConfig;
+  onSave?: (config: FormConfig) => void;
+  onCancel?: () => void;
 }
 
-const FIELD_TYPES = [
-  { value: "text", label: "Text" },
-  { value: "number", label: "Number" },
-  { value: "email", label: "Email" },
-  { value: "textarea", label: "Text Area" },
-  { value: "select", label: "Select" },
-  { value: "checkbox", label: "Checkbox" },
-  { value: "radio", label: "Radio" },
-] as const;
+export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProps) {
+  const [config, setConfig] = useState<FormConfig>(() => initialConfig || {
+    id: uuid(),
+    name: 'New Form',
+    description: '',
+    variables: {},
+    components: [],
+  });
 
-export function FormBuilder({ value, onChange }: FormBuilderProps) {
-  const [form, setForm] = useState<FormConfig>(
-    value || {
-      name: "",
-      description: "",
-      fields: [],
-      submitButtonText: "Submit",
-      successMessage: "Form submitted successfully!",
-    }
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
   );
 
-  const updateForm = (updates: Partial<FormConfig>) => {
-    const updatedForm = { ...form, ...updates };
-    setForm(updatedForm);
-    onChange(updatedForm);
+  const handleDragStart = (event: DragStartEvent) => {
+    const type = event.active.data.current?.type;
+    if (!type) return;
+    setActiveId(type);
+    document.body.style.cursor = 'grabbing';
   };
 
-  const addField = () => {
-    const newField = {
-      id: uuid(),
-      type: "text" as const,
-      label: "",
-      name: "",
-      required: false,
-    };
-    updateForm({ fields: [...form.fields, newField] });
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveId(null);
+    document.body.style.cursor = '';
+
+    const { active, over } = event;
+
+    // Handle dropping new components from toolbar
+    if (active.data.current?.type && over?.id === 'canvas') {
+      const type = active.data.current.type;
+      const component = registry.get(type);
+      if (!component) return;
+
+      // Create a new component with default config
+      const defaultConfig = component.schema.config.parse({
+        label: `New ${component.label}`,
+      });
+
+      const newComponent = {
+        id: uuid(),
+        type,
+        config: defaultConfig,
+      };
+
+      setConfig(prev => ({
+        ...prev,
+        components: [...prev.components, newComponent],
+      }));
+      return;
+    }
+
+    // Handle reordering existing components
+    if (active.id !== over?.id && over?.id) {
+      const oldIndex = config.components.findIndex(c => c.id === active.id);
+      const newIndex = config.components.findIndex(c => c.id === over.id);
+
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newComponents = [...config.components];
+        const [removed] = newComponents.splice(oldIndex, 1);
+        newComponents.splice(newIndex, 0, removed);
+
+        setConfig(prev => ({
+          ...prev,
+          components: newComponents,
+        }));
+      }
+    }
   };
 
-  const updateField = (index: number, updates: Partial<FormConfig["fields"][0]>) => {
-    const updatedFields = [...form.fields];
-    updatedFields[index] = { ...updatedFields[index], ...updates };
-    updateForm({ fields: updatedFields });
-  };
-
-  const removeField = (index: number) => {
-    const updatedFields = form.fields.filter((_, i) => i !== index);
-    updateForm({ fields: updatedFields });
-  };
+  const selectedComponent = selectedId 
+    ? config.components.find(c => c.id === selectedId)
+    : null;
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-4">
-        <div>
-          <Label>Form Name</Label>
-          <Input
-            value={form.name}
-            onChange={(e) => updateForm({ name: e.target.value })}
-            placeholder="Enter form name"
-          />
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="flex h-full gap-4">
+        {/* Components Toolbar */}
+        <div className="w-64 flex-none rounded-lg border bg-card text-card-foreground shadow-sm">
+          <div className="p-4 font-semibold">Components</div>
+          <Separator />
+          <ScrollArea className="h-[calc(100vh-10rem)]">
+            <div className="space-y-2 p-4">
+              {registry.getByCategory('input').map((component) => (
+                <component.components.Toolbar key={component.type} />
+              ))}
+            </div>
+          </ScrollArea>
         </div>
 
-        <div>
-          <Label>Description</Label>
-          <Textarea
-            value={form.description || ""}
-            onChange={(e) => updateForm({ description: e.target.value })}
-            placeholder="Enter form description"
-          />
+        {/* Form Canvas */}
+        <div className="flex-1 rounded-lg border bg-card text-card-foreground shadow-sm">
+          <div className="flex h-14 items-center justify-between border-b px-4">
+            <div className="flex items-center gap-4">
+              <h2 className="text-lg font-semibold">{config.name}</h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowSettings(true)}
+              >
+                <Settings2 className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={onCancel}>
+                Cancel
+              </Button>
+              <Button onClick={() => onSave?.(config)}>
+                Save Form
+              </Button>
+            </div>
+          </div>
+          <ScrollArea className="h-[calc(100vh-10rem)]">
+            <div className="p-4">
+              <FormEngine
+                mode="editor"
+                config={config}
+                onConfigChange={setConfig}
+                selectedId={selectedId}
+                onSelectComponent={setSelectedId}
+              />
+            </div>
+          </ScrollArea>
         </div>
-      </div>
 
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label>Form Fields</Label>
-          <Button type="button" variant="outline" size="sm" onClick={addField}>
-            <PlusCircle className="w-4 h-4 mr-2" />
-            Add Field
-          </Button>
-        </div>
+        {/* Properties Panel */}
+        <div className="w-80 flex-none rounded-lg border bg-card text-card-foreground shadow-sm">
+          <div className="p-4 font-semibold">
+            {showSettings ? 'Form Settings' : 'Properties'}
+          </div>
+          <Separator />
+          <ScrollArea className="h-[calc(100vh-10rem)]">
+            <div className="p-4">
+              {showSettings ? (
+                <FormSettings
+                  config={config}
+                  onChange={(newConfig) => {
+                    setConfig(newConfig);
+                    // Keep settings open
+                  }}
+                />
+              ) : selectedComponent ? (
+                (() => {
+                  const component = registry.get(selectedComponent.type);
+                  if (!component) return null;
 
-        {form.fields.map((field, index) => (
-          <Card key={field.id}>
-            <CardContent className="pt-6 grid gap-4">
-              <div className="flex items-start justify-between">
-                <div className="space-y-4 flex-1">
-                  <div>
-                    <Label>Field Type</Label>
-                    <Select
-                      value={field.type}
-                      onValueChange={(value) =>
-                        updateField(index, { type: value as typeof field.type })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {FIELD_TYPES.map((type) => (
-                          <SelectItem key={type.value} value={type.value}>
-                            {type.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label>Label</Label>
-                    <Input
-                      value={field.label}
-                      onChange={(e) => updateField(index, { label: e.target.value })}
-                      placeholder="Enter field label"
+                  return (
+                    <component.components.Properties
+                      config={selectedComponent.config}
+                      onChange={(newConfig) => {
+                        setConfig(prev => ({
+                          ...prev,
+                          components: prev.components.map(c =>
+                            c.id === selectedId ? { ...c, config: newConfig } : c
+                          ),
+                        }));
+                      }}
                     />
-                  </div>
-
-                  <div>
-                    <Label>Name</Label>
-                    <Input
-                      value={field.name}
-                      onChange={(e) => updateField(index, { name: e.target.value })}
-                      placeholder="Enter field name"
-                    />
-                  </div>
-
-                  {(field.type === "select" || field.type === "radio") && (
-                    <div>
-                      <Label>Options</Label>
-                      <div className="space-y-2">
-                        {field.options?.map((option, optionIndex) => (
-                          <div key={optionIndex} className="flex gap-2">
-                            <Input
-                              value={option.label}
-                              onChange={(e) => {
-                                const updatedOptions = [...(field.options || [])];
-                                updatedOptions[optionIndex] = {
-                                  ...option,
-                                  label: e.target.value,
-                                  value: e.target.value.toLowerCase().replace(/\s+/g, "-"),
-                                };
-                                updateField(index, { options: updatedOptions });
-                              }}
-                              placeholder="Option label"
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                const updatedOptions = field.options?.filter(
-                                  (_, i) => i !== optionIndex
-                                );
-                                updateField(index, { options: updatedOptions });
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        ))}
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const updatedOptions = [
-                              ...(field.options || []),
-                              { label: "", value: "" },
-                            ];
-                            updateField(index, { options: updatedOptions });
-                          }}
-                        >
-                          Add Option
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+                  );
+                })()
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  Select a component to edit its properties or click the settings icon to edit form settings
                 </div>
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="text-destructive"
-                  onClick={() => removeField(index)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <div className="space-y-4">
-        <div>
-          <Label>Submit Button Text</Label>
-          <Input
-            value={form.submitButtonText || ""}
-            onChange={(e) => updateForm({ submitButtonText: e.target.value })}
-            placeholder="Enter submit button text"
-          />
+              )}
+            </div>
+          </ScrollArea>
         </div>
 
-        <div>
-          <Label>Success Message</Label>
-          <Input
-            value={form.successMessage || ""}
-            onChange={(e) => updateForm({ successMessage: e.target.value })}
-            placeholder="Enter success message"
-          />
-        </div>
+        <DragOverlay>
+          {activeId && (() => {
+            const component = registry.get(activeId);
+            if (!component) return null;
+            return <component.components.Toolbar />;
+          })()}
+        </DragOverlay>
       </div>
+    </DndContext>
+  );
+}
+
+export function FormViewer({
+  config,
+  initialValues,
+  onChange,
+  onSubmit,
+}: {
+  config: FormConfig;
+  initialValues?: Record<string, unknown>;
+  onChange?: (values: Record<string, unknown>) => void;
+  onSubmit?: (values: Record<string, unknown>) => void;
+}) {
+  return (
+    <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
+      <FormEngine
+        mode="viewer"
+        config={config}
+        initialValues={initialValues}
+        onChange={onChange}
+        onSubmit={onSubmit}
+      />
     </div>
   );
 } 

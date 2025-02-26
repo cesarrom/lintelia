@@ -1,71 +1,99 @@
 import { LucideIcon } from 'lucide-react';
+import { z } from 'zod';
 
-export type FieldType = 
-  | 'text'
-  | 'number'
-  | 'email'
-  | 'password'
-  | 'checkbox'
-  | 'radio'
-  | 'select'
-  | 'multiselect'
-  | 'date'
-  | 'time'
-  | 'datetime'
-  | 'file'
-  | 'color'
-  | 'separator'
-  | 'columns'
-  | 'page-separator'
-  | 'phone'
-  | 'range'
-  | 'rating'
-  | 'url'
-  | 'image';
+// Component Category
+export type ComponentCategory = 'input' | 'layout' | 'container';
 
-export interface FormField {
+// Base Props
+export interface BaseComponentProps<TConfig extends z.ZodType> {
   id: string;
-  type: FieldType;
+  config: z.infer<TConfig>;
+}
+
+// Editor specific props
+export interface EditorProps<TConfig extends z.ZodType> extends BaseComponentProps<TConfig> {
+  isSelected?: boolean;
+  onSelect?: () => void;
+  onConfigChange?: (config: z.infer<TConfig>) => void;
+}
+
+// Viewer specific props
+export interface ViewerProps<
+  TConfig extends z.ZodType,
+  TInput extends z.ZodType,
+  TOutput extends z.ZodType
+> extends BaseComponentProps<TConfig> {
+  value?: z.infer<TInput>;
+  onChange?: (value: z.infer<TOutput>) => void;
+  onBlur?: () => void;
+  error?: string;
+}
+
+// Properties panel props
+export interface PropertiesProps<TConfig extends z.ZodType> {
+  config: z.infer<TConfig>;
+  onChange: (config: z.infer<TConfig>) => void;
+}
+
+// Toolbar props
+export interface ToolbarProps {
+  onDragStart?: () => void;
+  onDragEnd?: () => void;
+}
+
+// Component Definition
+export interface ComponentDefinition<
+  TConfig extends z.ZodType,
+  TInput extends z.ZodType,
+  TOutput extends z.ZodType
+> {
+  type: string;
   label: string;
-  placeholder?: string;
+  icon: LucideIcon;
+  category: ComponentCategory;
+  schema: {
+    config: TConfig;
+    input: TInput;
+    output: TOutput;
+  };
+  components: {
+    Editor: React.FC<EditorProps<TConfig>>;
+    Viewer: React.FC<ViewerProps<TConfig, TInput, TOutput>>;
+    Properties: React.FC<PropertiesProps<TConfig>>;
+    Toolbar: React.FC<ToolbarProps>;
+  };
+}
+
+// Form Configuration
+export interface FormVariable {
+  name: string;
+  type: 'string' | 'number' | 'boolean' | 'array' | 'object';
+  description?: string;
   required?: boolean;
   defaultValue?: unknown;
-  options?: Array<{ label: string; value: string }>;
-  config?: Record<string, unknown>;
-  description?: string;
 }
-
-export interface FormComponentProps {
-  field: FormField;
-  onSelect?: () => void;
-  isSelected?: boolean;
-  onChange?: (field: FormField) => void;
-}
-
-export interface FormComponentDefinition {
-  type: FieldType;
-  label: string;
-  icon: LucideIcon;
-  toolbar: React.ComponentType;
-  canvas: React.ComponentType<FormComponentProps>;
-  properties: React.ComponentType<FormComponentProps>;
-}
-
-export interface FormComponentToolbarProps {
-  type: FieldType;
-  label: string;
-  icon: LucideIcon;
-  config?: Record<string, unknown>;
-} 
 
 export interface FormConfig {
   id: string;
   name: string;
   description?: string;
-  fields: FormField[];
-  submitButtonText?: string;
-  cancelButtonText?: string;
-  layout?: 'vertical' | 'horizontal';
-  className?: string;
-  style?: React.CSSProperties;
+  variables: Record<string, FormVariable>;
+  components: Array<{
+    id: string;
+    type: string;
+    config: Record<string, unknown>;
+  }>;
+}
+
+// Form Engine Props
+export interface FormEngineProps {
+  mode: 'editor' | 'viewer';
+  config: FormConfig;
+  initialValues?: Record<string, unknown>;
+  variables?: Record<string, unknown>;
+  onChange?: (values: Record<string, unknown>) => void;
+  onSubmit?: (values: Record<string, unknown>) => void;
+  onConfigChange?: (config: FormConfig) => void;
+  selectedId?: string | null;
+  onSelectComponent?: (id: string | null) => void;
 } 
