@@ -3,15 +3,15 @@
 import { Star } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { EditorProps } from '../../types';
-import { ratingConfigSchema } from './schema';
+import { EditorProps } from '../../schemas';
+import { RatingConfig } from './schema';
 
 export function RatingEditor({
   id,
   config,
   isSelected,
   onSelect,
-}: EditorProps<typeof ratingConfigSchema>) {
+}: EditorProps<RatingConfig>) {
   return (
     <div
       className={cn(

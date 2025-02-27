@@ -1,29 +1,37 @@
 import { Clock } from 'lucide-react';
-import { ComponentDefinition } from '../../types';
-import { timeConfigSchema, timeInputSchema, timeOutputSchema } from './schema';
+import { IFormComponent } from '../../schemas';
+import { TimeComponentSchema, timeConfigSchema, TimeConfig } from './schema';
 import { TimeEditor } from './editor';
 import { TimeViewer } from './viewer';
 import { TimeProperties } from './properties';
 import { TimeToolbar } from './toolbar';
 
-export const timeComponent: ComponentDefinition<
-  typeof timeConfigSchema,
-  typeof timeInputSchema,
-  typeof timeOutputSchema
-> = {
+/**
+ * Time Input Component
+ * 
+ * A time input field that supports:
+ * - Required/optional
+ * - Min/max time validation
+ * - Step (time interval) configuration
+ */
+export const timeComponent: IFormComponent = {
   type: 'time',
   label: 'Time',
   icon: Clock,
   category: 'input',
-  schema: {
-    config: timeConfigSchema,
-    input: timeInputSchema,
-    output: timeOutputSchema,
+
+  // UI Components
+  Editor: TimeEditor,
+  Viewer: TimeViewer,
+  Properties: TimeProperties,
+  Toolbar: TimeToolbar,
+
+  // Schema and validation
+  getConfigSchema() {
+    return timeConfigSchema;
   },
-  components: {
-    Editor: TimeEditor,
-    Viewer: TimeViewer,
-    Properties: TimeProperties,
-    Toolbar: TimeToolbar,
+
+  createValidationSchema(config: TimeConfig) {
+    return new TimeComponentSchema(config.propertyName).fromConfig(config);
   },
 };

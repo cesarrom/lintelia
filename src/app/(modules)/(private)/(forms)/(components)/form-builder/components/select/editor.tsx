@@ -1,11 +1,9 @@
 'use client';
 
 import { useMemo } from 'react';
-import { ListFilter } from 'lucide-react';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
-import { EditorProps } from '../../types';
-import { selectConfigSchema, optionsSourceSchema } from './schema';
+import { EditorProps } from '../../schemas';
+import { SelectConfig, OptionsSource } from './schema';
 import {
   Select,
   SelectContent,
@@ -15,44 +13,29 @@ import {
 } from '@/components/ui/select';
 import { useVariables } from '../../context/variables';
 import { get } from 'lodash';
-import { z } from 'zod';
-
-type OptionsSource = z.infer<typeof optionsSourceSchema>;
+import { cn } from '@/lib/utils';
 
 export function SelectEditor({
   id,
   config,
-  isSelected,
+  value,
+  onChange,
+  onBlur,
+  error,
   onSelect,
-}: EditorProps<typeof selectConfigSchema>) {
-  const { variables, definitions } = useVariables();
-
-  // Validate config with schema defaults
-  const validatedConfig = useMemo(() => {
-    try {
-      return selectConfigSchema.parse({
-        ...config,
-        source: config.source || {
-          type: 'static',
-          options: [],
-        },
-      });
-    } catch (error) {
-      console.error('Invalid select config:', error);
-      return {
-        ...config,
-        source: {
-          type: 'static',
-          options: [],
-        },
-      };
-    }
-  }, [config]);
+  isSelected,
+}: EditorProps<SelectConfig> & {
+  value?: string;
+  onChange?: (value: string) => void;
+  onBlur?: () => void;
+  error?: string;
+}) {
+  const { variables } = useVariables();
 
   // Get options based on source type
   const options = useMemo(() => {
-    const source = validatedConfig.source as OptionsSource;
-    
+    const source = config.source as OptionsSource;
+
     if (source.type === 'static') {
       return source.options;
     }
@@ -69,28 +52,43 @@ export function SelectEditor({
     }
 
     return [];
-  }, [validatedConfig.source, variables]);
+  }, [config.source, variables]);
+
+  const handleChange = (newValue: string) => {
+    if (onChange) {
+      onChange(newValue);
+      if (onBlur) onBlur();
+    }
+  };
 
   return (
-    <div
-      className={cn(
-        'relative rounded-lg border p-4 transition-all',
-        isSelected && 'ring-2 ring-primary'
-      )}
+    <div className={cn(
+      'relative rounded-lg border p-4 transition-all',
+      isSelected && 'ring-2 ring-primary'
+    )}
       onClick={() => onSelect?.()}
     >
-      <div className="absolute left-2 top-2 text-muted-foreground">
-        <ListFilter className="h-4 w-4" />
-      </div>
-      <div className="mb-2 pl-6">
-        <Label>{validatedConfig.label}</Label>
-        {validatedConfig.description && (
-          <p className="text-sm text-muted-foreground">{validatedConfig.description}</p>
-        )}
-      </div>
-      <Select disabled>
-        <SelectTrigger>
-          <SelectValue placeholder={validatedConfig.placeholder} />
+      <Label htmlFor={id} className="block">
+        {config.label}
+        {config.required && <span className="text-destructive ml-1">*</span>}
+      </Label>
+      {
+        config.description && (
+          <p className="text-sm text-muted-foreground">{config.description}</p>
+        )
+      }
+      <Select
+        value={value || ''}
+        onValueChange={handleChange}
+      >
+        <SelectTrigger
+          id={id}
+          name={config.propertyName}
+          className={cn(error ? 'border-destructive' : undefined)}
+          aria-invalid={!!error}
+          aria-describedby={error ? `${id}-error` : undefined}
+        >
+          <SelectValue placeholder={config.placeholder} />
         </SelectTrigger>
         <SelectContent>
           {options.map((option) => (
@@ -100,11 +98,13 @@ export function SelectEditor({
           ))}
         </SelectContent>
       </Select>
-      {validatedConfig.source.type === 'variable' && (
-        <p className="mt-2 text-xs text-muted-foreground">
-          Options from: {validatedConfig.source.type === 'variable' ? definitions[(validatedConfig.source as { type: 'variable', variableId: string }).variableId]?.name : ''}
-        </p>
-      )}
-    </div>
+      {
+        error && (
+          <p id={`${id}-error`} className="text-sm text-destructive">
+            {error}
+          </p>
+        )
+      }
+    </div >
   );
 } 

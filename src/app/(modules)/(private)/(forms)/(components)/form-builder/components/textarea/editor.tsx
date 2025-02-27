@@ -4,15 +4,15 @@ import { AlignLeft } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { EditorProps } from '../../types';
-import { textareaConfigSchema } from './schema';
+import { TextareaConfig } from './schema';
+import { EditorProps } from '../../schemas';
 
 export function TextareaEditor({
   id,
   config,
   isSelected,
   onSelect,
-}: EditorProps<typeof textareaConfigSchema>) {
+}: EditorProps<TextareaConfig>) {
   return (
     <div
       className={cn(
@@ -31,13 +31,10 @@ export function TextareaEditor({
         )}
       </div>
       <Textarea
-        rows={config.rows}
-        placeholder={config.placeholder}
         disabled
-        className={cn(
-          'pointer-events-none bg-muted',
-          !config.resizable && 'resize-none'
-        )}
+        placeholder={config.placeholder}
+        rows={config.rows}
+        className="resize-none bg-muted"
       />
     </div>
   );

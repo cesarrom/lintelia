@@ -1,27 +1,36 @@
 'use client';
 
-import { SeparatorHorizontal } from 'lucide-react';
-import { ToolbarProps } from '../../types';
-import { Button } from '@/components/ui/button';
 import { useDraggable } from '@dnd-kit/core';
+import { SeparatorHorizontal } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ToolbarProps } from '../../schemas';
+import { separatorConfigSchema } from './schema';
+import { v4 as uuid } from 'uuid';
 
-export function SeparatorToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
-  const { attributes, listeners, setNodeRef } = useDraggable({
-    id: 'separator',
+export function SeparatorToolbar({ disabled }: ToolbarProps) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: 'separator-toolbar',
     data: {
       type: 'separator',
+      config: separatorConfigSchema.parse({
+        propertyName: `separator${uuid().substring(0, 4)}`,
+        title: 'Separator',
+        showTitle: false,
+        orientation: 'horizontal',
+      }),
     },
   });
 
   return (
     <Button
       ref={setNodeRef}
-      variant="ghost"
-      className="w-full justify-start gap-2"
+      variant="outline"
+      className="w-full justify-start"
+      disabled={disabled || isDragging}
       {...attributes}
       {...listeners}
     >
-      <SeparatorHorizontal className="h-4 w-4" />
+      <SeparatorHorizontal className="mr-2 h-4 w-4" />
       <span>Separator</span>
     </Button>
   );

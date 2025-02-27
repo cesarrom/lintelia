@@ -2,8 +2,8 @@
 
 import { Star } from 'lucide-react';
 import { Label } from '@/components/ui/label';
-import { ViewerProps } from '../../types';
-import { ratingConfigSchema, ratingInputSchema, ratingOutputSchema } from './schema';
+import { ViewerProps } from '../../schemas';
+import { RatingConfig } from './schema';
 import { cn } from '@/lib/utils';
 
 export function RatingViewer({
@@ -13,7 +13,7 @@ export function RatingViewer({
   onChange,
   onBlur,
   error,
-}: ViewerProps<typeof ratingConfigSchema, typeof ratingInputSchema, typeof ratingOutputSchema>) {
+}: ViewerProps<RatingConfig, number>) {
   const rating = value as number | undefined;
 
   return (

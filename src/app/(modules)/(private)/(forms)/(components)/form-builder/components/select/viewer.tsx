@@ -2,8 +2,8 @@
 
 import { useMemo } from 'react';
 import { Label } from '@/components/ui/label';
-import { ViewerProps } from '../../types';
-import { selectConfigSchema, selectInputSchema, selectOutputSchema, optionsSourceSchema } from './schema';
+import { ViewerProps } from '../../schemas';
+import { SelectConfig, OptionsSource, SelectOption } from './schema';
 import {
   Select,
   SelectContent,
@@ -13,9 +13,8 @@ import {
 } from '@/components/ui/select';
 import { useVariables } from '../../context/variables';
 import { get } from 'lodash';
-import { z } from 'zod';
-
-type OptionsSource = z.infer<typeof optionsSourceSchema>;
+import { cn } from '@/lib/utils';
+import { nanoid } from 'nanoid';
 
 export function SelectViewer({
   id,
@@ -24,34 +23,12 @@ export function SelectViewer({
   onChange,
   onBlur,
   error,
-}: ViewerProps<typeof selectConfigSchema, typeof selectInputSchema, typeof selectOutputSchema>) {
+}: ViewerProps<SelectConfig, string>) {
   const { variables } = useVariables();
-
-  // Validate config with schema defaults
-  const validatedConfig = useMemo(() => {
-    try {
-      return selectConfigSchema.parse({
-        ...config,
-        source: config.source || {
-          type: 'static',
-          options: [],
-        },
-      });
-    } catch (error) {
-      console.error('Invalid select config:', error);
-      return {
-        ...config,
-        source: {
-          type: 'static',
-          options: [],
-        },
-      };
-    }
-  }, [config]);
 
   // Get options based on source type
   const options = useMemo(() => {
-    const source = validatedConfig.source as OptionsSource;
+    const source = config.source as OptionsSource;
     
     if (source.type === 'static') {
       return source.options;
@@ -63,13 +40,14 @@ export function SelectViewer({
       if (!Array.isArray(variableValue)) return [];
 
       return variableValue.map((item: any) => ({
+        id: nanoid(),
         label: source.labelPath ? get(item, source.labelPath) : item.toString(),
         value: source.valuePath ? get(item, source.valuePath) : item.toString(),
       }));
     }
 
     return [];
-  }, [validatedConfig.source, variables]);
+  }, [config.source, variables]);
 
   const handleChange = (newValue: string) => {
     if (onChange) {
@@ -81,11 +59,11 @@ export function SelectViewer({
   return (
     <div className="space-y-2">
       <Label htmlFor={id} className="block">
-        {validatedConfig.label}
-        {validatedConfig.required && <span className="text-destructive ml-1">*</span>}
+        {config.label}
+        {config.required && <span className="text-destructive ml-1">*</span>}
       </Label>
-      {validatedConfig.description && (
-        <p className="text-sm text-muted-foreground">{validatedConfig.description}</p>
+      {config.description && (
+        <p className="text-sm text-muted-foreground">{config.description}</p>
       )}
       <Select
         value={value || ''}
@@ -93,19 +71,26 @@ export function SelectViewer({
       >
         <SelectTrigger
           id={id}
-          className={error ? 'border-destructive' : undefined}
+          name={config.propertyName}
+          className={cn(error ? 'border-destructive' : undefined)}
+          aria-invalid={!!error}
+          aria-describedby={error ? `${id}-error` : undefined}
         >
-          <SelectValue placeholder={validatedConfig.placeholder} />
+          <SelectValue placeholder={config.placeholder} />
         </SelectTrigger>
         <SelectContent>
           {options.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
+            <SelectItem key={option.id} value={option.value}>
               {option.label}
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <p id={`${id}-error`} className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 } 

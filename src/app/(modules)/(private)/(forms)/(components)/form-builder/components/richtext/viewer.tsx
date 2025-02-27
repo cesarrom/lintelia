@@ -1,27 +1,22 @@
 'use client';
 
-import { useMemo } from 'react';
 import { Label } from '@/components/ui/label';
-import { ViewerProps } from '../../types';
-import { richtextConfigSchema, richtextInputSchema, richtextOutputSchema } from './schema';
+import { cn } from '@/lib/utils';
+import { ViewerProps } from '../../schemas';
+import { richtextConfigSchema } from './schema';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { useVariables } from '../../context/variables';
-import { get } from 'lodash';
+import { useEffect } from 'react';
+import { z } from 'zod';
 
 export function RichtextViewer({
   id,
   config,
   value,
-  onChange,
-  onBlur,
   error,
-  formValues,
-}: ViewerProps<typeof richtextConfigSchema, typeof richtextInputSchema, typeof richtextOutputSchema>) {
-  const { variables } = useVariables();
-
+}: ViewerProps<z.infer<typeof richtextConfigSchema>, string>) {
   // Function to interpolate variables in content
-  const interpolateContent = (content: string) => {
+  const interpolateContent = (content: string, variables: Record<string, unknown> = {}, formValues: Record<string, unknown> = {}) => {
     let interpolatedContent = content;
 
     // Replace variable references
@@ -31,28 +26,26 @@ export function RichtextViewer({
     });
 
     // Replace form field references
-    if (formValues) {
-      Object.entries(formValues).forEach(([key, value]) => {
-        const regex = new RegExp(`{${key}}`, 'g');
-        interpolatedContent = interpolatedContent.replace(regex, String(value));
-      });
-    }
+    Object.entries(formValues).forEach(([key, value]) => {
+      const regex = new RegExp(`{${key}}`, 'g');
+      interpolatedContent = interpolatedContent.replace(regex, String(value));
+    });
 
     return interpolatedContent;
   };
 
   const editor = useEditor({
     extensions: [StarterKit],
-    content: value ? interpolateContent(value) : config.content,
+    content: value || config.content || '',
     editable: false,
   });
 
-  const handleChange = (newValue: string) => {
-    if (onChange) {
-      onChange(newValue);
-      if (onBlur) onBlur();
+  // Update editor content when value changes
+  useEffect(() => {
+    if (editor && (value || config.content)) {
+      editor.commands.setContent(value || config.content || '');
     }
-  };
+  }, [editor, value, config.content]);
 
   return (
     <div className="space-y-2">
@@ -64,7 +57,11 @@ export function RichtextViewer({
         <p className="text-sm text-muted-foreground">{config.description}</p>
       )}
       <div className="prose prose-sm max-w-none rounded-md border bg-muted/50 p-4">
-        <EditorContent editor={editor} />
+        {editor ? (
+          <EditorContent editor={editor} />
+        ) : (
+          <div dangerouslySetInnerHTML={{ __html: value || config.content || '' }} />
+        )}
       </div>
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>

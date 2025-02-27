@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { baseComponentConfigSchema } from '../../schemas';
+import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
 // Define the variable reference schema
 export const variableReferenceSchema = z.object({
@@ -18,12 +18,41 @@ export const referenceSchema = z.discriminatedUnion('type', [
   fieldReferenceSchema,
 ]);
 
-// Extend the base config schema with rich text specific properties
-export const richtextConfigSchema = baseComponentConfigSchema.extend({
-  placeholder: z.string().optional().default('Enter text here...'),
-  content: z.string().optional().default(''),
-  references: z.array(referenceSchema).optional().default([]),
-});
+// Form builder config schema
+export const richtextConfigSchema = baseConfigSchema.extend({
+  label: z.string().min(1, 'Label is required'),
+  placeholder: z.string().optional(),
+  description: z.string().optional(),
+  content: z.string().optional(),
+  references: z.array(
+    z.object({
+      type: z.enum(['variable', 'field']),
+      id: z.string(),
+      label: z.string(),
+    })
+  ).optional(),
+}).transform((data) => ({
+  ...data,
+  placeholder: data.placeholder ?? '',
+  description: data.description ?? '',
+  content: data.content ?? '',
+  references: data.references ?? [],
+}));
+
+export type RichtextConfig = z.infer<typeof richtextConfigSchema>;
+
+// Value validation schema generator
+export class RichtextComponentSchema extends BaseComponentSchema<z.ZodString, RichtextConfig> {
+  constructor(propertyName: string) {
+    super(z.string(), propertyName);
+  }
+
+  fromConfig(config: RichtextConfig): this {
+    // Apply validation rules from config
+    this.setRequired(config.required);
+    return this;
+  }
+}
 
 // Input and output are strings (HTML content)
 export const richtextInputSchema = z.string();

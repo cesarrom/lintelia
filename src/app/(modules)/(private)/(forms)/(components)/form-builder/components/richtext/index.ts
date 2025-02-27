@@ -1,29 +1,44 @@
-import { ComponentDefinition } from '../../types';
+'use client';
+
+import { FileText } from 'lucide-react';
+import { IFormComponent } from '../../schemas';
+import { RichtextComponentSchema, richtextConfigSchema, RichtextConfig } from './schema';
 import { RichtextEditor } from './editor';
 import { RichtextViewer } from './viewer';
 import { RichtextProperties } from './properties';
 import { RichtextToolbar } from './toolbar';
-import { richtextConfigSchema, richtextInputSchema, richtextOutputSchema } from './schema';
-import { AlignLeft } from 'lucide-react';
 
-export const richtextComponent: ComponentDefinition<
-  typeof richtextConfigSchema,
-  typeof richtextInputSchema,
-  typeof richtextOutputSchema
-> = {
+/**
+ * Rich Text Component
+ * 
+ * A rich text editor that supports:
+ * - Required/optional
+ * - HTML formatting
+ * - Variable references
+ */
+export const richtextComponent: IFormComponent = {
   type: 'richtext',
   label: 'Rich Text',
-  icon: AlignLeft,
+  icon: FileText,
   category: 'input',
-  schema: {
-    config: richtextConfigSchema,
-    input: richtextInputSchema,
-    output: richtextOutputSchema,
+
+  // UI Components
+  Editor: RichtextEditor,
+  Viewer: RichtextViewer,
+  Properties: RichtextProperties,
+  Toolbar: RichtextToolbar,
+
+  // Schema and validation
+  getConfigSchema() {
+    return richtextConfigSchema;
   },
-  components: {
-    Editor: RichtextEditor,
-    Viewer: RichtextViewer,
-    Properties: RichtextProperties,
-    Toolbar: RichtextToolbar,
+
+  createValidationSchema(config: RichtextConfig) {
+    const schema = new RichtextComponentSchema(config.propertyName);
+    
+    // Apply validation rules from config
+    schema.setRequired(config.required);
+    
+    return schema;
   },
 }; 

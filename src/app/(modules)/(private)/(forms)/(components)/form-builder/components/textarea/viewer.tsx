@@ -2,9 +2,9 @@
 
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { TextareaConfig } from './schema';
+import { ViewerProps } from '../../schemas';
 import { cn } from '@/lib/utils';
-import { ViewerProps } from '../../types';
-import { textareaConfigSchema, textareaInputSchema, textareaOutputSchema } from './schema';
 
 export function TextareaViewer({
   id,
@@ -13,7 +13,7 @@ export function TextareaViewer({
   onChange,
   onBlur,
   error,
-}: ViewerProps<typeof textareaConfigSchema, typeof textareaInputSchema, typeof textareaOutputSchema>) {
+}: ViewerProps<TextareaConfig, string>) {
   return (
     <div className="space-y-2">
       <Label htmlFor={id} className="block">
@@ -25,19 +25,21 @@ export function TextareaViewer({
       )}
       <Textarea
         id={id}
-        rows={config.rows}
+        name={config.propertyName}
         value={value || ''}
         onChange={(e) => onChange?.(e.target.value)}
         onBlur={onBlur}
         placeholder={config.placeholder}
-        className={cn(
-          error && 'border-destructive',
-          !config.resizable && 'resize-none'
-        )}
-        minLength={config.minLength}
-        maxLength={config.maxLength}
+        rows={config.rows}
+        className={cn(error && 'border-destructive')}
+        aria-invalid={!!error}
+        aria-describedby={error ? `${id}-error` : undefined}
       />
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <p id={`${id}-error`} className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 } 

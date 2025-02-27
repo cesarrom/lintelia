@@ -4,15 +4,19 @@ export { emailComponent } from './email';
 export { numberComponent } from './number';
 export { passwordComponent } from './password';
 export { phoneComponent } from './phone';
+export { textareaComponent } from './textarea';
 
 // Selection Components
 export { checkboxComponent } from './checkbox';
 export { multiselectComponent } from './multiselect';
 export { radioComponent } from './radio';
+export { ratingComponent } from './rating';
+export { selectComponent } from './select';
 
 // Date & Time Components
 export { dateComponent } from './date';
 export { datetimeComponent } from './datetime';
+export { timeComponent } from './time';
 
 // File & Media Components
 export { colorComponent } from './color';
@@ -24,3 +28,7 @@ export { rangeComponent } from './range';
 
 // Layout Components
 export { pageSeparatorComponent } from './page-separator';
+export { separatorComponent } from './separator';
+
+// Rich Text Components
+export { richtextComponent } from './richtext';

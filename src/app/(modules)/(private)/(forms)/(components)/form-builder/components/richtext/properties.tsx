@@ -1,59 +1,100 @@
 'use client';
 
-import { useCallback } from 'react';
-import { Label } from '@/components/ui/label';
+import { useCallback, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { PropertiesProps } from '../../types';
-import { richtextConfigSchema } from './schema';
+import { PropertiesProps } from '../../schemas';
+import { RichtextComponentSchema, richtextConfigSchema } from './schema';
+import { z } from 'zod';
 
-export function RichtextProperties({
-  config,
-  onChange,
-}: PropertiesProps<typeof richtextConfigSchema>) {
-  const handleChange = useCallback(
-    (field: string) => (value: unknown) => {
-      onChange({
-        ...config,
-        [field]: value,
-      });
-    },
-    [config, onChange]
-  );
+type RichtextConfig = z.infer<typeof richtextConfigSchema>;
+
+export function RichtextProperties({ config, onChange }: PropertiesProps<RichtextConfig>) {
+  const schemaRef = useRef(new RichtextComponentSchema(config.propertyName));
+
+  useEffect(() => {
+    schemaRef.current = new RichtextComponentSchema(config.propertyName);
+    if (config.required) {
+      schemaRef.current.setRequired(true);
+    }
+  }, [config]);
+
+  const handlePropertyNameChange = useCallback((value: string) => {
+    onChange({
+      ...config,
+      propertyName: value,
+    });
+  }, [config, onChange]);
+
+  const handleLabelChange = useCallback((value: string) => {
+    onChange({
+      ...config,
+      label: value,
+    });
+  }, [config, onChange]);
+
+  const handlePlaceholderChange = useCallback((value: string) => {
+    onChange({
+      ...config,
+      placeholder: value,
+    });
+  }, [config, onChange]);
+
+  const handleDescriptionChange = useCallback((value: string) => {
+    onChange({
+      ...config,
+      description: value,
+    });
+  }, [config, onChange]);
+
+  const handleRequiredChange = useCallback((value: boolean) => {
+    onChange({
+      ...config,
+      required: value,
+    });
+  }, [config, onChange]);
 
   return (
     <div className="space-y-4">
       <div className="space-y-2">
+        <Label>Property Name</Label>
+        <Input
+          value={config.propertyName}
+          onChange={(e) => handlePropertyNameChange(e.target.value)}
+          placeholder="Enter property name"
+        />
+      </div>
+      <div className="space-y-2">
         <Label>Label</Label>
         <Input
           value={config.label}
-          onChange={(e) => handleChange('label')(e.target.value)}
+          onChange={(e) => handleLabelChange(e.target.value)}
+          placeholder="Enter label"
         />
       </div>
-
-      <div className="space-y-2">
-        <Label>Description</Label>
-        <Input
-          value={config.description}
-          onChange={(e) => handleChange('description')(e.target.value)}
-        />
-      </div>
-
       <div className="space-y-2">
         <Label>Placeholder</Label>
         <Input
           value={config.placeholder}
-          onChange={(e) => handleChange('placeholder')(e.target.value)}
+          onChange={(e) => handlePlaceholderChange(e.target.value)}
+          placeholder="Enter placeholder"
         />
       </div>
-
+      <div className="space-y-2">
+        <Label>Description</Label>
+        <Input
+          value={config.description}
+          onChange={(e) => handleDescriptionChange(e.target.value)}
+          placeholder="Enter description"
+        />
+      </div>
       <div className="flex items-center space-x-2">
         <Switch
-          id="required"
           checked={config.required}
-          onCheckedChange={handleChange('required')}
+          onCheckedChange={handleRequiredChange}
         />
-        <Label htmlFor="required">Required</Label>
+        <Label>Required</Label>
       </div>
     </div>
   );

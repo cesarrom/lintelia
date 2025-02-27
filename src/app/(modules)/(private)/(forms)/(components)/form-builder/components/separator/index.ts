@@ -1,29 +1,37 @@
 import { SeparatorHorizontal } from 'lucide-react';
-import { ComponentDefinition } from '../../types';
-import { separatorConfigSchema, separatorInputSchema, separatorOutputSchema } from './schema';
+import { IFormComponent } from '../../schemas';
+import { SeparatorComponentSchema, separatorConfigSchema, SeparatorConfig } from './schema';
 import { SeparatorEditor } from './editor';
 import { SeparatorViewer } from './viewer';
 import { SeparatorProperties } from './properties';
 import { SeparatorToolbar } from './toolbar';
 
-export const separatorComponent: ComponentDefinition<
-  typeof separatorConfigSchema,
-  typeof separatorInputSchema,
-  typeof separatorOutputSchema
-> = {
+/**
+ * Separator Component
+ * 
+ * A visual separator that can optionally display a title.
+ * - Horizontal or vertical orientation
+ * - Optional title display
+ */
+export const separatorComponent: IFormComponent = {
   type: 'separator',
   label: 'Separator',
   icon: SeparatorHorizontal,
   category: 'layout',
-  schema: {
-    config: separatorConfigSchema,
-    input: separatorInputSchema,
-    output: separatorOutputSchema,
+
+  // UI Components
+  Editor: SeparatorEditor,
+  Viewer: SeparatorViewer,
+  Properties: SeparatorProperties,
+  Toolbar: SeparatorToolbar,
+
+  // Schema and validation
+  getConfigSchema() {
+    return separatorConfigSchema;
   },
-  components: {
-    Editor: SeparatorEditor,
-    Viewer: SeparatorViewer,
-    Properties: SeparatorProperties,
-    Toolbar: SeparatorToolbar,
+
+  createValidationSchema(config: SeparatorConfig) {
+    const schema = new SeparatorComponentSchema(config.propertyName);
+    return schema;
   },
 }; 

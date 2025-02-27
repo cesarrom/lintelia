@@ -1,10 +1,9 @@
 'use client';
 
-import { AlignLeft, Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, AlignCenter, AlignRight, AlignJustify, Underline as UnderlineIcon, Code, Quote, TextQuote } from 'lucide-react';
+import { FileText, Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, AlignCenter, AlignRight, AlignJustify, Underline as UnderlineIcon, Code, TextQuote } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { EditorProps } from '../../types';
-import { richtextConfigSchema } from './schema';
+import { RichtextConfig, richtextConfigSchema } from './schema';
 import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -14,11 +13,13 @@ import Underline from '@tiptap/extension-underline';
 import { useVariables } from '../../context/variables';
 import { Button } from '@/components/ui/button';
 import tippy from 'tippy.js';
+import { EditorProps } from '../../schemas';
+import { z } from 'zod';
 
 interface MentionItem {
   id: string;
   label: string;
-  type: 'variable';
+  type: 'variable' | 'field';
 }
 
 export function RichtextEditor({
@@ -27,14 +28,14 @@ export function RichtextEditor({
   isSelected,
   onSelect,
   onConfigChange,
-}: EditorProps<typeof richtextConfigSchema>) {
+}: EditorProps<z.infer<typeof richtextConfigSchema>>) {
   const { variables, definitions } = useVariables();
 
   const editor = useEditor({
     extensions: [
       StarterKit,
       Placeholder.configure({
-        placeholder: config.placeholder,
+        placeholder: config.placeholder || '',
       }),
       TextAlign.configure({
         types: ['heading', 'paragraph'],
@@ -43,13 +44,14 @@ export function RichtextEditor({
       Mention.configure({
         HTMLAttributes: {
           class: 'mention',
+          'data-type': 'variable',
         },
         suggestion: {
           char: '@',
           items: ({ query }: { query: string }): MentionItem[] => {
             const items: MentionItem[] = [];
             
-            // Add form field references
+            // Add form variables
             Object.entries(variables).forEach(([key, value]) => {
               if (key.toLowerCase().includes(query.toLowerCase())) {
                 items.push({
@@ -115,14 +117,87 @@ export function RichtextEditor({
           },
         },
       }),
+      // Field references with # prefix
+      Mention.configure({
+        HTMLAttributes: {
+          class: 'mention',
+          'data-type': 'field',
+        },
+        suggestion: {
+          char: '#',
+          items: ({ query }: { query: string }): MentionItem[] => {
+            // This would need to be populated with actual form fields
+            // For now, we'll just return a placeholder
+            return [
+              {
+                id: 'field',
+                label: 'Form fields will appear here',
+                type: 'field'
+              }
+            ];
+          },
+          render: () => {
+            let popup: any;
+            let component: HTMLDivElement;
+
+            return {
+              onStart: (props) => {
+                component = document.createElement('div');
+                component.classList.add('rounded-md', 'bg-white', 'shadow-md', 'border', 'p-1');
+                
+                popup = tippy(document.body, {
+                  getReferenceClientRect: () => props?.clientRect?.() || new DOMRect(),
+                  appendTo: () => document.body,
+                  content: component,
+                  showOnCreate: true,
+                  interactive: true,
+                  trigger: 'manual',
+                  placement: 'bottom-start',
+                });
+              },
+              onUpdate: (props) => {
+                component.innerHTML = '';
+                
+                props.items.forEach((item: MentionItem) => {
+                  const button = document.createElement('button');
+                  button.className = 'block w-full text-left px-2 py-1 hover:bg-gray-100 rounded';
+                  button.textContent = item.label;
+                  
+                  button.addEventListener('click', () => {
+                    props.command({ id: item.id });
+                    popup.hide();
+                  });
+                  
+                  component.appendChild(button);
+                });
+
+                popup[0].setProps({
+                  getReferenceClientRect: props.clientRect,
+                });
+              },
+              onKeyDown: (props) => {
+                if (props.event.key === 'Escape') {
+                  popup[0].hide();
+                  return true;
+                }
+                return false;
+              },
+              onExit: () => {
+                popup[0].destroy();
+              },
+            };
+          },
+        },
+      }),
     ],
     content: config.content || '',
     editable: true,
     onUpdate: ({ editor }) => {
-      onConfigChange?.({
-        ...config,
-        content: editor.getHTML(),
-      });
+      if (onConfigChange) {
+        const updatedConfig = { ...config };
+        updatedConfig.content = editor.getHTML();
+        onConfigChange(updatedConfig);
+      }
     },
   });
 
@@ -135,7 +210,7 @@ export function RichtextEditor({
       onClick={() => onSelect?.()}
     >
       <div className="absolute left-2 top-2 text-muted-foreground">
-        <AlignLeft className="h-4 w-4" />
+        <FileText className="h-4 w-4" />
       </div>
       <div className="mb-2 pl-6">
         <Label>{config.label}</Label>
@@ -217,7 +292,7 @@ export function RichtextEditor({
               className={cn('h-8 w-8 p-0', editor?.isActive({ textAlign: 'left' }) && 'bg-muted')}
               onClick={() => editor?.chain().focus().setTextAlign('left').run()}
             >
-              <AlignLeft className="h-4 w-4" />
+              <FileText className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
@@ -278,9 +353,10 @@ export function RichtextEditor({
         <EditorContent editor={editor} />
       </div>
       {isSelected && (
-        <p className="mt-2 text-sm text-muted-foreground">
-          Type @ to reference variables and form fields
-        </p>
+        <div className="mt-2 text-sm text-muted-foreground">
+          <p>Type @ to reference variables</p>
+          <p>Type # to reference form fields</p>
+        </div>
       )}
     </div>
   );

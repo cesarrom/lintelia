@@ -2,8 +2,8 @@
 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ViewerProps } from '../../types';
-import { timeConfigSchema, timeInputSchema, timeOutputSchema } from './schema';
+import { ViewerProps } from '../../schemas';
+import { TimeConfig } from './schema';
 
 export function TimeViewer({
   id,
@@ -12,7 +12,7 @@ export function TimeViewer({
   onChange,
   onBlur,
   error,
-}: ViewerProps<typeof timeConfigSchema, typeof timeInputSchema, typeof timeOutputSchema>) {
+}: ViewerProps<TimeConfig, string>) {
   return (
     <div className="space-y-2">
       <Label htmlFor={id} className="block">
@@ -24,6 +24,7 @@ export function TimeViewer({
       )}
       <Input
         id={id}
+        name={config.propertyName}
         type="time"
         value={value || ''}
         onChange={(e) => onChange?.(e.target.value)}
@@ -33,8 +34,14 @@ export function TimeViewer({
         min={config.min}
         max={config.max}
         step={config.step}
+        aria-invalid={!!error}
+        aria-describedby={error ? `${id}-error` : undefined}
       />
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <p id={`${id}-error`} className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 } 

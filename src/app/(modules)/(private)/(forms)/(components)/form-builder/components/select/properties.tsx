@@ -1,303 +1,313 @@
 'use client';
 
+import { useCallback, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Button } from '@/components/ui/button';
-import { PropertiesProps } from '../../types';
-import { selectConfigSchema } from './schema';
-import { useVariables } from '../../context/variables';
-import {
+import { PropertiesProps } from '../../schemas';
+import { SelectConfig, SelectOption, OptionsSource } from './schema';
+import { PropertyWrapper } from '../../property-wrapper';
+import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
+  SelectValue
 } from '@/components/ui/select';
-import { Plus, Trash2 } from 'lucide-react';
-import { z } from 'zod';
-import { useState } from 'react';
-
-type SelectConfig = z.infer<typeof selectConfigSchema>;
-type StaticSource = Extract<SelectConfig['source'], { type: 'static' }>;
-type VariableSource = Extract<SelectConfig['source'], { type: 'variable' }>;
+import { useVariables } from '../../context/variables';
+import { PlusCircle, Trash2 } from 'lucide-react';
+import { nanoid } from 'nanoid';
 
 export function SelectProperties({
   config,
   onChange,
-}: PropertiesProps<typeof selectConfigSchema>) {
-  const { definitions } = useVariables();
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+}: PropertiesProps<SelectConfig>) {
+  const { variables, definitions } = useVariables();
+  const [newOptionLabel, setNewOptionLabel] = useState('');
+  const [newOptionValue, setNewOptionValue] = useState('');
 
-  const updateConfig = (updates: Partial<SelectConfig>) => {
-    onChange({ ...config, ...updates });
-  };
+  const handleBasicChange = useCallback(
+    (key: keyof SelectConfig, value: any) => {
+      onChange({
+        ...config,
+        [key]: value,
+      });
+    },
+    [config, onChange]
+  );
 
-  const validateAndUpdateOptions = (newOptions: StaticSource['options']) => {
-    const errors: Record<string, string> = {};
-    let hasErrors = false;
+  const handleSourceTypeChange = useCallback(
+    (type: 'static' | 'variable') => {
+      const newSource: OptionsSource = type === 'static' 
+        ? { 
+            type: 'static', 
+            options: (config.source?.type === 'static' ? config.source.options : []) || [] 
+          } 
+        : { 
+            type: 'variable', 
+            variableId: (config.source?.type === 'variable' ? config.source.variableId : '') || '',
+            labelPath: (config.source?.type === 'variable' ? config.source.labelPath : '') || '',
+            valuePath: (config.source?.type === 'variable' ? config.source.valuePath : '') || ''
+          };
 
-    newOptions.forEach((option, index) => {
-      if (!option.label.trim()) {
-        errors[`label-${index}`] = 'Label cannot be empty';
-        hasErrors = true;
-      }
-      if (!option.value.trim()) {
-        errors[`value-${index}`] = 'Value cannot be empty';
-        hasErrors = true;
-      }
+      onChange({
+        ...config,
+        source: newSource,
+      });
+    },
+    [config, onChange]
+  );
+
+  const handleAddOption = useCallback(() => {
+    if (!newOptionLabel || !newOptionValue) return;
+    
+    if (config.source?.type !== 'static') return;
+    
+    const newOption: SelectOption = {
+      id: nanoid(),
+      label: newOptionLabel,
+      value: newOptionValue,
+    };
+    
+    onChange({
+      ...config,
+      source: {
+        ...config.source,
+        options: [...(config.source.options || []), newOption],
+      },
     });
+    
+    setNewOptionLabel('');
+    setNewOptionValue('');
+  }, [config, newOptionLabel, newOptionValue, onChange]);
 
-    setValidationErrors(errors);
-    return !hasErrors;
-  };
+  const handleRemoveOption = useCallback(
+    (id: string) => {
+      if (config.source?.type !== 'static') return;
+      
+      onChange({
+        ...config,
+        source: {
+          ...config.source,
+          options: (config.source.options || []).filter(
+            (option) => option.id !== id
+          ),
+        },
+      });
+    },
+    [config, onChange]
+  );
+
+  const handleVariableChange = useCallback(
+    (variableId: string) => {
+      if (config.source?.type !== 'variable') return;
+      
+      onChange({
+        ...config,
+        source: {
+          ...config.source,
+          variableId,
+        },
+      });
+    },
+    [config, onChange]
+  );
+
+  const handlePathChange = useCallback(
+    (key: 'labelPath' | 'valuePath', value: string) => {
+      if (config.source?.type !== 'variable') return;
+      
+      onChange({
+        ...config,
+        source: {
+          ...config.source,
+          [key]: value,
+        },
+      });
+    },
+    [config, onChange]
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Basic Properties */}
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label>Label</Label>
+    <Tabs defaultValue="basic">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="basic">Basic</TabsTrigger>
+        <TabsTrigger value="options">Options</TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="basic" className="space-y-4 pt-4">
+        <PropertyWrapper>
+          <Label htmlFor="propertyName">Property Name</Label>
           <Input
-            value={config.label}
-            onChange={(e) => updateConfig({ label: e.target.value })}
+            id="propertyName"
+            value={config.propertyName || ''}
+            onChange={(e) => handleBasicChange('propertyName', e.target.value)}
           />
-        </div>
+        </PropertyWrapper>
 
-        <div className="space-y-2">
-          <Label>Placeholder</Label>
+        <PropertyWrapper>
+          <Label htmlFor="label">Label</Label>
           <Input
+            id="label"
+            value={config.label || ''}
+            onChange={(e) => handleBasicChange('label', e.target.value)}
+          />
+        </PropertyWrapper>
+
+        <PropertyWrapper>
+          <Label htmlFor="placeholder">Placeholder</Label>
+          <Input
+            id="placeholder"
             value={config.placeholder || ''}
-            onChange={(e) => updateConfig({ placeholder: e.target.value })}
+            onChange={(e) => handleBasicChange('placeholder', e.target.value)}
           />
-        </div>
+        </PropertyWrapper>
 
-        <div className="space-y-2">
-          <Label>Description</Label>
-          <Input
+        <PropertyWrapper>
+          <Label htmlFor="description">Description</Label>
+          <Textarea
+            id="description"
             value={config.description || ''}
-            onChange={(e) => updateConfig({ description: e.target.value })}
+            onChange={(e) => handleBasicChange('description', e.target.value)}
           />
-        </div>
+        </PropertyWrapper>
 
-        <div className="flex items-center space-x-2">
-          <Switch
-            checked={config.required}
-            onCheckedChange={(checked) => updateConfig({ required: checked })}
-          />
-          <Label>Required</Label>
-        </div>
-      </div>
+        <PropertyWrapper>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="required">Required</Label>
+            <Switch
+              id="required"
+              checked={config.required || false}
+              onCheckedChange={(checked) => handleBasicChange('required', checked)}
+            />
+          </div>
+        </PropertyWrapper>
+      </TabsContent>
+      
+      <TabsContent value="options" className="space-y-4 pt-4">
+        <PropertyWrapper>
+          <Label>Options Source</Label>
+          <Select
+            value={config.source?.type || 'static'}
+            onValueChange={(value) => handleSourceTypeChange(value as 'static' | 'variable')}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select source type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="static">Static Options</SelectItem>
+              <SelectItem value="variable">From Variable</SelectItem>
+            </SelectContent>
+          </Select>
+        </PropertyWrapper>
 
-      {/* Options Source */}
-      <div className="space-y-4">
-        <Label>Options Source</Label>
-        <Select
-          value={config.source?.type || 'static'}
-          onValueChange={(value: 'static' | 'variable') => {
-            if (value === 'static') {
-              updateConfig({
-                source: {
-                  type: 'static',
-                  options: [],
-                },
-              });
-            } else {
-              updateConfig({
-                source: {
-                  type: 'variable',
-                  variableId: '',
-                },
-              });
-            }
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select options source" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="static">Static Options</SelectItem>
-            <SelectItem value="variable">From Variable</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* Static Options */}
         {config.source?.type === 'static' && (
-          <div className="space-y-4">
+          <>
+            <PropertyWrapper>
+              <Label>Add Option</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  placeholder="Label"
+                  value={newOptionLabel}
+                  onChange={(e) => setNewOptionLabel(e.target.value)}
+                />
+                <Input
+                  placeholder="Value"
+                  value={newOptionValue}
+                  onChange={(e) => setNewOptionValue(e.target.value)}
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 w-full"
+                onClick={handleAddOption}
+                disabled={!newOptionLabel || !newOptionValue}
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Option
+              </Button>
+            </PropertyWrapper>
+
             <div className="space-y-2">
-              {config.source.options.map((option, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex gap-2">
-                    <div className="flex-1 space-y-1">
-                      <Input
-                        value={option.label}
-                        onChange={(e) => {
-                          if (config.source.type !== 'static') return;
-                          const newOptions = [...config.source.options];
-                          newOptions[index] = {
-                            ...newOptions[index],
-                            label: e.target.value,
-                          };
-                          validateAndUpdateOptions(newOptions);
-                          updateConfig({
-                            source: {
-                              type: 'static',
-                              options: newOptions,
-                            },
-                          });
-                        }}
-                        placeholder="Option label"
-                        className={validationErrors[`label-${index}`] ? 'border-red-500' : ''}
-                      />
-                      {validationErrors[`label-${index}`] && (
-                        <p className="text-xs text-red-500">{validationErrors[`label-${index}`]}</p>
-                      )}
-                    </div>
-                    <div className="flex-1 space-y-1">
-                      <Input
-                        value={option.value}
-                        onChange={(e) => {
-                          if (config.source.type !== 'static') return;
-                          const newOptions = [...config.source.options];
-                          newOptions[index] = {
-                            ...newOptions[index],
-                            value: e.target.value,
-                          };
-                          validateAndUpdateOptions(newOptions);
-                          updateConfig({
-                            source: {
-                              type: 'static',
-                              options: newOptions,
-                            },
-                          });
-                        }}
-                        placeholder="Option value"
-                        className={validationErrors[`value-${index}`] ? 'border-red-500' : ''}
-                      />
-                      {validationErrors[`value-${index}`] && (
-                        <p className="text-xs text-red-500">{validationErrors[`value-${index}`]}</p>
-                      )}
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        if (config.source.type !== 'static') return;
-                        const newOptions = [...config.source.options];
-                        newOptions.splice(index, 1);
-                        updateConfig({
-                          source: {
-                            type: 'static',
-                            options: newOptions,
-                          },
-                        });
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+              <Label>Options</Label>
+              {config.source.options?.map((option) => (
+                <div
+                  key={option.id}
+                  className="flex items-center justify-between rounded-md border p-2"
+                >
+                  <div>
+                    <p className="text-sm font-medium">{option.label}</p>
+                    <p className="text-xs text-muted-foreground">{option.value}</p>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemoveOption(option.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               ))}
+              {(!config.source.options || config.source.options.length === 0) && (
+                <p className="text-sm text-muted-foreground">No options added yet</p>
+              )}
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={() => {
-                if (config.source.type !== 'static') return;
-                const newOptions = [...config.source.options];
-                const newOptionNumber = newOptions.length + 1;
-                newOptions.push({ 
-                  label: `Option ${newOptionNumber}`, 
-                  value: `option_${newOptionNumber}` 
-                });
-                updateConfig({
-                  source: {
-                    type: 'static',
-                    options: newOptions,
-                  },
-                });
-              }}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add Option
-            </Button>
-          </div>
+          </>
         )}
 
-        {/* Variable Source */}
         {config.source?.type === 'variable' && (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Variable</Label>
+          <>
+            <PropertyWrapper>
+              <Label htmlFor="variableId">Variable</Label>
               <Select
-                value={config.source.variableId}
-                onValueChange={(value) => {
-                  updateConfig({
-                    source: {
-                      type: 'variable',
-                      variableId: value,
-                      labelPath: config.source.type === 'variable' ? config.source.labelPath : undefined,
-                      valuePath: config.source.type === 'variable' ? config.source.valuePath : undefined,
-                    },
-                  });
-                }}
+                value={config.source.variableId || ''}
+                onValueChange={handleVariableChange}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a variable" />
+                  <SelectValue placeholder="Select variable" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(definitions)
-                    .filter(([_, def]) => def.type === 'array')
-                    .map(([id, def]) => (
-                      <SelectItem key={id} value={id}>
-                        {def.name}
-                      </SelectItem>
-                    ))}
+                  {Object.entries(variables || {}).map(([id, value]) => (
+                    <SelectItem key={id} value={id}>
+                      {id}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-            </div>
+            </PropertyWrapper>
 
-            <div className="space-y-2">
-              <Label>Label Path</Label>
+            <PropertyWrapper>
+              <Label htmlFor="labelPath">Label Path</Label>
               <Input
+                id="labelPath"
                 value={config.source.labelPath || ''}
-                onChange={(e) => {
-                  if (config.source.type !== 'variable') return;
-                  updateConfig({
-                    source: {
-                      type: 'variable',
-                      variableId: config.source.variableId,
-                      labelPath: e.target.value,
-                      valuePath: config.source.valuePath,
-                    },
-                  });
-                }}
-                placeholder="e.g., name"
+                onChange={(e) => handlePathChange('labelPath', e.target.value)}
+                placeholder="e.g. name"
               />
-            </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Path to the property to use as label (leave empty for simple arrays)
+              </p>
+            </PropertyWrapper>
 
-            <div className="space-y-2">
-              <Label>Value Path</Label>
+            <PropertyWrapper>
+              <Label htmlFor="valuePath">Value Path</Label>
               <Input
+                id="valuePath"
                 value={config.source.valuePath || ''}
-                onChange={(e) => {
-                  if (config.source.type !== 'variable') return;
-                  updateConfig({
-                    source: {
-                      type: 'variable',
-                      variableId: config.source.variableId,
-                      labelPath: config.source.labelPath,
-                      valuePath: e.target.value,
-                    },
-                  });
-                }}
-                placeholder="e.g., id"
+                onChange={(e) => handlePathChange('valuePath', e.target.value)}
+                placeholder="e.g. id"
               />
-            </div>
-          </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Path to the property to use as value (leave empty for simple arrays)
+              </p>
+            </PropertyWrapper>
+          </>
         )}
-      </div>
-    </div>
+      </TabsContent>
+    </Tabs>
   );
-} 
+}

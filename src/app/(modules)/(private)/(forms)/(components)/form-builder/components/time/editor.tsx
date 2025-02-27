@@ -4,15 +4,15 @@ import { Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { EditorProps } from '../../types';
-import { timeConfigSchema } from './schema';
+import { EditorProps } from '../../schemas';
+import { TimeConfig } from './schema';
 
 export function TimeEditor({
   id,
   config,
   isSelected,
   onSelect,
-}: EditorProps<typeof timeConfigSchema>) {
+}: EditorProps<TimeConfig>) {
   return (
     <div
       className={cn(

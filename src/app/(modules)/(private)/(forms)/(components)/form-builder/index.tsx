@@ -19,6 +19,11 @@ import {
   phoneComponent,
   radioComponent,
   rangeComponent,
+  ratingComponent,
+  richtextComponent,
+  selectComponent,
+  separatorComponent,
+  textareaComponent,
 } from './components';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
@@ -46,25 +51,20 @@ registry.register(checkboxComponent);
 registry.register(colorComponent);
 registry.register(dateComponent);
 registry.register(emailComponent);
-// registry.register(selectComponent);
+registry.register(selectComponent);
 registry.register(multiselectComponent);
 registry.register(radioComponent);
-// registry.register(ratingComponent);
-// registry.register(rangeComponent);
-// registry.register(timeComponent);
+registry.register(ratingComponent);
 registry.register(datetimeComponent);
 registry.register(fileComponent);
 registry.register(imageComponent);
-// registry.register(columnsComponent);
-// registry.register(sectionComponent);
-// registry.register(separatorComponent);
 registry.register(pageSeparatorComponent);
-// registry.register(textareaComponent);
-// registry.register(urlComponent);
+registry.register(separatorComponent);
 registry.register(numberComponent);
 registry.register(passwordComponent);
 registry.register(phoneComponent);
-// registry.register(richtextComponent);
+registry.register(richtextComponent);
+registry.register(textareaComponent);
 
 interface FormBuilderProps {
   initialConfig?: FormConfig;

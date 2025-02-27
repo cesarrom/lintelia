@@ -1,25 +1,22 @@
 'use client';
 
 import { Separator } from '@/components/ui/separator';
-import { Label } from '@/components/ui/label';
-import { ViewerProps } from '../../types';
-import { separatorConfigSchema, separatorInputSchema, separatorOutputSchema } from './schema';
+import { SeparatorConfig } from './schema';
+import { ViewerProps } from '../../schemas';
 
 export function SeparatorViewer({
   id,
   config,
-}: ViewerProps<typeof separatorConfigSchema, typeof separatorInputSchema, typeof separatorOutputSchema>) {
+}: ViewerProps<SeparatorConfig, null>) {
   return (
-    <div className="space-y-2">
-      {config.showLabel && config.label && (
-        <>
-          <Label>{config.label}</Label>
-          {config.description && (
-            <p className="text-sm text-muted-foreground">{config.description}</p>
-          )}
-        </>
+    <div className="w-full">
+      {config.showTitle && config.title && (
+        <p className="text-sm font-medium mb-2">{config.title}</p>
       )}
-      <Separator />
+      <Separator 
+        className="my-2" 
+        orientation={config.orientation}
+      />
     </div>
   );
 } 
