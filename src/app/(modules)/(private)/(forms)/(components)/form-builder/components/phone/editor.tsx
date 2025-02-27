@@ -4,15 +4,15 @@ import { Phone } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { EditorProps } from '../../types';
-import { phoneConfigSchema } from './schema';
+import { EditorProps } from '../../schemas';
+import { PhoneConfig } from './schema';
 
 export function PhoneEditor({
   id,
   config,
   isSelected,
   onSelect,
-}: EditorProps<typeof phoneConfigSchema>) {
+}: EditorProps<PhoneConfig>) {
   return (
     <div
       className={cn(

@@ -1,28 +1,38 @@
 'use client';
 
-import { Lock } from 'lucide-react';
-import { ToolbarProps } from '../../types';
-import { Button } from '@/components/ui/button';
 import { useDraggable } from '@dnd-kit/core';
+import { Button } from '@/components/ui/button';
+import { KeyRound } from 'lucide-react';
+import { ToolbarProps } from '../../schemas';
+import { passwordConfigSchema } from './schema';
+import { v4 as uuid } from 'uuid';
 
-export function PasswordToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
-  const { attributes, listeners, setNodeRef } = useDraggable({
-    id: 'password',
+export function PasswordToolbar({ disabled }: ToolbarProps) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: 'password-toolbar',
     data: {
       type: 'password',
+      config: passwordConfigSchema.parse({
+        propertyName: `passwordField${uuid().substring(0, 4)}`,
+        label: 'Password',
+        placeholder: 'Enter your password',
+        required: false,
+        showToggle: true,
+      }),
     },
   });
 
   return (
     <Button
       ref={setNodeRef}
-      variant="ghost"
-      className="w-full justify-start gap-2"
+      variant="outline"
+      className="justify-start w-full"
+      disabled={disabled || isDragging}
       {...attributes}
       {...listeners}
     >
-      <Lock className="h-4 w-4" />
-      <span>Password</span>
+      <KeyRound className="mr-2 h-4 w-4" />
+      <span className="text-sm">Password</span>
     </Button>
   );
 } 

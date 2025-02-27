@@ -2,8 +2,9 @@
 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ViewerProps } from '../../types';
-import { emailConfigSchema, emailInputSchema, emailOutputSchema } from './schema';
+import { EmailConfig } from './schema';
+import { ViewerProps } from '../../schemas';
+import { cn } from '@/lib/utils';
 
 export function EmailViewer({
   id,
@@ -12,7 +13,7 @@ export function EmailViewer({
   onChange,
   onBlur,
   error,
-}: ViewerProps<typeof emailConfigSchema, typeof emailInputSchema, typeof emailOutputSchema>) {
+}: ViewerProps<EmailConfig, string>) {
   return (
     <div className="space-y-2">
       <Label htmlFor={id} className="block">
@@ -24,14 +25,21 @@ export function EmailViewer({
       )}
       <Input
         id={id}
+        name={config.propertyName}
         type="email"
         value={value || ''}
         onChange={(e) => onChange?.(e.target.value)}
         onBlur={onBlur}
-        placeholder={config.placeholder}
-        className={error ? 'border-destructive' : undefined}
+        placeholder={config.placeholder || 'Enter email address'}
+        className={cn(error && 'border-destructive')}
+        aria-invalid={!!error}
+        aria-describedby={error ? `${id}-error` : undefined}
       />
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <p id={`${id}-error`} className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 } 

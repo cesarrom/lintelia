@@ -1,30 +1,20 @@
 'use client';
 
-import { ViewerProps } from '../../types';
-import { pageSeparatorConfigSchema, pageSeparatorInputSchema, pageSeparatorOutputSchema } from './schema';
+import { ViewerProps } from '../../schemas';
+import { PageSeparatorConfig } from './schema';
 
 export function PageSeparatorViewer({
   id,
   config,
-  index,
-}: ViewerProps<typeof pageSeparatorConfigSchema, typeof pageSeparatorInputSchema, typeof pageSeparatorOutputSchema>) {
-  const pageNumber = index !== undefined ? Math.floor(index / 2) + 1 : 1;
-
+}: ViewerProps<PageSeparatorConfig, undefined>) {
   return (
-    <div className="py-8">
-      <div className="flex items-center gap-4">
-        <div className="flex-1">
-          <div className="h-px bg-border" />
-        </div>
-        <div className="flex items-center gap-2 whitespace-nowrap text-sm text-muted-foreground">
-          {config.showTitle && config.label}
-          {config.showPageNumber && (
-            <span className="rounded-md bg-muted px-2 py-1">Page {pageNumber}</span>
-          )}
-        </div>
-        <div className="flex-1">
-          <div className="h-px bg-border" />
-        </div>
+    <div className="py-6">
+      <div className="w-full border-t border-dashed border-primary/50 my-2" />
+      <div className="flex flex-col items-center justify-center text-center">
+        <h3 className="text-lg font-semibold mt-2">{config.title}</h3>
+        {config.description && (
+          <p className="text-sm text-muted-foreground mt-1">{config.description}</p>
+        )}
       </div>
     </div>
   );

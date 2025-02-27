@@ -1,18 +1,18 @@
 'use client';
 
-import { Clock } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { EditorProps } from '../../types';
-import { datetimeConfigSchema } from './schema';
+import { DatetimeConfig } from './schema';
+import { EditorProps } from '../../schemas';
 
-export function DateTimeEditor({
+export function DatetimeEditor({
   id,
   config,
   isSelected,
   onSelect,
-}: EditorProps<typeof datetimeConfigSchema>) {
+}: EditorProps<DatetimeConfig>) {
   return (
     <div
       className={cn(
@@ -22,7 +22,7 @@ export function DateTimeEditor({
       onClick={() => onSelect?.()}
     >
       <div className="absolute left-2 top-2 text-muted-foreground">
-        <Clock className="h-4 w-4" />
+        <Calendar className="h-4 w-4" />
       </div>
       <div className="mb-2 pl-6">
         <Label>{config.label}</Label>
@@ -30,19 +30,12 @@ export function DateTimeEditor({
           <p className="text-sm text-muted-foreground">{config.description}</p>
         )}
       </div>
-      <div className="flex gap-2">
-        <Input
-          type="date"
-          disabled
-          className="pointer-events-none bg-muted"
-        />
-        <Input
-          type="time"
-          disabled
-          className="pointer-events-none bg-muted w-32"
-          step={config.showSeconds ? 1 : 60}
-        />
-      </div>
+      <Input
+        type={config.format === 'time' ? 'time' : 'datetime-local'}
+        disabled
+        className="pointer-events-none bg-muted"
+        placeholder={config.placeholder}
+      />
     </div>
   );
 } 

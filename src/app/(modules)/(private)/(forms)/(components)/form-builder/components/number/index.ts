@@ -1,29 +1,55 @@
 import { Hash } from 'lucide-react';
-import { ComponentDefinition } from '../../types';
-import { numberConfigSchema, numberInputSchema, numberOutputSchema } from './schema';
+import { IFormComponent } from '../../schemas';
+import { NumberComponentSchema, numberConfigSchema, NumberConfig } from './schema';
 import { NumberEditor } from './editor';
 import { NumberViewer } from './viewer';
 import { NumberProperties } from './properties';
 import { NumberToolbar } from './toolbar';
 
-export const numberComponent: ComponentDefinition<
-  typeof numberConfigSchema,
-  typeof numberInputSchema,
-  typeof numberOutputSchema
-> = {
+/**
+ * Number Input Component
+ * 
+ * A number input field that supports:
+ * - Required/optional
+ * - Min/max validation
+ * - Step size
+ * - Precision control
+ */
+export const numberComponent: IFormComponent = {
   type: 'number',
-  label: 'Number',
+  label: 'Number Field',
   icon: Hash,
   category: 'input',
-  schema: {
-    config: numberConfigSchema,
-    input: numberInputSchema,
-    output: numberOutputSchema,
+
+  // UI Components
+  Editor: NumberEditor,
+  Viewer: NumberViewer,
+  Properties: NumberProperties,
+  Toolbar: NumberToolbar,
+
+  // Schema and validation
+  getConfigSchema() {
+    return numberConfigSchema;
   },
-  components: {
-    Editor: NumberEditor,
-    Viewer: NumberViewer,
-    Properties: NumberProperties,
-    Toolbar: NumberToolbar,
+
+  createValidationSchema(config: NumberConfig) {
+    const schema = new NumberComponentSchema(config.propertyName);
+    
+    // Apply validation rules from config
+    schema.setRequired(config.required);
+    if (config.validation?.min !== undefined) {
+      schema.setMin(config.validation.min);
+    }
+    if (config.validation?.max !== undefined) {
+      schema.setMax(config.validation.max);
+    }
+    if (config.validation?.step !== undefined) {
+      schema.setStep(config.validation.step);
+    }
+    if (config.validation?.precision !== undefined) {
+      schema.setPrecision(config.validation.precision);
+    }
+
+    return schema;
   },
 }; 

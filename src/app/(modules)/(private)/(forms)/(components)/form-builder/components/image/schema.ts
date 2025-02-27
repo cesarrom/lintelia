@@ -1,30 +1,125 @@
 import { z } from 'zod';
-import { baseComponentConfigSchema } from '../../schemas';
+import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
-export const imageConfigSchema = baseComponentConfigSchema.extend({
-  placeholder: z.string().optional().default('Click or drag image here'),
-  description: z.string().optional().default('Upload an image'),
-  accept: z.string().default('image/*'),
-  maxSize: z.number().min(1).default(5 * 1024 * 1024), // 5MB
-  minSize: z.number().min(0).default(0),
-  maxWidth: z.number().min(1).optional(),
-  maxHeight: z.number().min(1).optional(),
-  minWidth: z.number().min(1).optional(),
-  minHeight: z.number().min(1).optional(),
-  aspectRatio: z.number().optional(),
-  previewSize: z.number().min(50).default(200),
-  allowCamera: z.boolean().default(false),
-  cameraOptions: z.object({
-    facingMode: z.enum(['user', 'environment']).default('environment'),
-    idealResolution: z.object({
-      width: z.number().min(1).default(1280),
-      height: z.number().min(1).default(720)
-    }).default({ width: 1280, height: 720 })
-  }).default({
-    facingMode: 'environment',
-    idealResolution: { width: 1280, height: 720 }
-  })
-});
+// Form builder config schema
+export const imageConfigSchema = baseConfigSchema.extend({
+  label: z.string().min(1, 'Label is required'),
+  description: z.string().optional(),
+  accept: z.array(z.string()).default(['.jpg', '.jpeg', '.png', '.gif']),
+  maxSize: z.number().min(0).default(5 * 1024 * 1024), // 5MB default
+  validation: z.object({
+    minWidth: z.number().optional(),
+    maxWidth: z.number().optional(),
+    minHeight: z.number().optional(),
+    maxHeight: z.number().optional(),
+    aspectRatio: z.number().optional(),
+  }).optional(),
+}).transform((data) => ({
+  ...data,
+  description: data.description ?? '',
+  validation: data.validation ?? {},
+}));
+
+export type ImageConfig = z.infer<typeof imageConfigSchema>;
+
+// Value validation schema generator
+export class ImageComponentSchema extends BaseComponentSchema<z.ZodString, ImageConfig> {
+  constructor(propertyName: string) {
+    // Create a base schema that accepts both URLs and data URLs
+    const baseSchema = z.string()
+      .url('Must be a valid URL')
+      .or(z.string().regex(/^data:image\/[a-z]+;base64,/, 'Must be a valid image data URL'));
+    
+    // Cast to ZodString since we know it will always produce a string
+    super(baseSchema as unknown as z.ZodString, propertyName);
+  }
+
+  setDimensions(config: ImageConfig): this {
+    const { validation } = config;
+    if (!validation) return this;
+
+    if (validation.minWidth || validation.maxWidth || validation.minHeight || validation.maxHeight || validation.aspectRatio) {
+      // Cast the refined schema back to ZodString
+      this.schema = this.schema.superRefine(async (value, ctx) => {
+        if (!value) return;
+
+        try {
+          const img = new Image();
+          img.src = value;
+
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => {
+              const { width, height } = img;
+              
+              if (validation.minWidth && width < validation.minWidth) {
+                ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  message: `Image width must be at least ${validation.minWidth}px`,
+                });
+              }
+
+              if (validation.maxWidth && width > validation.maxWidth) {
+                ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  message: `Image width must not exceed ${validation.maxWidth}px`,
+                });
+              }
+
+              if (validation.minHeight && height < validation.minHeight) {
+                ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  message: `Image height must be at least ${validation.minHeight}px`,
+                });
+              }
+
+              if (validation.maxHeight && height > validation.maxHeight) {
+                ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  message: `Image height must not exceed ${validation.maxHeight}px`,
+                });
+              }
+
+              if (validation.aspectRatio) {
+                const ratio = width / height;
+                const tolerance = 0.01; // 1% tolerance for aspect ratio
+                if (Math.abs(ratio - validation.aspectRatio) > tolerance) {
+                  ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: `Image must have an aspect ratio of ${validation.aspectRatio}`,
+                  });
+                }
+              }
+
+              resolve();
+            };
+
+            img.onerror = () => {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: 'Failed to load image',
+              });
+              reject();
+            };
+          });
+        } catch (error) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Invalid image',
+          });
+        }
+      }) as unknown as z.ZodString;
+    }
+
+    return this;
+  }
+
+  fromConfig(config: ImageConfig): this {
+    // Apply validation rules from config
+    this.setRequired(config.required);
+    this.setDimensions(config);
+    return this;
+  }
+}
 
 export const imageInputSchema = z.object({
   name: z.string(),

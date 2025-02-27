@@ -2,8 +2,8 @@
 
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { ViewerProps } from '../../types';
-import { checkboxConfigSchema, checkboxInputSchema, checkboxOutputSchema } from './schema';
+import { ViewerProps } from '../../schemas';
+import { CheckboxConfig } from './schema';
 
 export function CheckboxViewer({
   id,
@@ -12,30 +12,32 @@ export function CheckboxViewer({
   onChange,
   onBlur,
   error,
-}: ViewerProps<typeof checkboxConfigSchema, typeof checkboxInputSchema, typeof checkboxOutputSchema>) {
+}: ViewerProps<CheckboxConfig, boolean>) {
   return (
     <div className="space-y-2">
-      {config.label && (
-        <Label className="block">
-          {config.label}
-          {config.required && <span className="text-destructive ml-1">*</span>}
-        </Label>
-      )}
-      {config.description && (
-        <p className="text-sm text-muted-foreground">{config.description}</p>
-      )}
       <div className="flex items-center space-x-2">
         <Checkbox
           id={id}
-          checked={Boolean(value)}
-          onCheckedChange={(checked: boolean) => onChange?.(checked)}
+          name={config.propertyName}
+          checked={value || false}
+          onCheckedChange={onChange}
           onBlur={onBlur}
+          aria-invalid={!!error}
+          aria-describedby={error ? `${id}-error` : undefined}
         />
-        <Label htmlFor={id} className="text-sm">
+        <Label htmlFor={id} className="text-sm font-normal">
           {config.text}
+          {config.required && <span className="text-destructive ml-1">*</span>}
         </Label>
       </div>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {config.description && (
+        <p className="text-sm text-muted-foreground">{config.description}</p>
+      )}
+      {error && (
+        <p id={`${id}-error`} className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 } 

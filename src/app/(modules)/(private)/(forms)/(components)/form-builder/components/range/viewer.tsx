@@ -2,8 +2,8 @@
 
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { ViewerProps } from '../../types';
-import { rangeConfigSchema, rangeInputSchema, rangeOutputSchema } from './schema';
+import { ViewerProps } from '../../schemas';
+import { RangeConfig } from './schema';
 
 export function RangeViewer({
   id,
@@ -12,13 +12,14 @@ export function RangeViewer({
   onChange,
   onBlur,
   error,
-}: ViewerProps<typeof rangeConfigSchema, typeof rangeInputSchema, typeof rangeOutputSchema>) {
-  const currentValue = typeof value === 'number' ? value : config.min;
-  const formattedValue = [
-    config.valuePrefix,
-    currentValue,
-    config.valueSuffix,
-  ].filter(Boolean).join('');
+}: ViewerProps<RangeConfig, number>) {
+  const handleChange = (values: number[]) => {
+    onChange?.(values[0]);
+  };
+
+  const currentValue = typeof value === 'number' 
+    ? value 
+    : (config.defaultValue ?? config.min);
 
   return (
     <div className="space-y-2">
@@ -29,23 +30,30 @@ export function RangeViewer({
       {config.description && (
         <p className="text-sm text-muted-foreground">{config.description}</p>
       )}
-      <div className="space-y-4">
+      <div className="space-y-2">
         <Slider
           id={id}
+          name={config.propertyName}
           value={[currentValue]}
           min={config.min}
           max={config.max}
           step={config.step}
-          onValueChange={([value]) => onChange?.(value)}
+          onValueChange={handleChange}
           onValueCommit={() => onBlur?.()}
+          aria-invalid={!!error}
+          aria-describedby={error ? `${id}-error` : undefined}
         />
         {config.showValue && (
-          <div className="text-sm text-center">
-            {formattedValue}
+          <div className="text-center text-sm">
+            {currentValue}
           </div>
         )}
       </div>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <p id={`${id}-error`} className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 } 

@@ -1,29 +1,52 @@
 import { Type } from 'lucide-react';
-import { ComponentDefinition } from '../../types';
-import { textConfigSchema, textInputSchema, textOutputSchema } from './schema';
+import { z } from 'zod';
+import { IFormComponent } from '../../schemas';
+import { TextComponentSchema, textConfigSchema, TextConfig } from './schema';
 import { TextEditor } from './editor';
 import { TextViewer } from './viewer';
 import { TextProperties } from './properties';
 import { TextToolbar } from './toolbar';
 
-export const textComponent: ComponentDefinition<
-  typeof textConfigSchema,
-  typeof textInputSchema,
-  typeof textOutputSchema
-> = {
+/**
+ * Text Input Component
+ * 
+ * A simple text input field that supports:
+ * - Required/optional
+ * - Min/max length validation
+ * - Pattern (regex) validation
+ */
+export const textComponent: IFormComponent = {
   type: 'text',
-  label: 'Text',
+  label: 'Text Field',
   icon: Type,
   category: 'input',
-  schema: {
-    config: textConfigSchema,
-    input: textInputSchema,
-    output: textOutputSchema,
+
+  // UI Components
+  Editor: TextEditor,
+  Viewer: TextViewer,
+  Properties: TextProperties,
+  Toolbar: TextToolbar,
+
+  // Schema and validation
+  getConfigSchema() {
+    return textConfigSchema;
   },
-  components: {
-    Editor: TextEditor,
-    Viewer: TextViewer,
-    Properties: TextProperties,
-    Toolbar: TextToolbar,
+
+  createValidationSchema(config: TextConfig) {
+    const schema = new TextComponentSchema(config.propertyName);
+    
+    // Apply validation rules from config
+    schema.setRequired(config.required);
+    if (config.validation?.minLength) {
+      schema.setMinLength(config.validation.minLength);
+    }
+    if (config.validation?.maxLength) {
+      schema.setMaxLength(config.validation.maxLength);
+    }
+    if (config.validation?.pattern) {
+      schema.setPattern(config.validation.pattern);
+    }
+
+    return schema;
   },
 }; 

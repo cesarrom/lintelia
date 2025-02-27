@@ -4,15 +4,15 @@ import { Type } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { EditorProps } from '../../types';
-import { textConfigSchema } from './schema';
+import { TextConfig, textConfigSchema } from './schema';
+import { EditorProps } from '../../schemas';
 
 export function TextEditor({
   id,
   config,
   isSelected,
   onSelect,
-}: EditorProps<typeof textConfigSchema>) {
+}: EditorProps<TextConfig>) {
   return (
     <div
       className={cn(

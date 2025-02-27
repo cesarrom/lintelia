@@ -1,29 +1,44 @@
 import { Radio } from 'lucide-react';
-import { ComponentDefinition } from '../../types';
-import { radioConfigSchema, radioInputSchema, radioOutputSchema } from './schema';
+import { IFormComponent } from '../../schemas';
+import { RadioComponentSchema, radioConfigSchema, RadioConfig } from './schema';
 import { RadioEditor } from './editor';
 import { RadioViewer } from './viewer';
 import { RadioProperties } from './properties';
 import { RadioToolbar } from './toolbar';
 
-export const radioComponent: ComponentDefinition<
-  typeof radioConfigSchema,
-  typeof radioInputSchema,
-  typeof radioOutputSchema
-> = {
+/**
+ * Radio Input Component
+ * 
+ * A radio button group that supports:
+ * - Required/optional
+ * - Multiple options
+ * - Horizontal/vertical layout
+ * - Default value
+ */
+export const radioComponent: IFormComponent = {
   type: 'radio',
-  label: 'Radio',
+  label: 'Radio Group',
   icon: Radio,
   category: 'input',
-  schema: {
-    config: radioConfigSchema,
-    input: radioInputSchema,
-    output: radioOutputSchema,
+
+  // UI Components
+  Editor: RadioEditor,
+  Viewer: RadioViewer,
+  Properties: RadioProperties,
+  Toolbar: RadioToolbar,
+
+  // Schema and validation
+  getConfigSchema() {
+    return radioConfigSchema;
   },
-  components: {
-    Editor: RadioEditor,
-    Viewer: RadioViewer,
-    Properties: RadioProperties,
-    Toolbar: RadioToolbar,
+
+  createValidationSchema(config: RadioConfig) {
+    const schema = new RadioComponentSchema(config.propertyName);
+    
+    // Apply validation rules from config
+    schema.setRequired(config.required);
+    schema.setOptions(config.options);
+
+    return schema;
   },
 }; 

@@ -1,28 +1,38 @@
 'use client';
 
-import { Clock } from 'lucide-react';
-import { ToolbarProps } from '../../types';
-import { Button } from '@/components/ui/button';
+import { Calendar } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
+import { cn } from '@/lib/utils';
+import { ToolbarProps } from '../../schemas';
+import { datetimeConfigSchema } from './schema';
 
-export function DateTimeToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
-  const { attributes, listeners, setNodeRef } = useDraggable({
+export function DatetimeToolbar({ disabled }: ToolbarProps) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: 'datetime',
     data: {
       type: 'datetime',
+      config: datetimeConfigSchema.parse({
+        propertyName: 'dateField',
+        label: 'Date & Time',
+        format: 'datetime',
+        required: false,
+      }),
     },
   });
 
   return (
-    <Button
+    <div
       ref={setNodeRef}
-      variant="ghost"
-      className="w-full justify-start gap-2"
-      {...attributes}
       {...listeners}
+      {...attributes}
+      className={cn(
+        'flex items-center gap-2 rounded-lg border bg-card p-4 hover:bg-accent hover:text-accent-foreground',
+        isDragging && 'ring-2 ring-primary',
+        disabled && 'pointer-events-none opacity-50'
+      )}
     >
-      <Clock className="h-4 w-4" />
-      <span>Date & Time</span>
-    </Button>
+      <Calendar className="h-4 w-4" />
+      <span className="text-sm">Date & Time</span>
+    </div>
   );
 } 

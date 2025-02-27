@@ -1,28 +1,40 @@
 'use client';
 
-import { Radio } from 'lucide-react';
-import { ToolbarProps } from '../../types';
-import { Button } from '@/components/ui/button';
 import { useDraggable } from '@dnd-kit/core';
+import { Button } from '@/components/ui/button';
+import { Radio } from 'lucide-react';
+import { ToolbarProps } from '../../schemas';
+import { v4 as uuid } from 'uuid';
+import { radioConfigSchema } from './schema';
 
-export function RadioToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
-  const { attributes, listeners, setNodeRef } = useDraggable({
-    id: 'radio',
+export function RadioToolbar({ disabled }: ToolbarProps) {
+  const id = `radio-${uuid()}`;
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id,
     data: {
       type: 'radio',
+      config: radioConfigSchema.parse({
+        propertyName: `radioField${uuid().slice(0, 8)}`,
+        label: 'Radio Group',
+        options: [
+          { label: 'Option 1', value: 'option1' },
+          { label: 'Option 2', value: 'option2' },
+        ],
+      }),
     },
   });
 
   return (
     <Button
       ref={setNodeRef}
-      variant="ghost"
-      className="w-full justify-start gap-2"
+      variant="outline"
+      className="justify-start w-full"
+      disabled={disabled || isDragging}
       {...attributes}
       {...listeners}
     >
-      <Radio className="h-4 w-4" />
-      <span>Radio</span>
+      <Radio className="mr-2 h-4 w-4" />
+      Radio Group
     </Button>
   );
 } 

@@ -3,13 +3,24 @@
 import { Phone } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import { Button } from '@/components/ui/button';
-import { ToolbarProps } from '../../types';
+import { ToolbarProps } from '../../schemas';
+import { phoneConfigSchema } from './schema';
+import { v4 as uuid } from 'uuid';
 
 export function PhoneToolbar({ disabled }: ToolbarProps) {
   const { attributes, listeners, setNodeRef } = useDraggable({
-    id: 'phone',
+    id: 'phone-toolbar',
     data: {
       type: 'phone',
+      config: phoneConfigSchema.parse({
+        propertyName: `phoneField_${uuid().substring(0, 4)}`,
+        label: 'Phone Number',
+        placeholder: 'Enter your phone number',
+        description: '',
+        required: false,
+        format: 'international',
+        defaultCountry: 'US',
+      }),
     },
     disabled,
   });

@@ -55,6 +55,7 @@ interface UIFormConfig {
     type: string;
     config: Record<string, unknown>;
   }>;
+  validation?: Record<string, any>;
 }
 
 // Query keys
@@ -84,41 +85,13 @@ export const useCreateForm = () => {
         name: data.name,
         description: data.description,
         config: {
-          fields: data.config.components.map(component => {
-            const baseField = {
-              id: component.id,
-              type: component.type === 'page-separator' ? 'pageSeparator' : component.type,
-              label: (component.config as any).label,
-              name: component.id,
-              required: (component.config as any).required,
-              placeholder: (component.config as any).placeholder,
-              description: (component.config as any).description,
-            };
-
-            // Handle specific component types
-            switch (component.type) {
-              case 'richtext':
-                return {
-                  ...baseField,
-                  content: (component.config as any).content,
-                  references: (component.config as any).references,
-                };
-              case 'select':
-              case 'multiselect':
-                return {
-                  ...baseField,
-                  source: (component.config as any).source,
-                  isSearchable: (component.config as any).isSearchable,
-                  isClearable: (component.config as any).isClearable,
-                  isCreatable: (component.config as any).isCreatable,
-                };
-              default:
-                return baseField;
-            }
-          }),
-          name: data.name,
-          description: data.description,
-        } as DBFormConfig
+          id: data.config.id,
+          name: data.config.name,
+          description: data.config.description,
+          variables: data.config.variables,
+          components: data.config.components,
+          validation: data.config.validation,
+        },
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: formKeys.lists() });
@@ -140,41 +113,13 @@ export const useUpdateForm = () => {
         name: data.name,
         description: data.description,
         config: {
-          fields: data.config.components.map(component => {
-            const baseField = {
-              id: component.id,
-              type: component.type === 'page-separator' ? 'pageSeparator' : component.type,
-              label: (component.config as any).label,
-              name: component.id,
-              required: (component.config as any).required,
-              placeholder: (component.config as any).placeholder,
-              description: (component.config as any).description,
-            };
-
-            // Handle specific component types
-            switch (component.type) {
-              case 'richtext':
-                return {
-                  ...baseField,
-                  content: (component.config as any).content,
-                  references: (component.config as any).references,
-                };
-              case 'select':
-              case 'multiselect':
-                return {
-                  ...baseField,
-                  source: (component.config as any).source,
-                  isSearchable: (component.config as any).isSearchable,
-                  isClearable: (component.config as any).isClearable,
-                  isCreatable: (component.config as any).isCreatable,
-                };
-              default:
-                return baseField;
-            }
-          }),
-          name: data.name,
-          description: data.description,
-        } as DBFormConfig
+          id: data.config.id,
+          name: data.config.name,
+          description: data.config.description,
+          variables: data.config.variables,
+          components: data.config.components,
+          validation: data.config.validation,
+        },
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: formKeys.lists() });
@@ -194,54 +139,13 @@ interface FormNodeConfig {
 }
 
 const mapFormToConfig = (form: Form): UIFormConfig => {
-  const { id, name, description, config } = form;
-  const dbConfig = config as unknown as DBFormConfig;
   return {
-    id,
-    name,
-    description,
-    variables: {},
-    components: dbConfig.fields.map(field => {
-      const baseConfig = {
-        label: field.label,
-        required: field.required,
-        placeholder: field.placeholder,
-        description: field.description,
-      };
-
-      // Handle component-specific configurations
-      switch (field.type) {
-        case 'richtext':
-          return {
-            id: field.id,
-            type: field.type,
-            config: {
-              ...baseConfig,
-              content: field.content || '',
-              references: field.references || [],
-            },
-          };
-        case 'select':
-        case 'multiselect':
-          return {
-            id: field.id,
-            type: field.type,
-            config: {
-              ...baseConfig,
-              source: field.source || {
-                type: 'static',
-                options: [],
-              },
-            },
-          };
-        default:
-          return {
-            id: field.id,
-            type: field.type,
-            config: baseConfig,
-          };
-      }
-    }),
+    id: form.id,
+    name: form.name,
+    description: form.description,
+    variables: form.config.variables || {},
+    components: form.config.components || [],
+    validation: form.config.validation,
   };
 };
 

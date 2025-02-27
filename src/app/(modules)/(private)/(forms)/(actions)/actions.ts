@@ -2,10 +2,10 @@
 
 import { inject } from "@/lib/injector/utils";
 import { FormsService } from "@/lib/services/forms.service";
-import { FormConfig } from "@/types/form";
 import OpenAI from 'openai';
 import { env } from '@/lib/constants';
 import { systemPrompt } from "./prompt";
+import { FormConfig } from "../(components)/form-builder/schemas";
 
 export const generateFormWithAI = inject(
   [],

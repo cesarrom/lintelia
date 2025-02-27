@@ -1,29 +1,38 @@
 import { Star } from 'lucide-react';
-import { ComponentDefinition } from '../../types';
-import { ratingConfigSchema, ratingInputSchema, ratingOutputSchema } from './schema';
+import { IFormComponent } from '../../schemas';
+import { RatingComponentSchema, ratingConfigSchema, RatingConfig } from './schema';
 import { RatingEditor } from './editor';
 import { RatingViewer } from './viewer';
 import { RatingProperties } from './properties';
 import { RatingToolbar } from './toolbar';
 
-export const ratingComponent: ComponentDefinition<
-  typeof ratingConfigSchema,
-  typeof ratingInputSchema,
-  typeof ratingOutputSchema
-> = {
+/**
+ * Rating Component
+ * 
+ * A star rating input field that supports:
+ * - Required/optional
+ * - Configurable max rating (1-10)
+ * - Optional labels for low and high ratings
+ */
+export const ratingComponent: IFormComponent = {
   type: 'rating',
   label: 'Rating',
   icon: Star,
   category: 'input',
-  schema: {
-    config: ratingConfigSchema,
-    input: ratingInputSchema,
-    output: ratingOutputSchema,
+
+  // UI Components
+  Editor: RatingEditor,
+  Viewer: RatingViewer,
+  Properties: RatingProperties,
+  Toolbar: RatingToolbar,
+
+  // Schema and validation
+  getConfigSchema() {
+    return ratingConfigSchema;
   },
-  components: {
-    Editor: RatingEditor,
-    Viewer: RatingViewer,
-    Properties: RatingProperties,
-    Toolbar: RatingToolbar,
+
+  createValidationSchema(config: RatingConfig) {
+    const schema = new RatingComponentSchema(config.propertyName);
+    return schema.fromConfig(config);
   },
 }; 

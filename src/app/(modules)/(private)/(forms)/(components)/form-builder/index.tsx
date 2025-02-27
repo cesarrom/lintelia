@@ -1,36 +1,26 @@
 'use client';
 import { useState } from 'react';
-import { FormConfig, FormVariable } from './schemas';
+import { FormConfig, FormVariable, FormComponentConfig, formConfigSchema, generateValidationConfig } from './schemas';
 import { FormEngine } from './form-engine';
 import { registry } from './registry';
 import {
   textComponent,
-  emailComponent,
-  selectComponent,
-  multiselectComponent,
   checkboxComponent,
-  radioComponent,
-  ratingComponent,
-  rangeComponent,
   dateComponent,
-  timeComponent,
+  colorComponent,
   datetimeComponent,
+  emailComponent,
   fileComponent,
   imageComponent,
-  colorComponent,
-  columnsComponent,
-  sectionComponent,
-  separatorComponent,
-  pageSeparatorComponent,
-  textareaComponent,
-  urlComponent,
+  multiselectComponent,
   numberComponent,
+  pageSeparatorComponent,
   passwordComponent,
   phoneComponent,
-  richtextComponent,
+  radioComponent,
+  rangeComponent,
 } from './components';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { v4 as uuid } from 'uuid';
 import {
@@ -48,32 +38,33 @@ import { Input } from '@/components/ui/input';
 import { Loader2, MessageSquarePlus } from 'lucide-react';
 import { generateFormWithAI } from '../../(actions)/actions';
 import { toast } from 'sonner';
+import { FormToolbar } from './form-toolbar';
 
 // Register components
 registry.register(textComponent);
-registry.register(emailComponent);
-registry.register(selectComponent);
-registry.register(multiselectComponent);
 registry.register(checkboxComponent);
-registry.register(radioComponent);
-registry.register(ratingComponent);
-registry.register(rangeComponent);
+registry.register(colorComponent);
 registry.register(dateComponent);
-registry.register(timeComponent);
+registry.register(emailComponent);
+// registry.register(selectComponent);
+registry.register(multiselectComponent);
+registry.register(radioComponent);
+// registry.register(ratingComponent);
+// registry.register(rangeComponent);
+// registry.register(timeComponent);
 registry.register(datetimeComponent);
 registry.register(fileComponent);
 registry.register(imageComponent);
-registry.register(colorComponent);
-registry.register(columnsComponent);
-registry.register(sectionComponent);
-registry.register(separatorComponent);
+// registry.register(columnsComponent);
+// registry.register(sectionComponent);
+// registry.register(separatorComponent);
 registry.register(pageSeparatorComponent);
-registry.register(textareaComponent);
-registry.register(urlComponent);
+// registry.register(textareaComponent);
+// registry.register(urlComponent);
 registry.register(numberComponent);
 registry.register(passwordComponent);
 registry.register(phoneComponent);
-registry.register(richtextComponent);
+// registry.register(richtextComponent);
 
 interface FormBuilderProps {
   initialConfig?: FormConfig;
@@ -82,19 +73,20 @@ interface FormBuilderProps {
 }
 
 export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProps) {
-  const [config, setConfig] = useState<FormConfig>(() => initialConfig || {
-    id: uuid(),
-    name: 'New Form',
-    description: '',
-    variables: {},
-    components: [],
-  });
+  const [config, setConfig] = useState<FormConfig>(() => ({
+    id: initialConfig?.id || uuid(),
+    name: initialConfig?.name || 'New Form',
+    description: initialConfig?.description || '',
+    variables: initialConfig?.variables || {},
+    components: initialConfig?.components || [],
+  }));
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [prompt, setPrompt] = useState('');
+  const [activeComponent, setActiveComponent] = useState<{ type: string; config: any } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -105,17 +97,24 @@ export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProp
   );
 
   const handleDragStart = (event: DragStartEvent) => {
-    const type = event.active.data.current?.type;
+    const { active } = event;
+    const type = active.data.current?.type;
     if (!type) return;
+    
     setActiveId(type);
+    setActiveComponent({
+      type,
+      config: active.data.current?.config,
+    });
     document.body.style.cursor = 'grabbing';
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
-    setActiveId(null);
-    document.body.style.cursor = '';
-
     const { active, over } = event;
+    
+    setActiveId(null);
+    setActiveComponent(null);
+    document.body.style.cursor = '';
 
     // Handle dropping new components from toolbar
     if (active.data.current?.type && over?.id === 'canvas') {
@@ -123,15 +122,11 @@ export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProp
       const component = registry.get(type);
       if (!component) return;
 
-      // Create a new component with default config
-      const defaultConfig = component.schema.config.parse({
-        label: `New ${component.label}`,
-      });
-
-      const newComponent = {
+      // Create new component instance using the provided config
+      const newComponent: FormComponentConfig = {
         id: uuid(),
         type,
-        config: defaultConfig,
+        config: active.data.current.config,
       };
 
       setConfig(prev => ({
@@ -143,15 +138,15 @@ export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProp
 
     // Handle reordering existing components
     if (active.id !== over?.id && over?.id) {
-      const oldIndex = config.components.findIndex(c => c.id === active.id);
-      const newIndex = config.components.findIndex(c => c.id === over.id);
+      const oldIndex = config.components.findIndex((component: FormComponentConfig) => component.id === active.id);
+      const newIndex = config.components.findIndex((component: FormComponentConfig) => component.id === over.id);
 
       if (oldIndex !== -1 && newIndex !== -1) {
         const newComponents = [...config.components];
         const [removed] = newComponents.splice(oldIndex, 1);
         newComponents.splice(newIndex, 0, removed);
 
-        setConfig(prev => ({
+        setConfig(prev => formConfigSchema.parse({
           ...prev,
           components: newComponents,
         }));
@@ -180,20 +175,23 @@ export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProp
 
       if (response.result) {
         // Merge the AI-generated components with existing ones
-        setConfig(prev => ({
-          ...prev,
-          components: [
-            ...prev.components,
-            ...(response.result.components || []).map(c => ({
-              ...c,
-              id: uuid(), // Ensure unique IDs
-            })),
-          ],
-          variables: {
-            ...prev.variables,
-            ...(response.result.variables || {}),
-          },
-        }));
+        setConfig(prev => {
+          const newConfig = {
+            ...prev,
+            components: [
+              ...prev.components,
+              ...(response.result?.components || []).map((c: FormComponentConfig) => ({
+                ...c,
+                id: uuid(), // Ensure unique IDs
+              })),
+            ],
+            variables: {
+              ...prev.variables,
+              ...(response.result?.variables || {}),
+            },
+          };
+          return formConfigSchema.parse(newConfig);
+        });
         toast.success('Form updated with AI suggestions');
       }
     } catch (error: any) {
@@ -202,6 +200,14 @@ export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProp
       setIsGenerating(false);
       setPrompt('');
     }
+  };
+
+  const handleConfigChange = (newConfig: FormConfig) => {
+    // Ensure variables is always defined
+    setConfig(formConfigSchema.parse({
+      ...newConfig,
+      variables: newConfig.variables || {},
+    }));
   };
 
   return (
@@ -217,9 +223,7 @@ export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProp
             <div className="p-4 font-semibold border-b">Components</div>
             <ScrollArea className="flex-1">
               <div className="space-y-2 p-4">
-                {registry.getAll().map((component) => (
-                  <component.components.Toolbar key={component.type} />
-                ))}
+                <FormToolbar />
               </div>
             </ScrollArea>
           </div>
@@ -244,7 +248,7 @@ export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProp
                 <Button variant="outline" onClick={onCancel}>
                   Cancel
                 </Button>
-                <Button onClick={() => onSave?.(config)}>
+                <Button onClick={() => onSave?.(generateValidationConfig(config))}>
                   Save Form
                 </Button>
               </div>
@@ -254,7 +258,7 @@ export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProp
                 <FormEngine
                   mode="editor"
                   config={config}
-                  onConfigChange={setConfig}
+                  onConfigChange={handleConfigChange}
                   selectedId={selectedId}
                   onSelectComponent={handleComponentSelect}
                 />
@@ -291,13 +295,22 @@ export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProp
                     if (!component) return null;
 
                     return (
-                      <component.components.Properties
+                      <component.Properties
                         config={selectedComponent.config}
                         onChange={(newConfig) => {
+                          const schema = component.getConfigSchema();
+                          const validationResult = schema.safeParse(newConfig);
+                          if (!validationResult.success) {
+                            toast.error('Invalid configuration');
+                            return;
+                          }
+
                           setConfig(prev => ({
                             ...prev,
-                            components: prev.components.map(c =>
-                              c.id === selectedId ? { ...c, config: newConfig } : c
+                            components: prev.components.map((c: FormComponentConfig) =>
+                              c.id === selectedComponent.id
+                                ? { ...c, config: validationResult.data }
+                                : c
                             ),
                           }));
                         }}
@@ -349,10 +362,10 @@ export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProp
       </div>
 
       <DragOverlay>
-        {activeId && (() => {
-          const component = registry.get(activeId);
+        {activeComponent && (() => {
+          const component = registry.get(activeComponent.type);
           if (!component) return null;
-          return <component.components.Toolbar />;
+          return <component.Toolbar />;
         })()}
       </DragOverlay>
     </DndContext>

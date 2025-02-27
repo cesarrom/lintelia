@@ -4,22 +4,15 @@ import { SlidersHorizontal } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
-import { EditorProps } from '../../types';
-import { rangeConfigSchema } from './schema';
+import { EditorProps } from '../../schemas';
+import { RangeConfig } from './schema';
 
 export function RangeEditor({
   id,
   config,
   isSelected,
   onSelect,
-}: EditorProps<typeof rangeConfigSchema>) {
-  const displayValue = config.min + (config.max - config.min) / 2;
-  const formattedValue = [
-    config.valuePrefix,
-    displayValue,
-    config.valueSuffix,
-  ].filter(Boolean).join('');
-
+}: EditorProps<RangeConfig>) {
   return (
     <div
       className={cn(
@@ -37,18 +30,18 @@ export function RangeEditor({
           <p className="text-sm text-muted-foreground">{config.description}</p>
         )}
       </div>
-      <div className="space-y-4">
+      <div className="space-y-2">
         <Slider
           disabled
-          value={[displayValue]}
+          value={[config.defaultValue ?? config.min]}
           min={config.min}
           max={config.max}
           step={config.step}
-          className="pointer-events-none"
+          className="cursor-not-allowed"
         />
         {config.showValue && (
-          <div className="text-sm text-muted-foreground text-center">
-            {formattedValue}
+          <div className="text-center text-sm text-muted-foreground">
+            {config.defaultValue ?? config.min}
           </div>
         )}
       </div>

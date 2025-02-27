@@ -1,18 +1,18 @@
 'use client';
 
-import { CheckSquare } from 'lucide-react';
+import { ToggleLeft } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { EditorProps } from '../../types';
-import { checkboxConfigSchema } from './schema';
+import { EditorProps } from '../../schemas';
+import { CheckboxConfig } from './schema';
 
 export function CheckboxEditor({
   id,
   config,
   isSelected,
   onSelect,
-}: EditorProps<typeof checkboxConfigSchema>) {
+}: EditorProps<CheckboxConfig>) {
   return (
     <div
       className={cn(
@@ -22,7 +22,7 @@ export function CheckboxEditor({
       onClick={() => onSelect?.()}
     >
       <div className="absolute left-2 top-2 text-muted-foreground">
-        <CheckSquare className="h-4 w-4" />
+        <ToggleLeft className="h-4 w-4" />
       </div>
       <div className="mb-2 pl-6">
         <Label>{config.label}</Label>
@@ -32,11 +32,16 @@ export function CheckboxEditor({
       </div>
       <div className="flex items-center space-x-2">
         <Checkbox
-          disabled
+          id={id}
+          name={config.propertyName}
           checked={config.defaultChecked}
+          disabled
           className="pointer-events-none"
         />
-        <Label className="text-sm text-muted-foreground">{config.text}</Label>
+        <Label htmlFor={id} className="text-sm font-normal text-muted-foreground">
+          {config.text}
+          {config.required && <span className="text-destructive ml-1">*</span>}
+        </Label>
       </div>
     </div>
   );

@@ -1,29 +1,47 @@
 import { Palette } from 'lucide-react';
-import { ComponentDefinition } from '../../types';
-import { colorConfigSchema, colorInputSchema, colorOutputSchema } from './schema';
+import { z } from 'zod';
+import { IFormComponent } from '../../schemas';
+import { ColorComponentSchema, colorConfigSchema, ColorConfig } from './schema';
 import { ColorEditor } from './editor';
 import { ColorViewer } from './viewer';
 import { ColorProperties } from './properties';
 import { ColorToolbar } from './toolbar';
 
-export const colorComponent: ComponentDefinition<
-  typeof colorConfigSchema,
-  typeof colorInputSchema,
-  typeof colorOutputSchema
-> = {
+/**
+ * Color Input Component
+ * 
+ * A color picker input field that supports:
+ * - Required/optional
+ * - Hex/RGB format
+ * - Pattern (regex) validation
+ * - Default value
+ */
+export const colorComponent: IFormComponent = {
   type: 'color',
   label: 'Color',
   icon: Palette,
   category: 'input',
-  schema: {
-    config: colorConfigSchema,
-    input: colorInputSchema,
-    output: colorOutputSchema,
+
+  // UI Components
+  Editor: ColorEditor,
+  Viewer: ColorViewer,
+  Properties: ColorProperties,
+  Toolbar: ColorToolbar,
+
+  // Schema and validation
+  getConfigSchema() {
+    return colorConfigSchema;
   },
-  components: {
-    Editor: ColorEditor,
-    Viewer: ColorViewer,
-    Properties: ColorProperties,
-    Toolbar: ColorToolbar,
+
+  createValidationSchema(config: ColorConfig) {
+    const schema = new ColorComponentSchema(config.propertyName);
+    
+    // Apply validation rules from config
+    schema.setRequired(config.required);
+    if (config.validation?.pattern) {
+      schema.setPattern(config.validation.pattern);
+    }
+
+    return schema;
   },
 }; 

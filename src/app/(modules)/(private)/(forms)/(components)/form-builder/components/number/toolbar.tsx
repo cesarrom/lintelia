@@ -1,9 +1,9 @@
 'use client';
 
 import { Hash } from 'lucide-react';
-import { ToolbarProps } from '../../types';
 import { Button } from '@/components/ui/button';
 import { useDraggable } from '@dnd-kit/core';
+import { ToolbarProps } from '../../schemas';
 
 export function NumberToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
   const { attributes, listeners, setNodeRef } = useDraggable({

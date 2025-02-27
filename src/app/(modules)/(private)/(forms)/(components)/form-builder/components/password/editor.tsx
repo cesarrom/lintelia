@@ -1,18 +1,18 @@
 'use client';
 
-import { Lock } from 'lucide-react';
+import { KeyRound } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { EditorProps } from '../../types';
-import { passwordConfigSchema } from './schema';
+import { PasswordConfig } from './schema';
+import { EditorProps } from '../../schemas';
 
 export function PasswordEditor({
   id,
   config,
   isSelected,
   onSelect,
-}: EditorProps<typeof passwordConfigSchema>) {
+}: EditorProps<PasswordConfig>) {
   return (
     <div
       className={cn(
@@ -22,7 +22,7 @@ export function PasswordEditor({
       onClick={() => onSelect?.()}
     >
       <div className="absolute left-2 top-2 text-muted-foreground">
-        <Lock className="h-4 w-4" />
+        <KeyRound className="h-4 w-4" />
       </div>
       <div className="mb-2 pl-6">
         <Label>{config.label}</Label>
@@ -32,8 +32,8 @@ export function PasswordEditor({
       </div>
       <Input
         type="password"
-        placeholder={config.placeholder}
         disabled
+        placeholder={config.placeholder || 'Password'}
         className="pointer-events-none bg-muted"
       />
       {config.showStrengthIndicator && (

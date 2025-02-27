@@ -1,29 +1,48 @@
-import { Clock } from 'lucide-react';
-import { ComponentDefinition } from '../../types';
-import { datetimeConfigSchema, datetimeInputSchema, datetimeOutputSchema } from './schema';
-import { DateTimeEditor } from './editor';
-import { DateTimeViewer } from './viewer';
-import { DateTimeProperties } from './properties';
-import { DateTimeToolbar } from './toolbar';
+import { Calendar } from 'lucide-react';
+import { IFormComponent } from '../../schemas';
+import { DatetimeComponentSchema, datetimeConfigSchema, DatetimeConfig } from './schema';
+import { DatetimeEditor } from './editor';
+import { DatetimeViewer } from './viewer';
+import { DatetimeProperties } from './properties';
+import { DatetimeToolbar } from './toolbar';
 
-export const datetimeComponent: ComponentDefinition<
-  typeof datetimeConfigSchema,
-  typeof datetimeInputSchema,
-  typeof datetimeOutputSchema
-> = {
+/**
+ * Datetime Input Component
+ * 
+ * A datetime input field that supports:
+ * - Required/optional
+ * - Date, time, or datetime format
+ * - Min/max date validation
+ */
+export const datetimeComponent: IFormComponent = {
   type: 'datetime',
   label: 'Date & Time',
-  icon: Clock,
+  icon: Calendar,
   category: 'input',
-  schema: {
-    config: datetimeConfigSchema,
-    input: datetimeInputSchema,
-    output: datetimeOutputSchema,
+
+  // UI Components
+  Editor: DatetimeEditor,
+  Viewer: DatetimeViewer,
+  Properties: DatetimeProperties,
+  Toolbar: DatetimeToolbar,
+
+  // Schema and validation
+  getConfigSchema() {
+    return datetimeConfigSchema;
   },
-  components: {
-    Editor: DateTimeEditor,
-    Viewer: DateTimeViewer,
-    Properties: DateTimeProperties,
-    Toolbar: DateTimeToolbar,
+
+  createValidationSchema(config: DatetimeConfig) {
+    const schema = new DatetimeComponentSchema(config.propertyName);
+    
+    // Apply validation rules from config
+    schema.setRequired(config.required);
+    if (config.validation?.min) {
+      schema.setMinDate(config.validation.min);
+    }
+    if (config.validation?.max) {
+      schema.setMaxDate(config.validation.max);
+    }
+
+    return schema;
   },
 }; 

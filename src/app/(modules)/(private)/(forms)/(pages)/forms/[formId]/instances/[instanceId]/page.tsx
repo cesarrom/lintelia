@@ -14,27 +14,9 @@ function mapDBConfigToUIConfig(dbConfig: any) {
     id: dbConfig.id || '',
     name: dbConfig.name,
     description: dbConfig.description,
-    variables: {},
-    components: dbConfig.fields.map((field: any) => ({
-      id: field.id,
-      type: field.type,
-      config: {
-        label: field.label,
-        required: field.required,
-        placeholder: field.placeholder,
-        description: field.description,
-        ...(field.type === 'richtext' && {
-          content: field.content,
-          references: field.references,
-        }),
-        ...(field.type === 'select' || field.type === 'multiselect' ? {
-          source: field.source,
-          isSearchable: field.isSearchable,
-          isClearable: field.isClearable,
-          isCreatable: field.isCreatable,
-        } : {}),
-      },
-    })),
+    variables: dbConfig.variables || {},
+    components: dbConfig.components || [],
+    validation: dbConfig.validation,
   };
 }
 

@@ -4,7 +4,7 @@ import { FormInstance } from "../entities/tenant/form-instance.entity";
 import { DataSource, Repository } from "typeorm";
 import { TENANT_DB_TOKEN } from "../injector/tokens";
 import { v4 as uuid } from 'uuid';
-import { FormConfig } from "@/types/form";
+import { FormConfig } from "@/app/(modules)/(private)/(forms)/(components)/form-builder/schemas";
 
 @injectable()
 export class FormsService {

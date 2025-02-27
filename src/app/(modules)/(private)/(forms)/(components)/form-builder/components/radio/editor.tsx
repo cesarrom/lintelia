@@ -4,15 +4,15 @@ import { Radio } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
-import { EditorProps } from '../../types';
-import { radioConfigSchema } from './schema';
+import { RadioConfig } from './schema';
+import { EditorProps } from '../../schemas';
 
 export function RadioEditor({
   id,
   config,
   isSelected,
   onSelect,
-}: EditorProps<typeof radioConfigSchema>) {
+}: EditorProps<RadioConfig>) {
   return (
     <div
       className={cn(
@@ -31,16 +31,20 @@ export function RadioEditor({
         )}
       </div>
       <RadioGroup
-        disabled
         className={cn(
           'pointer-events-none',
           config.layout === 'horizontal' ? 'flex gap-4' : 'space-y-2'
         )}
+        defaultValue={config.defaultValue}
       >
         {config.options.map((option) => (
           <div key={option.value} className="flex items-center space-x-2">
-            <RadioGroupItem value={option.value} />
-            <Label className="text-sm">{option.label}</Label>
+            <RadioGroupItem
+              value={option.value}
+              id={`${id}-${option.value}`}
+              disabled
+            />
+            <Label htmlFor={`${id}-${option.value}`}>{option.label}</Label>
           </div>
         ))}
       </RadioGroup>

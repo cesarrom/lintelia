@@ -1,29 +1,38 @@
 import { SeparatorHorizontal } from 'lucide-react';
-import { ComponentDefinition } from '../../types';
-import { pageSeparatorConfigSchema, pageSeparatorInputSchema, pageSeparatorOutputSchema } from './schema';
+import { IFormComponent } from '../../schemas';
+import { PageSeparatorComponentSchema, pageSeparatorConfigSchema, PageSeparatorConfig } from './schema';
 import { PageSeparatorEditor } from './editor';
 import { PageSeparatorViewer } from './viewer';
 import { PageSeparatorProperties } from './properties';
 import { PageSeparatorToolbar } from './toolbar';
 
-export const pageSeparatorComponent: ComponentDefinition<
-  typeof pageSeparatorConfigSchema,
-  typeof pageSeparatorInputSchema,
-  typeof pageSeparatorOutputSchema
-> = {
+/**
+ * Page Separator Component
+ * 
+ * A component that separates form into multiple pages:
+ * - Provides visual separation between form sections
+ * - Can display page title and description
+ * - Used for multi-page forms
+ */
+export const pageSeparatorComponent: IFormComponent = {
   type: 'page-separator',
   label: 'Page Separator',
   icon: SeparatorHorizontal,
   category: 'layout',
-  schema: {
-    config: pageSeparatorConfigSchema,
-    input: pageSeparatorInputSchema,
-    output: pageSeparatorOutputSchema,
+
+  // UI Components
+  Editor: PageSeparatorEditor,
+  Viewer: PageSeparatorViewer,
+  Properties: PageSeparatorProperties,
+  Toolbar: PageSeparatorToolbar,
+
+  // Schema and validation
+  getConfigSchema() {
+    return pageSeparatorConfigSchema;
   },
-  components: {
-    Editor: PageSeparatorEditor,
-    Viewer: PageSeparatorViewer,
-    Properties: PageSeparatorProperties,
-    Toolbar: PageSeparatorToolbar,
+
+  createValidationSchema(config: PageSeparatorConfig) {
+    const schema = new PageSeparatorComponentSchema(config.propertyName);
+    return schema.fromConfig(config);
   },
 }; 

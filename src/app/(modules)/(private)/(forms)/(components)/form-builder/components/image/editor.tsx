@@ -1,18 +1,17 @@
 'use client';
 
-import { Camera, Image, Upload } from 'lucide-react';
+import { Image } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { EditorProps } from '../../types';
-import { imageConfigSchema } from './schema';
-import { Separator } from '@/components/ui/separator';
+import { ImageConfig } from './schema';
+import { EditorProps } from '../../schemas';
 
 export function ImageEditor({
   id,
   config,
   isSelected,
   onSelect,
-}: EditorProps<typeof imageConfigSchema>) {
+}: EditorProps<ImageConfig>) {
   return (
     <div
       className={cn(
@@ -30,40 +29,9 @@ export function ImageEditor({
           <p className="text-sm text-muted-foreground">{config.description}</p>
         )}
       </div>
-      <div
-        className="flex h-32 items-center justify-center rounded-lg border-2 border-dashed bg-muted p-4 text-sm text-muted-foreground"
-      >
-        <div className="text-center">
-          {config.allowCamera ? (
-            <div className="flex flex-col items-center gap-4">
-              <div className="flex items-center gap-4">
-                <div className="flex flex-col items-center">
-                  <Upload className="mx-auto h-8 w-8 mb-2" />
-                  <p>Upload Image</p>
-                </div>
-                <Separator orientation="vertical" className="h-16" />
-                <div className="flex flex-col items-center">
-                  <Camera className="mx-auto h-8 w-8 mb-2" />
-                  <p>Take Photo</p>
-                </div>
-              </div>
-              <p className="text-xs">
-                {config.maxWidth && config.maxHeight
-                  ? `Max dimensions: ${config.maxWidth}x${config.maxHeight}px`
-                  : 'No size restrictions'}
-              </p>
-            </div>
-          ) : (
-            <>
-              <Image className="mx-auto h-8 w-8 mb-2" />
-              <p>{config.placeholder}</p>
-              <p className="text-xs mt-1">
-                {config.maxWidth && config.maxHeight
-                  ? `Max dimensions: ${config.maxWidth}x${config.maxHeight}px`
-                  : 'No size restrictions'}
-              </p>
-            </>
-          )}
+      <div className="flex items-center justify-center rounded-lg border-2 border-dashed p-4">
+        <div className="text-sm text-muted-foreground">
+          Drop image here or click to upload
         </div>
       </div>
     </div>

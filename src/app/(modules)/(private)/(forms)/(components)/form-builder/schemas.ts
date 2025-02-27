@@ -1,32 +1,68 @@
 import { z } from 'zod';
+import { LucideIcon } from 'lucide-react';
+import { BaseComponentSchema } from './components/base-schema';
+import { DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 
-// Basic validation rule schemas
-export const validationRuleSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('minLength'),
-    value: z.number(),
-    message: z.string(),
-  }),
-  z.object({
-    type: z.literal('maxLength'),
-    value: z.number(),
-    message: z.string(),
-  }),
-  z.object({
-    type: z.literal('pattern'),
-    value: z.string(),
-    message: z.string(),
-  }),
-  // Add more validation types here
-]);
+// Component Category
+export type ComponentCategory = 'input' | 'layout' | 'container';
 
-// Component config schemas
-export const baseComponentConfigSchema = z.object({
-  label: z.string(),
-  description: z.string().optional(),
-  required: z.boolean().default(false),
-  validation: z.array(validationRuleSchema).optional().default([]),
-});
+// Props for the component editor in form builder
+export interface EditorProps<TConfig> {
+  id: string;
+  config: TConfig;
+  isSelected?: boolean;
+  onSelect?: () => void;
+  onConfigChange?: (config: TConfig) => void;
+}
+
+// Props for the component viewer in form
+export interface ViewerProps<TConfig, TValue> {
+  id: string;
+  config: TConfig;
+  value?: TValue;
+  onChange?: (value: TValue) => void;
+  onBlur?: () => void;
+  error?: string;
+}
+
+// Props for the properties panel
+export interface PropertiesProps<TConfig> {
+  config: TConfig;
+  onChange: (config: TConfig) => void;
+}
+
+// Props for the toolbar item
+export interface ToolbarProps {
+  onDragStart?: (event: DragStartEvent) => void;
+  onDragEnd?: (event: DragEndEvent) => void;
+  disabled?: boolean;
+}
+
+/**
+ * Form Component Definition
+ * 
+ * Each form component must provide:
+ * 1. UI Components (Editor, Viewer, Properties, Toolbar)
+ * 2. Metadata (type, label, icon, category)
+ * 3. Schema and validation methods
+ */
+export interface IFormComponent {
+  // Component metadata
+  type: string;
+  label: string;
+  icon: LucideIcon;
+  category: ComponentCategory;
+
+  // UI Components
+  Editor: React.ComponentType<EditorProps<any>>;
+  Viewer: React.ComponentType<ViewerProps<any, any>>;
+  Properties: React.ComponentType<PropertiesProps<any>>;
+  Toolbar: React.ComponentType<ToolbarProps>;
+
+  // Schema and validation
+  getConfigSchema(): z.ZodType;
+  createValidationSchema(config: any): BaseComponentSchema<any, any>;
+}
 
 // Variable schema
 export const formVariableSchema = z.object({
@@ -49,60 +85,68 @@ export const formConfigSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string().optional(),
-  variables: z.record(z.string(), formVariableSchema),
-  components: z.array(formComponentSchema),
+  variables: z.record(z.string(), formVariableSchema).default({}),
+  components: z.array(formComponentSchema).default([]),
+  validation: z.object({
+    schema: z.record(z.string(), z.unknown()),
+    rules: z.record(z.string(), z.unknown()),
+  }).optional(),
 });
 
-// Form values schema (for submitted data)
-export const formValuesSchema = z.record(z.string(), z.unknown());
-
-// Helper function to validate form config
-export function validateFormConfig(config: unknown) {
-  return formConfigSchema.safeParse(config);
-}
-
-// Helper function to create a field schema based on validation rules
-function createFieldSchema(component: z.infer<typeof formComponentSchema>) {
-  let schema = z.string();
-
-  // Apply validation rules
-  const validation = component.config.validation as z.infer<typeof validationRuleSchema>[] | undefined;
-  if (validation) {
-    validation.forEach(rule => {
-      switch (rule.type) {
-        case 'minLength':
-          schema = schema.min(rule.value as number, rule.message);
-          break;
-        case 'maxLength':
-          schema = schema.max(rule.value as number, rule.message);
-          break;
-        case 'pattern':
-          schema = schema.regex(new RegExp(rule.value as string), rule.message);
-          break;
-      }
-    });
-  }
-
-  // Make the field optional if not required
-  return component.config.required ? schema : z.union([schema, z.literal('')]);
-}
-
-// Helper function to validate form values against a form config
-export function validateFormValues(config: z.infer<typeof formConfigSchema>, values: unknown) {
-  // Create a dynamic schema based on the form config
-  const schemaShape = config.components.reduce((acc, component) => ({
-    ...acc,
-    [component.id]: createFieldSchema(component),
-  }), {} as Record<string, z.ZodType>);
-
-  const dynamicSchema = z.object(schemaShape);
-  return dynamicSchema.safeParse(values);
-}
-
 // Types
-export type ValidationRule = z.infer<typeof validationRuleSchema>;
-export type BaseComponentConfig = z.infer<typeof baseComponentConfigSchema>;
-export type FormVariable = z.infer<typeof formVariableSchema>;
-export type FormComponent = z.infer<typeof formComponentSchema>;
-export type FormConfig = z.infer<typeof formConfigSchema>;
-export type FormValues = z.infer<typeof formValuesSchema>; 
+export type FormVariable = {
+  name: string;
+  type: 'string' | 'number' | 'boolean' | 'array' | 'object';
+  description?: string;
+  required?: boolean;
+  defaultValue?: unknown;
+};
+
+export type FormComponentConfig = {
+  id: string;
+  type: string;
+  config: Record<string, unknown>;
+};
+
+export type FormConfig = {
+  id: string;
+  name: string;
+  description?: string;
+  variables: Record<string, FormVariable>;
+  components: FormComponentConfig[];
+  validation?: {
+    schema: Record<string, unknown>;  // Serialized validation schema
+    rules: Record<string, unknown>;   // Component-specific validation rules
+  };
+};
+
+// Form Engine Props
+export interface FormEngineProps {
+  mode: 'editor' | 'viewer';
+  config: FormConfig;
+  initialValues?: Record<string, unknown>;
+  variables?: Record<string, unknown>;
+  variableDefinitions?: Record<string, FormVariable>;
+  onChange?: (values: Record<string, unknown>) => void;
+  onSubmit?: (values: Record<string, unknown>) => void;
+  onConfigChange?: (config: FormConfig) => void;
+  selectedId?: string | null;
+  onSelectComponent?: (id: string | null) => void;
+}
+
+// Helper function to generate validation config for saving
+export function generateValidationConfig(config: FormConfig): FormConfig {
+  return {
+    ...config,
+    validation: {
+      schema: {},  // Will be populated by validation.ts
+      rules: config.components.reduce((acc, component) => {
+        acc[component.id] = {
+          type: component.type,
+          ...component.config,
+        };
+        return acc;
+      }, {} as Record<string, unknown>),
+    },
+  };
+} 

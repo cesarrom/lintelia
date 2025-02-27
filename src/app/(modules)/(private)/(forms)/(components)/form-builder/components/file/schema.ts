@@ -1,15 +1,84 @@
 import { z } from 'zod';
-import { baseComponentConfigSchema } from '../../schemas';
+import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
-export const fileConfigSchema = baseComponentConfigSchema.extend({
-  placeholder: z.string().optional().default('Click or drag files here'),
-  description: z.string().optional().default('Upload your files'),
-  accept: z.string().optional().default('*/*'),
-  maxFiles: z.number().min(1).default(1),
-  maxSize: z.number().min(1).default(5 * 1024 * 1024), // 5MB
-  minSize: z.number().min(0).default(0),
-  allowMultiple: z.boolean().default(false),
-});
+// Form builder config schema
+export const fileConfigSchema = baseConfigSchema.extend({
+  label: z.string().min(1, 'Label is required'),
+  description: z.string().optional(),
+  accept: z.string().optional(),
+  multiple: z.boolean().default(false),
+  maxSize: z.number().optional(), // in bytes
+  validation: z.object({
+    minFiles: z.number().optional(),
+    maxFiles: z.number().optional(),
+    allowedTypes: z.array(z.string()).optional(),
+  }).optional(),
+}).transform((data) => ({
+  ...data,
+  description: data.description ?? '',
+  accept: data.accept ?? '*/*',
+  multiple: data.multiple ?? false,
+  validation: data.validation ?? {},
+}));
+
+export type FileConfig = z.infer<typeof fileConfigSchema>;
+
+// Value validation schema generator
+export class FileComponentSchema extends BaseComponentSchema<z.ZodArray<z.ZodObject<any>>, FileConfig> {
+  constructor(propertyName: string) {
+    // Base schema for a file object
+    const fileSchema = z.object({
+      name: z.string(),
+      size: z.number(),
+      type: z.string(),
+      lastModified: z.number(),
+    });
+
+    super(z.array(fileSchema), propertyName);
+  }
+
+  setMinFiles(min: number | undefined): this {
+    if (min !== undefined && min > 0) {
+      this.schema = this.schema.min(min, `At least ${min} file(s) required`);
+    }
+    return this;
+  }
+
+  setMaxFiles(max: number | undefined): this {
+    if (max !== undefined && max > 0) {
+      this.schema = this.schema.max(max, `Maximum ${max} file(s) allowed`);
+    }
+    return this;
+  }
+
+  setAllowedTypes(types: string[] | undefined): this {
+    if (types && types.length > 0) {
+      this.schema = this.schema.refine(
+        (files) => files.every(file => types.some(type => 
+          file.type.match(new RegExp(type.replace('*', '.*')))
+        )),
+        { message: `Only ${types.join(', ')} files are allowed` }
+      ) as any;
+    }
+    return this;
+  }
+
+  fromConfig(config: FileConfig): this {
+    this.setRequired(config.required);
+    
+    if (config.validation?.minFiles) {
+      this.setMinFiles(config.validation.minFiles);
+    }
+    if (config.validation?.maxFiles) {
+      this.setMaxFiles(config.validation.maxFiles);
+    }
+    if (config.validation?.allowedTypes) {
+      this.setAllowedTypes(config.validation.allowedTypes);
+    }
+    
+    return this;
+  }
+}
 
 export const fileInputSchema = z.array(z.object({
   name: z.string(),

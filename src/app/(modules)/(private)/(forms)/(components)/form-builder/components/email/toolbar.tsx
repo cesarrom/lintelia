@@ -1,28 +1,36 @@
 'use client';
 
-import { Mail } from 'lucide-react';
-import { ToolbarProps } from '../../types';
-import { Button } from '@/components/ui/button';
 import { useDraggable } from '@dnd-kit/core';
+import { Mail } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { emailConfigSchema } from './schema';
 
-export function EmailToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
-  const { attributes, listeners, setNodeRef } = useDraggable({
+export function EmailToolbar() {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: 'email',
     data: {
       type: 'email',
+      config: emailConfigSchema.parse({
+        propertyName: 'email',
+        label: 'Email',
+        placeholder: 'Enter email address',
+        required: false,
+      }),
     },
   });
 
   return (
-    <Button
+    <div
       ref={setNodeRef}
-      variant="ghost"
-      className="w-full justify-start gap-2"
-      {...attributes}
       {...listeners}
+      {...attributes}
+      className={cn(
+        'flex items-center gap-2 rounded-lg border bg-card p-4 hover:bg-accent',
+        isDragging && 'ring-2 ring-primary'
+      )}
     >
       <Mail className="h-4 w-4" />
-      <span>Email</span>
-    </Button>
+      <div className="text-sm">Email</div>
+    </div>
   );
 } 

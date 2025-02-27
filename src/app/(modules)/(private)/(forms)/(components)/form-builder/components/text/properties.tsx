@@ -1,112 +1,167 @@
 'use client';
 
+import { useCallback, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { PropertiesProps } from '../../types';
-import { textConfigSchema } from './schema';
+import { PropertiesProps } from '../../schemas';
+import { TextComponentSchema, textConfigSchema } from './schema';
+import { z } from 'zod';
 
-export function TextProperties({
-  config,
-  onChange,
-}: PropertiesProps<typeof textConfigSchema>) {
-  const updateConfig = (updates: Partial<typeof config>) => {
-    onChange({ ...config, ...updates });
-  };
+type TextConfig = z.infer<typeof textConfigSchema>;
 
-  const getValidationValue = (type: 'minLength' | 'maxLength' | 'pattern') => {
-    const value = config.validation?.find(v => v.type === type)?.value;
-    return value !== undefined ? String(value) : '';
-  };
+export function TextProperties({ config, onChange }: PropertiesProps<TextConfig>) {
+  const schemaRef = useRef(new TextComponentSchema(config.propertyName));
 
-  const updateValidation = (
-    type: 'minLength' | 'maxLength' | 'pattern',
-    value: string | number
-  ) => {
-    const validation = config.validation || [];
-    const index = validation.findIndex(v => v.type === type);
-
-    if (value) {
-      const rule = {
-        type,
-        value,
-        message: `${type === 'pattern' ? 'Invalid format' : `${type} is ${value} characters`}`,
-      };
-
-      if (index >= 0) {
-        validation[index] = rule;
-      } else {
-        validation.push(rule);
-      }
-    } else if (index >= 0) {
-      validation.splice(index, 1);
+  useEffect(() => {
+    schemaRef.current = new TextComponentSchema(config.propertyName);
+    if (config.required) {
+      schemaRef.current.setRequired(true);
     }
+    if (config.validation?.minLength) {
+      schemaRef.current.setMinLength(config.validation.minLength);
+    }
+    if (config.validation?.maxLength) {
+      schemaRef.current.setMaxLength(config.validation.maxLength);
+    }
+    if (config.validation?.pattern) {
+      schemaRef.current.setPattern(config.validation.pattern);
+    }
+  }, [config]);
 
-    updateConfig({ validation });
-  };
+  const handlePropertyNameChange = useCallback((value: string) => {
+    onChange({
+      ...config,
+      propertyName: value,
+    });
+  }, [config, onChange]);
+
+  const handleLabelChange = useCallback((value: string) => {
+    onChange({
+      ...config,
+      label: value,
+    });
+  }, [config, onChange]);
+
+  const handlePlaceholderChange = useCallback((value: string) => {
+    onChange({
+      ...config,
+      placeholder: value,
+    });
+  }, [config, onChange]);
+
+  const handleDescriptionChange = useCallback((value: string) => {
+    onChange({
+      ...config,
+      description: value,
+    });
+  }, [config, onChange]);
+
+  const handleRequiredChange = useCallback((value: boolean) => {
+    onChange({
+      ...config,
+      required: value,
+    });
+  }, [config, onChange]);
+
+  const handleMinLengthChange = useCallback((value: string) => {
+    const minLength = value ? parseInt(value, 10) : undefined;
+    onChange({
+      ...config,
+      validation: {
+        ...config.validation,
+        minLength,
+      },
+    });
+  }, [config, onChange]);
+
+  const handleMaxLengthChange = useCallback((value: string) => {
+    const maxLength = value ? parseInt(value, 10) : undefined;
+    onChange({
+      ...config,
+      validation: {
+        ...config.validation,
+        maxLength,
+      },
+    });
+  }, [config, onChange]);
+
+  const handlePatternChange = useCallback((value: string) => {
+    onChange({
+      ...config,
+      validation: {
+        ...config.validation,
+        pattern: value || undefined,
+      },
+    });
+  }, [config, onChange]);
 
   return (
     <div className="space-y-4">
       <div className="space-y-2">
+        <Label>Property Name</Label>
+        <Input
+          value={config.propertyName}
+          onChange={(e) => handlePropertyNameChange(e.target.value)}
+          placeholder="Enter property name"
+        />
+      </div>
+      <div className="space-y-2">
         <Label>Label</Label>
         <Input
           value={config.label}
-          onChange={(e) => updateConfig({ label: e.target.value })}
+          onChange={(e) => handleLabelChange(e.target.value)}
+          placeholder="Enter label"
         />
       </div>
-
       <div className="space-y-2">
         <Label>Placeholder</Label>
         <Input
-          value={config.placeholder || ''}
-          onChange={(e) => updateConfig({ placeholder: e.target.value })}
+          value={config.placeholder}
+          onChange={(e) => handlePlaceholderChange(e.target.value)}
+          placeholder="Enter placeholder"
         />
       </div>
-
       <div className="space-y-2">
         <Label>Description</Label>
         <Input
-          value={config.description || ''}
-          onChange={(e) => updateConfig({ description: e.target.value })}
+          value={config.description}
+          onChange={(e) => handleDescriptionChange(e.target.value)}
+          placeholder="Enter description"
         />
       </div>
-
       <div className="flex items-center space-x-2">
         <Switch
           checked={config.required}
-          onCheckedChange={(checked) => updateConfig({ required: checked })}
+          onCheckedChange={handleRequiredChange}
         />
         <Label>Required</Label>
       </div>
-
-      <div className="space-y-4">
-        <Label className="block">Validation</Label>
-
         <div className="space-y-2">
-          <Label className="text-sm">Min Length</Label>
+        <Label>Minimum Length</Label>
           <Input
             type="number"
-            value={getValidationValue('minLength')}
-            onChange={(e) => updateValidation('minLength', parseInt(e.target.value))}
+          value={config.validation?.minLength || ''}
+          onChange={(e) => handleMinLengthChange(e.target.value)}
+          placeholder="Enter minimum length"
           />
         </div>
-
         <div className="space-y-2">
-          <Label className="text-sm">Max Length</Label>
+        <Label>Maximum Length</Label>
           <Input
             type="number"
-            value={getValidationValue('maxLength')}
-            onChange={(e) => updateValidation('maxLength', parseInt(e.target.value))}
+          value={config.validation?.maxLength || ''}
+          onChange={(e) => handleMaxLengthChange(e.target.value)}
+          placeholder="Enter maximum length"
           />
         </div>
-
         <div className="space-y-2">
-          <Label className="text-sm">Pattern (Regex)</Label>
+        <Label>Pattern (Regex)</Label>
           <Input
-            value={getValidationValue('pattern')}
-            onChange={(e) => updateValidation('pattern', e.target.value)}
+          value={config.validation?.pattern || ''}
+          onChange={(e) => handlePatternChange(e.target.value)}
+          placeholder="Enter regex pattern"
           />
-        </div>
       </div>
     </div>
   );

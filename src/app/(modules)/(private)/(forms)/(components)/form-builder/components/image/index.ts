@@ -1,29 +1,45 @@
 import { Image } from 'lucide-react';
-import { ComponentDefinition } from '../../types';
-import { imageConfigSchema, imageInputSchema, imageOutputSchema } from './schema';
+import { IFormComponent } from '../../schemas';
+import { ImageComponentSchema, imageConfigSchema, ImageConfig } from './schema';
 import { ImageEditor } from './editor';
 import { ImageViewer } from './viewer';
 import { ImageProperties } from './properties';
 import { ImageToolbar } from './toolbar';
 
-export const imageComponent: ComponentDefinition<
-  typeof imageConfigSchema,
-  typeof imageInputSchema,
-  typeof imageOutputSchema
-> = {
+/**
+ * Image Input Component
+ * 
+ * An image upload field that supports:
+ * - Required/optional
+ * - File type restrictions
+ * - Size limits
+ * - Dimension validations
+ * - Aspect ratio validation
+ */
+export const imageComponent: IFormComponent = {
   type: 'image',
   label: 'Image Upload',
   icon: Image,
   category: 'input',
-  schema: {
-    config: imageConfigSchema,
-    input: imageInputSchema,
-    output: imageOutputSchema,
+
+  // UI Components
+  Editor: ImageEditor,
+  Viewer: ImageViewer,
+  Properties: ImageProperties,
+  Toolbar: ImageToolbar,
+
+  // Schema and validation
+  getConfigSchema() {
+    return imageConfigSchema;
   },
-  components: {
-    Editor: ImageEditor,
-    Viewer: ImageViewer,
-    Properties: ImageProperties,
-    Toolbar: ImageToolbar,
+
+  createValidationSchema(config: ImageConfig) {
+    const schema = new ImageComponentSchema(config.propertyName);
+    
+    // Apply validation rules from config
+    schema.setRequired(config.required);
+    schema.setDimensions(config);
+
+    return schema;
   },
 }; 

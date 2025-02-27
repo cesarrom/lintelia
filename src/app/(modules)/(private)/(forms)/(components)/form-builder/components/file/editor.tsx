@@ -1,18 +1,17 @@
 'use client';
 
-import { FileUp } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { FileText } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { EditorProps } from '../../types';
-import { fileConfigSchema } from './schema';
+import { EditorProps } from '../../schemas';
+import { FileConfig } from './schema';
 
 export function FileEditor({
   id,
   config,
   isSelected,
   onSelect,
-}: EditorProps<typeof fileConfigSchema>) {
+}: EditorProps<FileConfig>) {
   return (
     <div
       className={cn(
@@ -22,7 +21,7 @@ export function FileEditor({
       onClick={() => onSelect?.()}
     >
       <div className="absolute left-2 top-2 text-muted-foreground">
-        <FileUp className="h-4 w-4" />
+        <FileText className="h-4 w-4" />
       </div>
       <div className="mb-2 pl-6">
         <Label>{config.label}</Label>
@@ -30,16 +29,8 @@ export function FileEditor({
           <p className="text-sm text-muted-foreground">{config.description}</p>
         )}
       </div>
-      <div
-        className="flex h-32 items-center justify-center rounded-lg border-2 border-dashed bg-muted p-4 text-sm text-muted-foreground"
-      >
-        <div className="text-center">
-          <FileUp className="mx-auto h-8 w-8 mb-2" />
-          <p>{config.placeholder}</p>
-          <p className="text-xs">
-            {config.allowMultiple ? 'Multiple files allowed' : 'Single file only'}
-          </p>
-        </div>
+      <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
+        {config.multiple ? 'Drop files here or click to browse' : 'Drop a file here or click to browse'}
       </div>
     </div>
   );

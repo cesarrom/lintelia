@@ -2,8 +2,8 @@
 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ViewerProps } from '../../types';
-import { textConfigSchema, textInputSchema, textOutputSchema } from './schema';
+import { TextConfig } from './schema';
+import { ViewerProps } from '../../schemas';
 
 export function TextViewer({
   id,
@@ -12,7 +12,7 @@ export function TextViewer({
   onChange,
   onBlur,
   error,
-}: ViewerProps<typeof textConfigSchema, typeof textInputSchema, typeof textOutputSchema>) {
+}: ViewerProps<TextConfig, string>) {
   return (
     <div className="space-y-2">
       <Label htmlFor={id} className="block">
@@ -24,14 +24,21 @@ export function TextViewer({
       )}
       <Input
         id={id}
+        name={config.propertyName}
         type="text"
         value={value || ''}
         onChange={(e) => onChange?.(e.target.value)}
         onBlur={onBlur}
         placeholder={config.placeholder}
         className={error ? 'border-destructive' : undefined}
+        aria-invalid={!!error}
+        aria-describedby={error ? `${id}-error` : undefined}
       />
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <p id={`${id}-error`} className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 } 

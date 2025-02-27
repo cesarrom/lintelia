@@ -1,18 +1,77 @@
 import { z } from 'zod';
+import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
-export const textConfigSchema = z.object({
-  label: z.string().min(1, 'Label is required').default('Text Field'),
-  placeholder: z.string().optional().default(''),
-  description: z.string().optional().default(''),
-  required: z.boolean().default(false),
-  validation: z.array(
-    z.object({
-      type: z.enum(['minLength', 'maxLength', 'pattern']),
-      value: z.union([z.string(), z.number()]),
-      message: z.string()
-    })
-  ).optional().default([])
-});
+// Form builder config schema
+export const textConfigSchema = baseConfigSchema.extend({
+  label: z.string().min(1, 'Label is required'),
+  placeholder: z.string().optional(),
+  description: z.string().optional(),
+  validation: z.object({
+    minLength: z.number().optional(),
+    maxLength: z.number().optional(),
+    pattern: z.string().optional(),
+  }).optional(),
+}).transform((data) => ({
+  ...data,
+  placeholder: data.placeholder ?? '',
+  description: data.description ?? '',
+  validation: data.validation ?? {},
+}));
 
-export const textInputSchema = z.string().optional();
-export const textOutputSchema = z.string(); 
+export type TextConfig = z.infer<typeof textConfigSchema>;
+
+// Value validation schema generator
+export class TextComponentSchema extends BaseComponentSchema<z.ZodString, TextConfig> {
+  constructor(propertyName: string) {
+    super(z.string(), propertyName);
+  }
+
+  setMinLength(length: number | undefined): this {
+    if (length !== undefined && length > 0) {
+      this.schema = this.schema.min(length, `Minimum length is ${length} characters`);
+    } else {
+      // Reset to base string schema while preserving other validations
+      const isOptional = this.schema.isOptional();
+      this.schema = z.string();
+      if (isOptional) {
+        this.schema = z.string().optional() as unknown as z.ZodString;
+      }
+    }
+    return this;
+  }
+
+  setMaxLength(length: number | undefined): this {
+    if (length !== undefined && length > 0) {
+      this.schema = this.schema.max(length, `Maximum length is ${length} characters`);
+    }
+    return this;
+  }
+
+  setPattern(pattern: string | undefined): this {
+    if (pattern) {
+      try {
+        const regex = new RegExp(pattern);
+        this.schema = this.schema.regex(regex, 'Invalid format');
+      } catch (e) {
+        // Invalid regex, ignore
+        console.warn('Invalid regex pattern:', pattern);
+      }
+    }
+    return this;
+  }
+
+  fromConfig(config: TextConfig): this {
+    // Apply validation rules from config
+    this.setRequired(config.required);
+    if (config.validation?.minLength) {
+      this.setMinLength(config.validation.minLength);
+    }
+    if (config.validation?.maxLength) {
+      this.setMaxLength(config.validation.maxLength);
+    }
+    if (config.validation?.pattern) {
+      this.setPattern(config.validation.pattern);
+    }
+    return this;
+  }
+} 

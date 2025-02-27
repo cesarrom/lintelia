@@ -1,5 +1,5 @@
+import { type FormConfig } from "@/app/(modules)/(private)/(forms)/(components)/form-builder/schemas";
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
-import { type FormConfig } from "@/types/form";
 
 @Entity("sys_forms")
 export class Form {

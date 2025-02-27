@@ -1,99 +1,195 @@
 'use client';
 
+import { useCallback, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { PropertiesProps } from '../../types';
-import { passwordConfigSchema } from './schema';
+import { PropertiesProps } from '../../schemas';
+import { PasswordComponentSchema, passwordConfigSchema } from './schema';
+import { z } from 'zod';
 
-export function PasswordProperties({
-  config,
-  onChange,
-}: PropertiesProps<typeof passwordConfigSchema>) {
-  const updateConfig = (updates: Partial<typeof config>) => {
-    onChange({ ...config, ...updates });
-  };
+type PasswordConfig = z.infer<typeof passwordConfigSchema>;
+
+export function PasswordProperties({ config, onChange }: PropertiesProps<PasswordConfig>) {
+  const schemaRef = useRef(new PasswordComponentSchema(config.propertyName));
+
+  useEffect(() => {
+    schemaRef.current = new PasswordComponentSchema(config.propertyName);
+    if (config.required) {
+      schemaRef.current.setRequired(true);
+    }
+    if (config.validation?.minLength) {
+      schemaRef.current.setMinLength(config.validation.minLength);
+    }
+    if (config.validation?.maxLength) {
+      schemaRef.current.setMaxLength(config.validation.maxLength);
+    }
+    if (config.validation?.pattern) {
+      schemaRef.current.setPattern(config.validation.pattern);
+    }
+  }, [config]);
+
+  const handlePropertyNameChange = useCallback((value: string) => {
+    onChange({
+      ...config,
+      propertyName: value,
+    });
+  }, [config, onChange]);
+
+  const handleLabelChange = useCallback((value: string) => {
+    onChange({
+      ...config,
+      label: value,
+    });
+  }, [config, onChange]);
+
+  const handlePlaceholderChange = useCallback((value: string) => {
+    onChange({
+      ...config,
+      placeholder: value,
+    });
+  }, [config, onChange]);
+
+  const handleDescriptionChange = useCallback((value: string) => {
+    onChange({
+      ...config,
+      description: value,
+    });
+  }, [config, onChange]);
+
+  const handleRequiredChange = useCallback((value: boolean) => {
+    onChange({
+      ...config,
+      required: value,
+    });
+  }, [config, onChange]);
+
+  const handleShowToggleChange = useCallback((value: boolean) => {
+    onChange({
+      ...config,
+      showToggle: value,
+    });
+  }, [config, onChange]);
+
+  const handleMinLengthChange = useCallback((value: string) => {
+    const minLength = value ? parseInt(value, 10) : undefined;
+    onChange({
+      ...config,
+      validation: {
+        ...config.validation,
+        minLength,
+      },
+    });
+  }, [config, onChange]);
+
+  const handleMaxLengthChange = useCallback((value: string) => {
+    const maxLength = value ? parseInt(value, 10) : undefined;
+    onChange({
+      ...config,
+      validation: {
+        ...config.validation,
+        maxLength,
+      },
+    });
+  }, [config, onChange]);
+
+  const handlePatternChange = useCallback((value: string) => {
+    onChange({
+      ...config,
+      validation: {
+        ...config.validation,
+        pattern: value || undefined,
+      },
+    });
+  }, [config, onChange]);
+
+  const handleShowStrengthIndicatorChange = useCallback((value: boolean) => {
+    onChange({
+      ...config,
+      showStrengthIndicator: value,
+    });
+  }, [config, onChange]);
 
   return (
     <div className="space-y-4">
       <div className="space-y-2">
+        <Label>Property Name</Label>
+        <Input
+          value={config.propertyName}
+          onChange={(e) => handlePropertyNameChange(e.target.value)}
+          placeholder="Enter property name"
+        />
+      </div>
+      <div className="space-y-2">
         <Label>Label</Label>
         <Input
           value={config.label}
-          onChange={(e) => updateConfig({ label: e.target.value })}
+          onChange={(e) => handleLabelChange(e.target.value)}
+          placeholder="Enter label"
         />
       </div>
-
       <div className="space-y-2">
         <Label>Placeholder</Label>
         <Input
-          value={config.placeholder || ''}
-          onChange={(e) => updateConfig({ placeholder: e.target.value })}
+          value={config.placeholder}
+          onChange={(e) => handlePlaceholderChange(e.target.value)}
+          placeholder="Enter placeholder"
         />
       </div>
-
       <div className="space-y-2">
         <Label>Description</Label>
         <Input
-          value={config.description || ''}
-          onChange={(e) => updateConfig({ description: e.target.value })}
+          value={config.description}
+          onChange={(e) => handleDescriptionChange(e.target.value)}
+          placeholder="Enter description"
         />
       </div>
-
       <div className="flex items-center space-x-2">
         <Switch
           checked={config.required}
-          onCheckedChange={(checked) => updateConfig({ required: checked })}
+          onCheckedChange={handleRequiredChange}
         />
         <Label>Required</Label>
       </div>
-
       <div className="flex items-center space-x-2">
         <Switch
-          checked={config.showStrengthIndicator}
-          onCheckedChange={(checked) => updateConfig({ showStrengthIndicator: checked })}
+          checked={config.showToggle}
+          onCheckedChange={handleShowToggleChange}
         />
-        <Label>Show Strength Indicator</Label>
+        <Label>Show Password Toggle</Label>
       </div>
-
       <div className="space-y-2">
         <Label>Minimum Length</Label>
         <Input
           type="number"
-          min={1}
-          value={config.minLength}
-          onChange={(e) => updateConfig({ minLength: parseInt(e.target.value) || 1 })}
+          value={config.validation?.minLength || ''}
+          onChange={(e) => handleMinLengthChange(e.target.value)}
+          placeholder="Enter minimum length"
         />
       </div>
-
-      <div className="space-y-4">
-        <Label className="block">Password Requirements</Label>
-
-        <div className="space-y-2">
-          <div className="flex items-center space-x-2">
-            <Switch
-              checked={config.requireNumbers}
-              onCheckedChange={(checked) => updateConfig({ requireNumbers: checked })}
-            />
-            <Label>Require Numbers</Label>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Switch
-              checked={config.requireLetters}
-              onCheckedChange={(checked) => updateConfig({ requireLetters: checked })}
-            />
-            <Label>Require Letters</Label>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Switch
-              checked={config.requireSymbols}
-              onCheckedChange={(checked) => updateConfig({ requireSymbols: checked })}
-            />
-            <Label>Require Symbols</Label>
-          </div>
-        </div>
+      <div className="flex items-center space-x-2">
+        <Switch
+          checked={config.showStrengthIndicator}
+          onCheckedChange={handleShowStrengthIndicatorChange}
+        />
+        <Label>Show Strength Indicator</Label>
+      </div>
+      <div className="space-y-2">
+        <Label>Maximum Length</Label>
+        <Input
+          type="number"
+          value={config.validation?.maxLength || ''}
+          onChange={(e) => handleMaxLengthChange(e.target.value)}
+          placeholder="Enter maximum length"
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Pattern (Regex)</Label>
+        <Input
+          value={config.validation?.pattern || ''}
+          onChange={(e) => handlePatternChange(e.target.value)}
+          placeholder="Enter regex pattern"
+        />
       </div>
     </div>
   );

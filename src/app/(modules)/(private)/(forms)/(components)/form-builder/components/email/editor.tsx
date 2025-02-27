@@ -4,15 +4,15 @@ import { Mail } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { EditorProps } from '../../types';
-import { emailConfigSchema } from './schema';
+import { EmailConfig } from './schema';
+import { EditorProps } from '../../schemas';
 
 export function EmailEditor({
   id,
   config,
   isSelected,
   onSelect,
-}: EditorProps<typeof emailConfigSchema>) {
+}: EditorProps<EmailConfig>) {
   return (
     <div
       className={cn(
@@ -32,8 +32,8 @@ export function EmailEditor({
       </div>
       <Input
         type="email"
-        placeholder={config.placeholder}
         disabled
+        placeholder={config.placeholder || 'Enter email address'}
         className="pointer-events-none bg-muted"
       />
     </div>

@@ -1,18 +1,18 @@
 'use client';
 
-import { CalendarDays } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { EditorProps } from '../../types';
-import { dateConfigSchema } from './schema';
+import { DateConfig } from './schema';
+import { EditorProps } from '../../schemas';
 
 export function DateEditor({
   id,
   config,
   isSelected,
   onSelect,
-}: EditorProps<typeof dateConfigSchema>) {
+}: EditorProps<DateConfig>) {
   return (
     <div
       className={cn(
@@ -22,7 +22,7 @@ export function DateEditor({
       onClick={() => onSelect?.()}
     >
       <div className="absolute left-2 top-2 text-muted-foreground">
-        <CalendarDays className="h-4 w-4" />
+        <Calendar className="h-4 w-4" />
       </div>
       <div className="mb-2 pl-6">
         <Label>{config.label}</Label>
@@ -32,7 +32,7 @@ export function DateEditor({
       </div>
       <Input
         type="date"
-        placeholder={config.placeholder}
+        value={config.defaultValue || ''}
         disabled
         className="pointer-events-none bg-muted"
       />

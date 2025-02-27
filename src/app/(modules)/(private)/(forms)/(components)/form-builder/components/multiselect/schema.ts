@@ -1,13 +1,13 @@
 import { z } from 'zod';
-import { baseComponentConfigSchema } from '../../schemas';
+import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
-// Define the option schema
+// Option schema for static options
 export const multiselectOptionSchema = z.object({
   label: z.string(),
   value: z.string(),
 });
 
-// Define the options source schema
+// Schema for options source configuration
 export const optionsSourceSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('static'),
@@ -15,25 +15,65 @@ export const optionsSourceSchema = z.discriminatedUnion('type', [
   }),
   z.object({
     type: z.literal('variable'),
-    variableId: z.string(),
-    labelPath: z.string().optional(),
-    valuePath: z.string().optional(),
+    variableName: z.string(),
+  }),
+  z.object({
+    type: z.literal('api'),
+    endpoint: z.string(),
+    labelPath: z.string(),
+    valuePath: z.string(),
   }),
 ]);
 
-// Extend the base config schema with multiselect-specific properties
-export const multiselectConfigSchema = baseComponentConfigSchema.extend({
-  placeholder: z.string().optional().default('Select options...'),
-  source: optionsSourceSchema.default({
-    type: 'static',
-    options: [],
-  }),
+// Form builder config schema
+export const multiselectConfigSchema = baseConfigSchema.extend({
+  label: z.string().min(1, 'Label is required'),
+  placeholder: z.string().optional(),
+  description: z.string().optional(),
+  source: optionsSourceSchema,
   defaultValue: z.array(z.string()).optional(),
   minSelect: z.number().min(0).optional(),
-  maxSelect: z.number().min(1).optional(),
-  searchable: z.boolean().default(true),
-  creatable: z.boolean().default(false),
-});
+  maxSelect: z.number().min(0).optional(),
+  searchable: z.boolean(),
+  creatable: z.boolean(),
+}).transform((data) => ({
+  ...data,
+  placeholder: data.placeholder ?? '',
+  description: data.description ?? '',
+  defaultValue: data.defaultValue ?? [],
+  searchable: data.searchable ?? false,
+  creatable: data.creatable ?? false,
+}));
+
+export type MultiselectConfig = z.infer<typeof multiselectConfigSchema>;
+
+// Value validation schema generator
+export class MultiselectComponentSchema extends BaseComponentSchema<z.ZodArray<z.ZodString>, MultiselectConfig> {
+  constructor(propertyName: string) {
+    super(z.array(z.string()), propertyName);
+  }
+
+  setMinSelect(min: number | undefined): this {
+    if (min !== undefined && min > 0) {
+      this.schema = this.schema.min(min, `Select at least ${min} option${min !== 1 ? 's' : ''}`);
+    }
+    return this;
+  }
+
+  setMaxSelect(max: number | undefined): this {
+    if (max !== undefined && max > 0) {
+      this.schema = this.schema.max(max, `Select at most ${max} option${max !== 1 ? 's' : ''}`);
+    }
+    return this;
+  }
+
+  fromConfig(config: MultiselectConfig): this {
+    this.setRequired(config.required);
+    this.setMinSelect(config.minSelect);
+    this.setMaxSelect(config.maxSelect);
+    return this;
+  }
+}
 
 export const multiselectInputSchema = z.array(z.string()).optional();
 export const multiselectOutputSchema = z.array(z.string()); 

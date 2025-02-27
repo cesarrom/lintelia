@@ -1,13 +1,11 @@
 'use client';
 
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { PropertiesProps } from '../../types';
-import { radioConfigSchema } from './schema';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 import {
   Select,
   SelectContent,
@@ -15,65 +13,151 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { PropertiesProps } from '../../schemas';
+import { RadioComponentSchema, RadioConfig, RadioOption } from './schema';
+import { Plus, Trash2 } from 'lucide-react';
+import { v4 as uuid } from 'uuid';
 
-export function RadioProperties({
-  config,
-  onChange,
-}: PropertiesProps<typeof radioConfigSchema>) {
-  const updateConfig = (updates: Partial<typeof config>) => {
-    onChange({ ...config, ...updates });
-  };
+export function RadioProperties({ config, onChange }: PropertiesProps<RadioConfig>) {
+  const schemaRef = useRef(new RadioComponentSchema(config.propertyName));
+  const [options, setOptions] = useState<RadioOption[]>(config.options || []);
 
-  const addOption = () => {
-    const newOption = {
-      label: `Option ${config.options.length + 1}`,
-      value: `option-${config.options.length + 1}`,
+  useEffect(() => {
+    schemaRef.current = new RadioComponentSchema(config.propertyName);
+    if (config.required) {
+      schemaRef.current.setRequired(true);
+    }
+    if (config.options) {
+      schemaRef.current.setOptions(config.options);
+    }
+  }, [config]);
+
+  const handlePropertyNameChange = useCallback((value: string) => {
+    onChange({
+      ...config,
+      propertyName: value,
+    });
+  }, [config, onChange]);
+
+  const handleLabelChange = useCallback((value: string) => {
+    onChange({
+      ...config,
+      label: value,
+    });
+  }, [config, onChange]);
+
+  const handleDescriptionChange = useCallback((value: string) => {
+    onChange({
+      ...config,
+      description: value,
+    });
+  }, [config, onChange]);
+
+  const handleRequiredChange = useCallback((value: boolean) => {
+    onChange({
+      ...config,
+      required: value,
+    });
+  }, [config, onChange]);
+
+  const handleLayoutChange = useCallback((value: 'horizontal' | 'vertical') => {
+    onChange({
+      ...config,
+      layout: value,
+    });
+  }, [config, onChange]);
+
+  const handleDefaultValueChange = useCallback((value: string) => {
+    onChange({
+      ...config,
+      defaultValue: value,
+    });
+  }, [config, onChange]);
+
+  const handleAddOption = useCallback(() => {
+    const newOption: RadioOption = {
+      label: `Option ${options.length + 1}`,
+      value: `option-${uuid().slice(0, 8)}`,
     };
-    updateConfig({ options: [...config.options, newOption] });
-  };
+    
+    const newOptions = [...options, newOption];
+    setOptions(newOptions);
+    
+    onChange({
+      ...config,
+      options: newOptions,
+    });
+  }, [options, config, onChange]);
 
-  const updateOption = (index: number, updates: Partial<typeof config.options[0]>) => {
-    const newOptions = [...config.options];
-    newOptions[index] = { ...newOptions[index], ...updates };
-    updateConfig({ options: newOptions });
-  };
+  const handleRemoveOption = useCallback((index: number) => {
+    const newOptions = [...options];
+    newOptions.splice(index, 1);
+    setOptions(newOptions);
+    
+    onChange({
+      ...config,
+      options: newOptions,
+      defaultValue: config.defaultValue && !newOptions.some(o => o.value === config.defaultValue)
+        ? undefined
+        : config.defaultValue,
+    });
+  }, [options, config, onChange]);
 
-  const removeOption = (index: number) => {
-    const newOptions = config.options.filter((_, i) => i !== index);
-    updateConfig({ options: newOptions });
-  };
+  const handleOptionChange = useCallback((index: number, field: keyof RadioOption, value: string) => {
+    const newOptions = [...options];
+    newOptions[index] = {
+      ...newOptions[index],
+      [field]: value,
+    };
+    setOptions(newOptions);
+    
+    onChange({
+      ...config,
+      options: newOptions,
+      defaultValue: field === 'value' && config.defaultValue === options[index].value
+        ? value
+        : config.defaultValue,
+    });
+  }, [options, config, onChange]);
 
   return (
     <div className="space-y-4">
       <div className="space-y-2">
+        <Label>Property Name</Label>
+        <Input
+          value={config.propertyName}
+          onChange={(e) => handlePropertyNameChange(e.target.value)}
+          placeholder="Enter property name"
+        />
+      </div>
+      <div className="space-y-2">
         <Label>Label</Label>
         <Input
           value={config.label}
-          onChange={(e) => updateConfig({ label: e.target.value })}
+          onChange={(e) => handleLabelChange(e.target.value)}
+          placeholder="Enter label"
         />
       </div>
-
       <div className="space-y-2">
         <Label>Description</Label>
         <Input
-          value={config.description || ''}
-          onChange={(e) => updateConfig({ description: e.target.value })}
+          value={config.description}
+          onChange={(e) => handleDescriptionChange(e.target.value)}
+          placeholder="Enter description"
         />
       </div>
-
       <div className="flex items-center space-x-2">
         <Switch
           checked={config.required}
-          onCheckedChange={(checked) => updateConfig({ required: checked })}
+          onCheckedChange={handleRequiredChange}
         />
         <Label>Required</Label>
       </div>
-
       <div className="space-y-2">
         <Label>Layout</Label>
         <Select
           value={config.layout}
-          onValueChange={(value) => updateConfig({ layout: value as 'horizontal' | 'vertical' })}
+          onValueChange={(value) => handleLayoutChange(value as 'horizontal' | 'vertical')}
         >
           <SelectTrigger>
             <SelectValue />
@@ -84,60 +168,74 @@ export function RadioProperties({
           </SelectContent>
         </Select>
       </div>
-
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
+        <Label>Default Value</Label>
+        <Select
+          value={config.defaultValue || ''}
+          onValueChange={handleDefaultValueChange}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select a default value" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">None</SelectItem>
+            {options.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      
+      <Separator />
+      
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
           <Label>Options</Label>
           <Button
-            variant="outline"
+            type="button"
             size="sm"
-            onClick={addOption}
-            className="h-8 px-2"
+            variant="outline"
+            onClick={handleAddOption}
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4 mr-1" />
+            Add Option
           </Button>
         </div>
-
-        <div className="space-y-2">
-          {config.options.map((option, index) => (
-            <div
-              key={index}
-              className={cn(
-                'flex items-start gap-2 rounded-lg border p-2',
-                config.options.length === 1 && 'border-destructive'
-              )}
-            >
-              <div className="mt-2 text-muted-foreground">
-                <GripVertical className="h-4 w-4" />
-              </div>
+        
+        <div className="space-y-3">
+          {options.map((option, index) => (
+            <div key={index} className="flex gap-2 items-start">
               <div className="flex-1 space-y-2">
                 <Input
                   value={option.label}
-                  onChange={(e) => updateOption(index, { label: e.target.value })}
+                  onChange={(e) => handleOptionChange(index, 'label', e.target.value)}
                   placeholder="Option label"
                 />
                 <Input
                   value={option.value}
-                  onChange={(e) => updateOption(index, { value: e.target.value })}
+                  onChange={(e) => handleOptionChange(index, 'value', e.target.value)}
                   placeholder="Option value"
-                />
-                <Input
-                  value={option.description || ''}
-                  onChange={(e) => updateOption(index, { description: e.target.value })}
-                  placeholder="Option description (optional)"
                 />
               </div>
               <Button
-                variant="ghost"
+                type="button"
                 size="icon"
-                onClick={() => removeOption(index)}
-                disabled={config.options.length === 1}
-                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                variant="ghost"
+                onClick={() => handleRemoveOption(index)}
+                disabled={options.length <= 1}
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
             </div>
           ))}
+          
+          {options.length === 0 && (
+            <div className="text-sm text-muted-foreground text-center py-2">
+              No options added yet. Click "Add Option" to add one.
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,45 +1,22 @@
 'use client';
 
-import { ListChecks } from 'lucide-react';
+import { ListFilter } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { EditorProps } from '../../types';
-import { multiselectConfigSchema } from './schema';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useVariables } from '../../context/variables';
-import { get } from 'lodash';
+import { EditorProps } from '../../schemas';
+import { MultiselectConfig } from './schema';
+import { Badge } from '@/components/ui/badge';
 
 export function MultiselectEditor({
   id,
   config,
   isSelected,
   onSelect,
-}: EditorProps<typeof multiselectConfigSchema>) {
-  const { variables, definitions } = useVariables();
-
+}: EditorProps<MultiselectConfig>) {
   // Get options based on source type
-  const options = (() => {
-    const source = config.source;
-    
-    if (source.type === 'static') {
-      return source.options;
-    }
-
-    // Handle variable source
-    const variableValue = variables[source.variableId];
-    if (!Array.isArray(variableValue)) return [];
-
-    return variableValue.map((item: any) => ({
-      label: source.labelPath ? get(item, source.labelPath) : item.toString(),
-      value: source.valuePath ? get(item, source.valuePath) : item.toString(),
-    }));
-  })();
+  const options = config.source.type === 'static' 
+    ? config.source.options 
+    : [];
 
   return (
     <div
@@ -50,7 +27,7 @@ export function MultiselectEditor({
       onClick={() => onSelect?.()}
     >
       <div className="absolute left-2 top-2 text-muted-foreground">
-        <ListChecks className="h-4 w-4" />
+        <ListFilter className="h-4 w-4" />
       </div>
       <div className="mb-2 pl-6">
         <Label>{config.label}</Label>
@@ -58,29 +35,19 @@ export function MultiselectEditor({
           <p className="text-sm text-muted-foreground">{config.description}</p>
         )}
       </div>
-      <Select disabled>
-        <SelectTrigger>
-          <SelectValue placeholder={config.placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-          {options.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
+      <div className="flex flex-wrap gap-2">
+        {options.length > 0 ? (
+          options.map((option) => (
+            <Badge key={option.value} variant="secondary">
               {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <div className="mt-1 text-xs text-muted-foreground">
-        {config.minSelect && `Min: ${config.minSelect} • `}
-        {config.maxSelect && `Max: ${config.maxSelect} • `}
-        {config.searchable && 'Searchable • '}
-        {config.creatable && 'Creatable'}
+            </Badge>
+          ))
+        ) : (
+          <div className="text-sm text-muted-foreground">
+            {config.placeholder || 'Select options...'}
+          </div>
+        )}
       </div>
-      {config.source.type === 'variable' && (
-        <p className="mt-2 text-xs text-muted-foreground">
-          Options from: {definitions[config.source.variableId]?.name}
-        </p>
-      )}
     </div>
   );
 } 

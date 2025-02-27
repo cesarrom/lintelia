@@ -3,47 +3,11 @@
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ViewerProps } from '../../types';
-import { passwordConfigSchema, passwordInputSchema, passwordOutputSchema } from './schema';
-import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-function calculatePasswordStrength(password: string, config: any): number {
-  if (!password) return 0;
-
-  let score = 0;
-  const maxScore = 100;
-
-  // Length check
-  if (password.length >= config.minLength) {
-    score += 25;
-  }
-
-  // Numbers check
-  if (config.requireNumbers && /\d/.test(password)) {
-    score += 25;
-  }
-
-  // Letters check
-  if (config.requireLetters && /[a-zA-Z]/.test(password)) {
-    score += 25;
-  }
-
-  // Symbols check
-  if (config.requireSymbols && /[^a-zA-Z0-9]/.test(password)) {
-    score += 25;
-  }
-
-  return Math.min(score, maxScore);
-}
-
-function getStrengthColor(strength: number): string {
-  if (strength < 25) return 'bg-destructive';
-  if (strength < 50) return 'bg-orange-500';
-  if (strength < 75) return 'bg-yellow-500';
-  return 'bg-green-500';
-}
+import { PasswordConfig } from './schema';
+import { ViewerProps } from '../../schemas';
 
 export function PasswordViewer({
   id,
@@ -52,9 +16,8 @@ export function PasswordViewer({
   onChange,
   onBlur,
   error,
-}: ViewerProps<typeof passwordConfigSchema, typeof passwordInputSchema, typeof passwordOutputSchema>) {
+}: ViewerProps<PasswordConfig, string>) {
   const [showPassword, setShowPassword] = useState(false);
-  const strength = calculatePasswordStrength(value as string || '', config);
 
   return (
     <div className="space-y-2">
@@ -68,41 +31,44 @@ export function PasswordViewer({
       <div className="relative">
         <Input
           id={id}
+          name={config.propertyName}
           type={showPassword ? 'text' : 'password'}
           value={value || ''}
           onChange={(e) => onChange?.(e.target.value)}
           onBlur={onBlur}
           placeholder={config.placeholder}
-          className={cn(error ? 'border-destructive' : undefined, 'pr-10')}
-        />
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-          onClick={() => setShowPassword(!showPassword)}
-        >
-          {showPassword ? (
-            <EyeOff className="h-4 w-4 text-muted-foreground" />
-          ) : (
-            <Eye className="h-4 w-4 text-muted-foreground" />
+          className={cn(
+            config.showToggle && 'pr-10',
+            error && 'border-destructive'
           )}
-        </Button>
+          aria-invalid={!!error}
+          aria-describedby={error ? `${id}-error` : undefined}
+        />
+        {config.showToggle && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+            onClick={() => setShowPassword(!showPassword)}
+            tabIndex={-1}
+          >
+            {showPassword ? (
+              <EyeOff className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <Eye className="h-4 w-4 text-muted-foreground" />
+            )}
+            <span className="sr-only">
+              {showPassword ? 'Hide password' : 'Show password'}
+            </span>
+          </Button>
+        )}
       </div>
-      {config.showStrengthIndicator && value && (
-        <div className="space-y-1">
-          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-            <div
-              className={cn('h-full transition-all', getStrengthColor(strength))}
-              style={{ width: `${strength}%` }}
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Password strength: {strength < 25 ? 'Weak' : strength < 50 ? 'Fair' : strength < 75 ? 'Good' : 'Strong'}
-          </p>
-        </div>
+      {error && (
+        <p id={`${id}-error`} className="text-sm text-destructive">
+          {error}
+        </p>
       )}
-      {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
 } 

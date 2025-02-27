@@ -1,39 +1,34 @@
-import { z } from 'zod';
-import { ComponentDefinition, ComponentCategory } from './types';
+import { IFormComponent } from './schemas';
 
+/**
+ * Form Component Registry
+ * 
+ * Manages the registration and retrieval of form components.
+ * Each component provides its own UI components, configuration schema,
+ * and value validation schema.
+ */
 class ComponentRegistry {
-  private components: Map<string, ComponentDefinition<any, any, any>> = new Map();
+  private components = new Map<string, IFormComponent>();
 
-  register<
-    TConfig extends z.ZodType,
-    TInput extends z.ZodType,
-    TOutput extends z.ZodType
-  >(
-    component: ComponentDefinition<TConfig, TInput, TOutput>
-  ) {
+  register(component: IFormComponent) {
     if (this.components.has(component.type)) {
       throw new Error(`Component type "${component.type}" is already registered`);
     }
     this.components.set(component.type, component);
   }
 
-  get<
-    TConfig extends z.ZodType,
-    TInput extends z.ZodType,
-    TOutput extends z.ZodType
-  >(
-    type: string
-  ): ComponentDefinition<TConfig, TInput, TOutput> | undefined {
-    return this.components.get(type) as ComponentDefinition<TConfig, TInput, TOutput> | undefined;
+  get(type: string): IFormComponent | undefined {
+    return this.components.get(type);
   }
 
-  getAll(): ComponentDefinition<any, any, any>[] {
+  getAll(): IFormComponent[] {
     return Array.from(this.components.values());
   }
 
-  getByCategory(category: ComponentCategory): ComponentDefinition<any, any, any>[] {
+  getByCategory(category: string): IFormComponent[] {
     return this.getAll().filter(component => component.category === category);
   }
 }
 
+// Export a singleton instance
 export const registry = new ComponentRegistry(); 

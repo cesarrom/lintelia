@@ -1,18 +1,79 @@
 import { z } from 'zod';
-import { baseComponentConfigSchema } from '../../schemas';
+import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
-export const numberConfigSchema = baseComponentConfigSchema.extend({
-  placeholder: z.string().optional().default('Enter a number'),
-  minValue: z.number().optional(),
-  maxValue: z.number().optional(),
-  step: z.number().min(0).default(1),
-  precision: z.number().min(0).max(10).default(0),
-  prefix: z.string().optional(),
-  suffix: z.string().optional(),
-  allowNegative: z.boolean().default(true),
-  format: z.enum(['decimal', 'integer', 'currency', 'percentage']).default('decimal'),
-  currency: z.string().default('USD'),
-});
+// Form builder config schema
+export const numberConfigSchema = baseConfigSchema.extend({
+  label: z.string().min(1, 'Label is required'),
+  placeholder: z.string().optional(),
+  description: z.string().optional(),
+  defaultValue: z.number().optional(),
+  validation: z.object({
+    min: z.number().optional(),
+    max: z.number().optional(),
+    step: z.number().positive().optional(),
+    precision: z.number().int().min(0).max(10).optional(),
+  }).optional(),
+}).transform((data) => ({
+  ...data,
+  placeholder: data.placeholder ?? '',
+  description: data.description ?? '',
+  validation: data.validation ?? {},
+}));
+
+export type NumberConfig = z.infer<typeof numberConfigSchema>;
+
+// Value validation schema generator
+export class NumberComponentSchema extends BaseComponentSchema<z.ZodNumber, NumberConfig> {
+  constructor(propertyName: string) {
+    super(z.number(), propertyName);
+  }
+
+  setMin(min: number | undefined): this {
+    if (min !== undefined) {
+      this.schema = this.schema.gte(min, `Value must be at least ${min}`);
+    }
+    return this;
+  }
+
+  setMax(max: number | undefined): this {
+    if (max !== undefined) {
+      this.schema = this.schema.lte(max, `Value must be at most ${max}`);
+    }
+    return this;
+  }
+
+  setStep(step: number | undefined): this {
+    // Step is handled by the input element, not in validation
+    return this;
+  }
+
+  setPrecision(precision: number | undefined): this {
+    if (precision !== undefined) {
+      // Use multipleOf to enforce precision
+      const factor = Math.pow(10, -precision);
+      this.schema = this.schema.multipleOf(factor, `Value must have at most ${precision} decimal places`);
+    }
+    return this;
+  }
+
+  fromConfig(config: NumberConfig): this {
+    // Apply validation rules from config
+    this.setRequired(config.required);
+    if (config.validation?.min !== undefined) {
+      this.setMin(config.validation.min);
+    }
+    if (config.validation?.max !== undefined) {
+      this.setMax(config.validation.max);
+    }
+    if (config.validation?.step !== undefined) {
+      this.setStep(config.validation.step);
+    }
+    if (config.validation?.precision !== undefined) {
+      this.setPrecision(config.validation.precision);
+    }
+    return this;
+  }
+}
 
 export const numberInputSchema = z.number().optional();
 export const numberOutputSchema = z.number(); 

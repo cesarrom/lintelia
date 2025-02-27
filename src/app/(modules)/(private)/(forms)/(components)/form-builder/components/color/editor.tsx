@@ -4,15 +4,15 @@ import { Palette } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { EditorProps } from '../../types';
-import { colorConfigSchema } from './schema';
+import { ColorConfig, colorConfigSchema } from './schema';
+import { EditorProps } from '../../schemas';
 
 export function ColorEditor({
   id,
   config,
   isSelected,
   onSelect,
-}: EditorProps<typeof colorConfigSchema>) {
+}: EditorProps<ColorConfig>) {
   return (
     <div
       className={cn(

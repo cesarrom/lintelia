@@ -3,8 +3,8 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { ViewerProps } from '../../types';
-import { phoneConfigSchema, phoneInputSchema, phoneOutputSchema } from './schema';
+import { ViewerProps } from '../../schemas';
+import { PhoneConfig } from './schema';
 
 function formatPhoneNumber(value: string, format: 'international' | 'national'): string {
   // Remove all non-numeric characters
@@ -28,7 +28,7 @@ export function PhoneViewer({
   onChange,
   onBlur,
   error,
-}: ViewerProps<typeof phoneConfigSchema, typeof phoneInputSchema, typeof phoneOutputSchema>) {
+}: ViewerProps<PhoneConfig, string>) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/\D/g, '');
     onChange?.(rawValue);
@@ -54,15 +54,22 @@ export function PhoneViewer({
         )}
         <Input
           id={id}
+          name={config.propertyName}
           type="tel"
           value={value ? formatPhoneNumber(value as string, config.format) : ''}
           onChange={handleChange}
           onBlur={onBlur}
           placeholder={config.placeholder}
           className={cn('flex-1', error ? 'border-destructive' : undefined)}
+          aria-invalid={!!error}
+          aria-describedby={error ? `${id}-error` : undefined}
         />
       </div>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <p id={`${id}-error`} className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 } 

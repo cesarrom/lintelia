@@ -4,13 +4,13 @@ import { useCallback, useEffect, useState, useMemo } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { FormEngineProps } from './types';
 import { registry } from './registry';
 import { cn } from '@/lib/utils';
 import { GripVertical, Trash2 } from 'lucide-react';
 import { VariablesProvider } from './context/variables';
 import { Button } from '@/components/ui/button';
 import { TestFormDialog } from './components/test-form-dialog';
+import { FormEngineProps } from './schemas';
 
 function validateField(value: unknown, component: any) {
   const errors: string[] = [];
@@ -93,7 +93,7 @@ function SortableComponent({ componentConfig, isSelected, onSelect, onConfigChan
           </button>
         )}
       </div>
-      <component.components.Editor
+      <component.Editor
         id={componentConfig.id}
         config={componentConfig.config}
         isSelected={isSelected}
@@ -258,7 +258,7 @@ export function FormEngine({
     const shouldShowError = touchedFields[componentConfig.id] || errors[componentConfig.id];
 
     return (
-      <component.components.Viewer
+      <component.Viewer
         key={componentConfig.id}
         id={componentConfig.id}
         config={componentConfig.config}

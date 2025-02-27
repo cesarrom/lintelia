@@ -1,10 +1,10 @@
 'use client';
 
-import { format, isAfter, isBefore, parseISO } from 'date-fns';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ViewerProps } from '../../types';
-import { dateConfigSchema, dateInputSchema, dateOutputSchema } from './schema';
+import { DateConfig } from './schema';
+import { ViewerProps } from '../../schemas';
+import { cn } from '@/lib/utils';
 
 export function DateViewer({
   id,
@@ -13,38 +13,7 @@ export function DateViewer({
   onChange,
   onBlur,
   error,
-}: ViewerProps<typeof dateConfigSchema, typeof dateInputSchema, typeof dateOutputSchema>) {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const date = e.target.value;
-    if (!date) {
-      onChange?.('');
-      return;
-    }
-
-    // Validate date constraints
-    const dateObj = parseISO(date);
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-
-    if (config.minDate && isBefore(dateObj, parseISO(config.minDate))) {
-      return;
-    }
-
-    if (config.maxDate && isAfter(dateObj, parseISO(config.maxDate))) {
-      return;
-    }
-
-    if (config.disablePastDates && isBefore(dateObj, now)) {
-      return;
-    }
-
-    if (config.disableFutureDates && isAfter(dateObj, now)) {
-      return;
-    }
-
-    onChange?.(date);
-  };
-
+}: ViewerProps<DateConfig, string>) {
   return (
     <div className="space-y-2">
       <Label htmlFor={id} className="block">
@@ -56,16 +25,21 @@ export function DateViewer({
       )}
       <Input
         id={id}
+        name={config.propertyName}
         type="date"
-        value={value || ''}
-        onChange={handleChange}
+        value={value || config.defaultValue || ''}
+        onChange={(e) => onChange?.(e.target.value)}
         onBlur={onBlur}
-        min={config.minDate}
-        max={config.maxDate}
         placeholder={config.placeholder}
-        className={error ? 'border-destructive' : undefined}
+        className={cn(error && 'border-destructive')}
+        aria-invalid={!!error}
+        aria-describedby={error ? `${id}-error` : undefined}
       />
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <p id={`${id}-error`} className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 } 

@@ -1,29 +1,29 @@
 'use client';
 
+import { useDraggable } from '@dnd-kit/core';
 import { SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useDraggable } from '@dnd-kit/core';
-import { ToolbarProps } from '../../types';
+import { ToolbarProps } from '../../schemas';
+import { v4 as uuid } from 'uuid';
+import { rangeConfigSchema } from './schema';
 
-export function RangeToolbar({
-  onDragStart,
-  onDragEnd,
-}: ToolbarProps) {
+export function RangeToolbar({ disabled }: ToolbarProps) {
+  const id = `range-${uuid()}`;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: 'range',
+    id,
     data: {
       type: 'range',
-      config: {
-        label: 'Range',
+      config: rangeConfigSchema.parse({
+        propertyName: `rangeField${Math.floor(Math.random() * 1000)}`,
+        label: 'Range Slider',
         description: '',
         required: false,
         min: 0,
         max: 100,
         step: 1,
+        defaultValue: 50,
         showValue: true,
-        valuePrefix: '',
-        valueSuffix: '',
-      },
+      }),
     },
   });
 
@@ -31,15 +31,13 @@ export function RangeToolbar({
     <Button
       ref={setNodeRef}
       variant="outline"
-      className="w-full justify-start gap-2"
-      {...attributes}
+      className="flex h-14 w-full cursor-grab items-center justify-start gap-2 px-3"
+      disabled={disabled || isDragging}
       {...listeners}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      data-dragging={isDragging}
+      {...attributes}
     >
       <SlidersHorizontal className="h-4 w-4" />
-      Range
+      <span>Range Slider</span>
     </Button>
   );
 } 
