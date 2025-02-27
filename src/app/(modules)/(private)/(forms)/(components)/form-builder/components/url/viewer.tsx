@@ -3,8 +3,8 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { ViewerProps } from '../../types';
-import { urlConfigSchema, urlInputSchema, urlOutputSchema } from './schema';
+import { ViewerProps } from '../../schemas';
+import { UrlConfig } from './schema';
 
 export function UrlViewer({
   id,
@@ -13,7 +13,7 @@ export function UrlViewer({
   onChange,
   onBlur,
   error,
-}: ViewerProps<typeof urlConfigSchema, typeof urlInputSchema, typeof urlOutputSchema>) {
+}: ViewerProps<UrlConfig, string>) {
   return (
     <div className="space-y-2">
       <Label htmlFor={id} className="block">
@@ -31,6 +31,7 @@ export function UrlViewer({
         )}
         <Input
           id={id}
+          name={config.propertyName}
           type="url"
           value={value || ''}
           onChange={(e) => {
@@ -45,12 +46,18 @@ export function UrlViewer({
           onBlur={onBlur}
           placeholder={config.placeholder}
           className={cn(
-            error && 'border-destructive',
+            error ? 'border-destructive' : undefined,
             config.prefix && 'rounded-l-none'
           )}
+          aria-invalid={!!error}
+          aria-describedby={error ? `${id}-error` : undefined}
         />
       </div>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <p id={`${id}-error`} className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
     </div>
   );
 } 

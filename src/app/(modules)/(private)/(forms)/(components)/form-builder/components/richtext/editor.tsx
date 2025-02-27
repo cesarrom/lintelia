@@ -19,7 +19,7 @@ import { z } from 'zod';
 interface MentionItem {
   id: string;
   label: string;
-  type: 'variable' | 'field';
+  prefix: 'vars' | 'form' | 'system';
 }
 
 export function RichtextEditor({
@@ -44,97 +44,56 @@ export function RichtextEditor({
       Mention.configure({
         HTMLAttributes: {
           class: 'mention',
-          'data-type': 'variable',
         },
         suggestion: {
           char: '@',
           items: ({ query }: { query: string }): MentionItem[] => {
             const items: MentionItem[] = [];
+            const [prefix, search] = query.split('.') as [string | undefined, string | undefined];
             
-            // Add form variables
-            Object.entries(variables).forEach(([key, value]) => {
-              if (key.toLowerCase().includes(query.toLowerCase())) {
-                items.push({
-                  id: key,
-                  label: definitions[key]?.name || key,
-                  type: 'variable'
+            if (!prefix || !search) {
+              // Show available prefixes if no prefix or search term
+              return [
+                { id: 'vars', label: 'Variables (@vars.)', prefix: 'vars' },
+                { id: 'form', label: 'Form Fields (@form.)', prefix: 'form' },
+                { id: 'system', label: 'System Variables (@system.)', prefix: 'system' }
+              ];
+            }
+
+            switch (prefix.toLowerCase()) {
+              case 'vars':
+                // Add form variables
+                Object.entries(variables).forEach(([key, value]) => {
+                  if (!search || key.toLowerCase().includes(search.toLowerCase())) {
+                    items.push({
+                      id: `vars.${key}`,
+                      label: definitions[key]?.name || key,
+                      prefix: 'vars'
+                    });
+                  }
                 });
-              }
-            });
+                break;
+
+              case 'form':
+                // This would need to be populated with actual form fields
+                items.push({
+                  id: 'form.field',
+                  label: 'Form fields will appear here',
+                  prefix: 'form'
+                });
+                break;
+
+              case 'system':
+                // System variables would be added here in the future
+                items.push({
+                  id: 'system.variable',
+                  label: 'System variables will appear here',
+                  prefix: 'system'
+                });
+                break;
+            }
 
             return items.slice(0, 5);
-          },
-          render: () => {
-            let popup: any;
-            let component: HTMLDivElement;
-
-            return {
-              onStart: (props) => {
-                component = document.createElement('div');
-                component.classList.add('rounded-md', 'bg-white', 'shadow-md', 'border', 'p-1');
-                
-                popup = tippy(document.body, {
-                  getReferenceClientRect: () => props?.clientRect?.() || new DOMRect(),
-                  appendTo: () => document.body,
-                  content: component,
-                  showOnCreate: true,
-                  interactive: true,
-                  trigger: 'manual',
-                  placement: 'bottom-start',
-                });
-              },
-              onUpdate: (props) => {
-                component.innerHTML = '';
-                
-                props.items.forEach((item: MentionItem) => {
-                  const button = document.createElement('button');
-                  button.className = 'block w-full text-left px-2 py-1 hover:bg-gray-100 rounded';
-                  button.textContent = item.label;
-                  
-                  button.addEventListener('click', () => {
-                    props.command({ id: item.id });
-                    popup.hide();
-                  });
-                  
-                  component.appendChild(button);
-                });
-
-                popup[0].setProps({
-                  getReferenceClientRect: props.clientRect,
-                });
-              },
-              onKeyDown: (props) => {
-                if (props.event.key === 'Escape') {
-                  popup[0].hide();
-                  return true;
-                }
-                return false;
-              },
-              onExit: () => {
-                popup[0].destroy();
-              },
-            };
-          },
-        },
-      }),
-      // Field references with # prefix
-      Mention.configure({
-        HTMLAttributes: {
-          class: 'mention',
-          'data-type': 'field',
-        },
-        suggestion: {
-          char: '#',
-          items: ({ query }: { query: string }): MentionItem[] => {
-            // This would need to be populated with actual form fields
-            // For now, we'll just return a placeholder
-            return [
-              {
-                id: 'field',
-                label: 'Form fields will appear here',
-                type: 'field'
-              }
-            ];
           },
           render: () => {
             let popup: any;
@@ -354,8 +313,12 @@ export function RichtextEditor({
       </div>
       {isSelected && (
         <div className="mt-2 text-sm text-muted-foreground">
-          <p>Type @ to reference variables</p>
-          <p>Type # to reference form fields</p>
+          <p>Type @ to reference variables:</p>
+          <ul className="list-disc pl-6">
+            <li>@vars. for form variables</li>
+            <li>@form. for form fields</li>
+            <li>@system. for system variables</li>
+          </ul>
         </div>
       )}
     </div>

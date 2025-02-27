@@ -4,15 +4,15 @@ import { Link } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { EditorProps } from '../../types';
-import { urlConfigSchema } from './schema';
+import { EditorProps } from '../../schemas';
+import { UrlConfig } from './schema';
 
 export function UrlEditor({
   id,
   config,
   isSelected,
   onSelect,
-}: EditorProps<typeof urlConfigSchema>) {
+}: EditorProps<UrlConfig>) {
   return (
     <div
       className={cn(

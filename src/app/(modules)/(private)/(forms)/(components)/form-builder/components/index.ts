@@ -5,6 +5,7 @@ export { numberComponent } from './number';
 export { passwordComponent } from './password';
 export { phoneComponent } from './phone';
 export { textareaComponent } from './textarea';
+export { urlComponent } from './url';
 
 // Selection Components
 export { checkboxComponent } from './checkbox';
