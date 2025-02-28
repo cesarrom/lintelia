@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { AUTH_TOKEN, DISTRIBUTION_ID_TOKEN, ENVIRONMENT_TOKEN, TENANT_TOKEN, GLOBAL_DB_TOKEN, TENANT_DB_TOKEN, DOMAIN_TOKEN } from "./tokens";
-import { InvitationsService, DomainsService, EnvironmentsService, FilesService, FormsService, KYCService, WorkflowsService, WorkflowExecutionsService, TenantsService, UserService, EmailsService, EmailTemplatesService } from "../services";
+import { UsersService, InvitationsService, DomainsService, SystemVariablesService, EnvironmentsService, FilesService, FormsService, KYCService, WorkflowsService, WorkflowExecutionsService, TenantsService, RolesService, EmailsService, EmailTemplatesService, LogsService } from "../services";
 import { container, DependencyContainer } from "tsyringe";
 import { Resource } from "sst";
 import { auth } from "../clients/auth.client";
@@ -84,14 +84,17 @@ export async function getInjector(domain?: string) {
   childContainer.register(TENANT_TOKEN, { useValue: tenant });
   childContainer.register(DOMAIN_TOKEN, { useValue: domain });
   childContainer.register(TENANT_DB_TOKEN, { useValue: tenantsDb });
+  childContainer.register(LogsService, LogsService);
   childContainer.register(FormsService, FormsService);
   childContainer.register(WorkflowsService, WorkflowsService);
   childContainer.register(WorkflowExecutionsService, WorkflowExecutionsService);
-  childContainer.register(UserService, UserService);
+  childContainer.register(RolesService, RolesService);
   childContainer.register(InvitationsService, InvitationsService);
   childContainer.register(EmailTemplatesService, EmailTemplatesService);
   childContainer.register(EmailsService, EmailsService);
   childContainer.register(EventsService, EventsService);
+  childContainer.register(UsersService, UsersService);
+  childContainer.register(SystemVariablesService, SystemVariablesService);
 
   injectors[domain] = childContainer;
   return injectors[domain];

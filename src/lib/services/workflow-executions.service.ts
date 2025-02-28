@@ -6,6 +6,7 @@ import { WorkflowNodeExecution } from '../entities/tenant/workflow-node-executio
 import { WorkflowNodeExecutionEdge } from '../entities/tenant/workflow-node-execution-edge.entity';
 import { WorkflowExecutionListener } from '../entities/tenant/workflow-execution-listener.entity';
 import { WorkflowsService } from './workflows.service';
+import { LogsService } from './logs.service';
 import { v4 as uuid } from 'uuid';
 import hbs from 'handlebars/runtime';
 import assert from 'assert';
@@ -20,7 +21,8 @@ export class WorkflowExecutionsService {
 
   constructor(
     @inject(TENANT_DB_TOKEN) private conn: DataSource,
-    @inject(WorkflowsService) private readonly workflowsService: WorkflowsService
+    @inject(WorkflowsService) private readonly workflowsService: WorkflowsService,
+    @inject(LogsService) private logs: LogsService
   ) {
     this.workflowExecutionRepository = this.conn.getRepository(WorkflowExecution);
     this.nodeExecutionRepository = this.conn.getRepository(WorkflowNodeExecution);
@@ -34,7 +36,21 @@ export class WorkflowExecutionsService {
     execution.workflowId = data.workflowId;
     execution.status = 'pending';
 
-    return await this.workflowExecutionRepository.save(execution);
+    const savedExecution = await this.workflowExecutionRepository.save(execution);
+
+    await this.logs.info('Workflow execution created', {
+      category: 'workflow',
+      source: 'WorkflowExecutionsService',
+      userId: data.triggeredBy,
+      metadata: {
+        executionId: savedExecution.id,
+        workflowId: data.workflowId,
+        version: data.executingVersion,
+        inputs: data.inputs
+      }
+    });
+
+    return savedExecution;
   }
 
   async updateExecutionStatus(data: UpdateExecutionStatusInput): Promise<WorkflowExecution> {
@@ -43,6 +59,11 @@ export class WorkflowExecutionsService {
     });
 
     if (!execution) {
+      await this.logs.warning('Execution status update attempted on non-existent execution', {
+        category: 'workflow',
+        source: 'WorkflowExecutionsService',
+        metadata: { executionId: data.id }
+      });
       throw new Error('Execution not found');
     }
 
@@ -54,7 +75,21 @@ export class WorkflowExecutionsService {
       execution.completedAt = new Date();
     }
 
-    return await this.workflowExecutionRepository.save(execution);
+    const savedExecution = await this.workflowExecutionRepository.save(execution);
+
+    await this.logs.info('Workflow execution status updated', {
+      category: 'workflow',
+      source: 'WorkflowExecutionsService',
+      metadata: {
+        executionId: data.id,
+        workflowId: execution.workflowId,
+        newStatus: data.status,
+        startedAt: execution.startedAt,
+        completedAt: execution.completedAt
+      }
+    });
+
+    return savedExecution;
   }
 
   async getExecution(executionId: string): Promise<WorkflowExecution | null> {
@@ -81,7 +116,21 @@ export class WorkflowExecutionsService {
     nodeExecution.executedByRole = data.executedByRole;
     nodeExecution.config = data.config;
 
-    return await this.nodeExecutionRepository.save(nodeExecution);
+    const savedNodeExecution = await this.nodeExecutionRepository.save(nodeExecution);
+
+    await this.logs.info('Workflow node execution created', {
+      category: 'workflow',
+      source: 'WorkflowExecutionsService',
+      userId: data.executedBy,
+      metadata: {
+        nodeExecutionId: savedNodeExecution.id,
+        executionId: data.executionId,
+        nodeId: data.nodeId,
+        config: data.config
+      }
+    });
+
+    return savedNodeExecution;
   }
 
   async updateNodeExecutionStatus(data: UpdateNodeExecutionStatusInput): Promise<WorkflowNodeExecution> {
@@ -90,6 +139,11 @@ export class WorkflowExecutionsService {
     });
 
     if (!nodeExecution) {
+      await this.logs.warning('Node execution status update attempted on non-existent node execution', {
+        category: 'workflow',
+        source: 'WorkflowExecutionsService',
+        metadata: { nodeExecutionId: data.id }
+      });
       throw new Error('Node execution not found');
     }
 
@@ -101,7 +155,23 @@ export class WorkflowExecutionsService {
       nodeExecution.completedAt = new Date();
     }
 
-    return await this.nodeExecutionRepository.save(nodeExecution);
+    const savedNodeExecution = await this.nodeExecutionRepository.save(nodeExecution);
+
+    const logLevel = data.status === 'failed' ? 'error' : 'info';
+    await this.logs[logLevel]('Workflow node execution status updated', {
+      category: 'workflow',
+      source: 'WorkflowExecutionsService',
+      metadata: {
+        nodeExecutionId: data.id,
+        executionId: nodeExecution.executionId,
+        nodeId: nodeExecution.nodeId,
+        newStatus: data.status,
+        startedAt: nodeExecution.startedAt,
+        completedAt: nodeExecution.completedAt
+      }
+    });
+
+    return savedNodeExecution;
   }
 
   async createNodeExecutionEdge(data: CreateNodeExecutionEdgeInput): Promise<WorkflowNodeExecutionEdge> {
@@ -112,7 +182,32 @@ export class WorkflowExecutionsService {
     edge.result = data.result;
     edge.error = data.error || undefined;
 
-    return await this.nodeExecutionEdgeRepository.save(edge);
+    const savedEdge = await this.nodeExecutionEdgeRepository.save(edge);
+
+    if (data.error) {
+      await this.logs.error('Workflow node execution edge created with error', {
+        category: 'workflow',
+        source: 'WorkflowExecutionsService',
+        metadata: {
+          executionId: data.executionId,
+          nodeExecutionId: data.nodeExecutionId,
+          eventName: data.eventName,
+          error: data.error
+        }
+      });
+    } else {
+      await this.logs.info('Workflow node execution edge created', {
+        category: 'workflow',
+        source: 'WorkflowExecutionsService',
+        metadata: {
+          executionId: data.executionId,
+          nodeExecutionId: data.nodeExecutionId,
+          eventName: data.eventName
+        }
+      });
+    }
+
+    return savedEdge;
   }
 
   async getNodeExecutionEdge(nodeExecutionId: string, eventName: string): Promise<WorkflowNodeExecutionEdge | null> {

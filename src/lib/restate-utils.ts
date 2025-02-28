@@ -1,8 +1,9 @@
 import { yamlToWorkflow } from "@/app/(modules)/(private)/(workflows)/(components)/yaml/converter";
 import { NodeData } from "@/app/(modules)/(private)/(workflows)/(components)/yaml/types";
-import { ExecutableNode, ExecuteNodeFunction, ExecuteNodeFunctionProps } from "@/app/(modules)/(private)/(workflows)/types";
+import { ExecutableNode, ExecuteNodeFunctionProps } from "@/app/(modules)/(private)/(workflows)/types";
 import * as restate from "@restatedev/restate-sdk/fetch";
-import { get, set } from "lodash";
+import { set } from "lodash";
+import Mustache from 'mustache';
 
 export const serveRestate = (endpoint: ReturnType<typeof restate.endpoint>) => {
   const { fetch } = endpoint.handler();
@@ -18,27 +19,12 @@ export const serveRestate = (endpoint: ReturnType<typeof restate.endpoint>) => {
 
 export const getConfiguration = (ctx: restate.ObjectContext, executionId: string, config: Record<string, unknown>, result: Record<string, unknown> = {}): Record<string, unknown> => {
   // we want to walk the configuration and discover if there are entries like { [key: string]: "{{varPath}}" } we want to accumulate the "varPath"s into an array
-  const varPaths: Record<string, string> = {};
-
-  for (const [key, value] of Object.entries(config)) {
-    if (typeof value === 'string' && value.startsWith('{{') && value.endsWith('}}')) {
-      varPaths[key] = value.slice(2, -2);
-    }
-  }
-
-  // so now, we want to get the values in varPaths from the ctx., built like 
-  const values = Object.fromEntries(
-    Object.entries(varPaths)
-      .map(
-        ([key, path]) => [
-          key,
-          get(result, path)
-        ] as const
-      )
-  );
+  const jsonStr = JSON.stringify(config);
+  const values = Mustache.render(jsonStr, result);
+  const json = JSON.parse(values);
 
   // finally, we want to insert the values into the config
-  return { ...config, ...values };
+  return { ...config, ...json };
 }
 
 export const mergeResult = (ctx: Record<string, unknown>, newResult: Record<string, unknown>, nodeName: string, eventName: string) => {
@@ -47,7 +33,7 @@ export const mergeResult = (ctx: Record<string, unknown>, newResult: Record<stri
 
 export const nextOrEndExecution = async (ctx: restate.ObjectContext, { nodeData, event, executionId, localResult, globalResult, yaml, domain, token }: { yaml: string, nodeData: NodeData, event: string, executionId: string, localResult: Record<string, unknown>, globalResult: Record<string, unknown>, domain: string, token: string }, opts?: { forceExecution?: string[] }) => {
   const result = mergeResult(globalResult, localResult, nodeData.name, event);
-  
+
   // we evaluate if this node exports this particular event
   const exporting = nodeData.exports?.find(e => e.event === event);
 
@@ -63,8 +49,11 @@ export const nextOrEndExecution = async (ctx: restate.ObjectContext, { nodeData,
     acc[node.id] = node;
     return acc;
   }, {} as Record<string, typeof nodes[number]>);
-  const eventSourceHandle = `${nodeData.type}-${event}`;
-  const nextNodes = edges.filter((edge) => edge.source === nodeData.id && edge.sourceHandle === eventSourceHandle).flatMap((edge) => nodesById[edge.target] ? [nodesById[edge.target]] : []);
+  const eventSourceHandleByType = `${nodeData.type}-${event}`;
+  const eventSourceHandleByName = `${nodeData.name}-${event}`;
+  const eventSourceHandleById = `${nodeData.id}-${event}`;
+  const eventSources = [eventSourceHandleByType, eventSourceHandleByName, eventSourceHandleById];
+  const nextNodes = edges.filter((edge) => edge.source === nodeData.id && eventSources.includes(edge.sourceHandle || '')).flatMap((edge) => nodesById[edge.target] ? [nodesById[edge.target]] : []);
 
   if (opts?.forceExecution) {
     nextNodes.push(...opts.forceExecution.map(id => nodesById[id]));

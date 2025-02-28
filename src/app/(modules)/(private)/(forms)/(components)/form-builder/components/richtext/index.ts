@@ -14,7 +14,10 @@ import { RichtextToolbar } from './toolbar';
  * A rich text editor that supports:
  * - Required/optional
  * - HTML formatting
- * - Variable references
+ * - Variable references with autocomplete
+ * - Form field references with autocomplete
+ * - System variable references with autocomplete
+ * - Real-time interpolation of variables and field values
  */
 export const richtextComponent: IFormComponent = {
   type: 'richtext',

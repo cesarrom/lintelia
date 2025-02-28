@@ -8,10 +8,17 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { ViewerProps } from '../../types';
-import { multiselectConfigSchema, multiselectInputSchema, multiselectOutputSchema } from './schema';
+import { ViewerProps } from '../../schemas';
+import { MultiselectConfig } from './schema';
 import { useVariables } from '../../context/variables';
 import { get } from 'lodash';
+import { useController, ControllerFieldState, ControllerRenderProps } from 'react-hook-form';
+
+// Define option type
+interface SelectOption {
+  label: string;
+  value: string;
+}
 
 export function MultiselectViewer({
   id,
@@ -20,10 +27,53 @@ export function MultiselectViewer({
   onChange,
   onBlur,
   error,
-}: ViewerProps<typeof multiselectConfigSchema, typeof multiselectInputSchema, typeof multiselectOutputSchema>) {
+  register,
+  formState,
+  control
+}: ViewerProps<MultiselectConfig, string[]>) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const { variables } = useVariables();
+
+  // Check if we're using react-hook-form
+  const isUsingReactHookForm = !!register && !!formState && !!control;
+  
+  // Use controller for react-hook-form if available
+  const controllerResult = isUsingReactHookForm 
+    ? useController({
+        name: config.propertyName,
+        control,
+        defaultValue: value || [],
+        rules: {
+          required: config.required ? 'This field is required' : false,
+          validate: {
+            minSelect: (val) => {
+              if (!config.minSelect) return true;
+              return (val?.length || 0) >= config.minSelect || 
+                `Please select at least ${config.minSelect} option${config.minSelect !== 1 ? 's' : ''}`;
+            },
+            maxSelect: (val) => {
+              if (!config.maxSelect) return true;
+              return (val?.length || 0) <= config.maxSelect || 
+                `Please select at most ${config.maxSelect} option${config.maxSelect !== 1 ? 's' : ''}`;
+            }
+          }
+        }
+      })
+    : null;
+  
+  const field = controllerResult?.field || {} as Partial<ControllerRenderProps>;
+  const fieldState = controllerResult?.fieldState || {} as Partial<ControllerFieldState>;
+
+  // Get error message from react-hook-form or from props
+  const errorMessage = isUsingReactHookForm && fieldState.error
+    ? fieldState.error.message 
+    : error;
+
+  // Get current value
+  const currentValue = isUsingReactHookForm && Array.isArray(field.value) 
+    ? field.value 
+    : (value as string[]);
 
   // Get options based on source type
   const options = (() => {
@@ -34,25 +84,46 @@ export function MultiselectViewer({
     }
 
     // Handle variable source
-    const variableValue = variables[source.variableId];
-    if (!Array.isArray(variableValue)) return [];
+    if (source.type === 'variable') {
+      const variableValue = variables[source.variableName];
+      if (!Array.isArray(variableValue)) return [];
+  
+      return variableValue.map((item: any) => ({
+        label: item.toString(),
+        value: item.toString(),
+      }));
+    }
 
-    return variableValue.map((item: any) => ({
-      label: source.labelPath ? get(item, source.labelPath) : item.toString(),
-      value: source.valuePath ? get(item, source.valuePath) : item.toString(),
-    }));
+    // Handle API source
+    if (source.type === 'api') {
+      const variableValue = variables[source.endpoint] || [];
+      if (!Array.isArray(variableValue)) return [];
+  
+      return variableValue.map((item: any) => ({
+        label: source.labelPath ? get(item, source.labelPath) : item.toString(),
+        value: source.valuePath ? get(item, source.valuePath) : item.toString(),
+      }));
+    }
+
+    return [];
   })();
 
   const handleSelect = (optionValue: string) => {
-    const newValue = value.includes(optionValue)
-      ? value.filter(v => v !== optionValue)
-      : [...value, optionValue];
+    const newValue = currentValue.includes(optionValue)
+      ? currentValue.filter(v => v !== optionValue)
+      : [...currentValue, optionValue];
 
     // Validate min/max select
     if (config.minSelect && newValue.length < config.minSelect) return;
     if (config.maxSelect && newValue.length > config.maxSelect) return;
 
-    onChange?.(newValue);
+    if (isUsingReactHookForm && field.onChange) {
+      field.onChange(newValue);
+      if (field.onBlur) field.onBlur();
+    } else if (onChange) {
+      onChange(newValue);
+      if (onBlur) onBlur();
+    }
   };
 
   const handleCreateOption = () => {
@@ -69,9 +140,9 @@ export function MultiselectViewer({
     setSearch('');
   };
 
-  const selectedOptions = value
+  const selectedOptions = currentValue
     .map(v => options.find(o => o.value === v))
-    .filter(Boolean);
+    .filter(Boolean) as SelectOption[];
 
   const filteredOptions = options.filter(option => {
     if (!search) return true;
@@ -95,10 +166,17 @@ export function MultiselectViewer({
             aria-expanded={open}
             className={cn(
               'w-full justify-between',
-              error && 'border-destructive',
+              errorMessage && 'border-destructive',
               !selectedOptions.length && 'text-muted-foreground'
             )}
             onClick={() => setOpen(!open)}
+            id={id}
+            name={config.propertyName}
+            ref={isUsingReactHookForm && field.ref ? field.ref : undefined}
+            onBlur={() => {
+              if (isUsingReactHookForm && field.onBlur) field.onBlur();
+              else if (onBlur) onBlur();
+            }}
           >
             {selectedOptions.length > 0
               ? `${selectedOptions.length} selected`
@@ -140,7 +218,7 @@ export function MultiselectViewer({
                   <Check
                     className={cn(
                       'mr-2 h-4 w-4',
-                      value.includes(option.value) ? 'opacity-100' : 'opacity-0'
+                      currentValue.includes(option.value) ? 'opacity-100' : 'opacity-0'
                     )}
                   />
                   {option.label}
@@ -166,7 +244,7 @@ export function MultiselectViewer({
         </div>
       )}
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
     </div>
   );
 } 

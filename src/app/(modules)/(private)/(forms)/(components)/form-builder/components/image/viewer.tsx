@@ -5,10 +5,22 @@ import { Camera, Image as ImageIcon, Upload, X } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ViewerProps } from '../../types';
-import { imageConfigSchema, imageInputSchema, imageOutputSchema } from './schema';
+import { ViewerProps } from '../../schemas';
+import { ImageConfig } from './schema';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { useController, ControllerFieldState, ControllerRenderProps } from 'react-hook-form';
+
+// Define the image type
+interface ImageItem {
+  name: string;
+  size: number;
+  type: string;
+  url: string;
+  width: number;
+  height: number;
+  source: 'upload' | 'camera';
+}
 
 export function ImageViewer({
   id,
@@ -17,25 +29,56 @@ export function ImageViewer({
   error: propError,
   onChange,
   onBlur,
-}: ViewerProps<typeof imageConfigSchema, typeof imageInputSchema, typeof imageOutputSchema>) {
+  register,
+  formState,
+  control
+}: ViewerProps<ImageConfig, ImageItem>) {
   const [dragOver, setDragOver] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const [error, setError] = useState<string | undefined>(propError);
+  const [localError, setLocalError] = useState<string | undefined>(propError);
+
+  // Check if we're using react-hook-form
+  const isUsingReactHookForm = !!register && !!formState && !!control;
+  
+  // Use controller for react-hook-form if available
+  const controllerResult = isUsingReactHookForm 
+    ? useController({
+        name: config.propertyName,
+        control,
+        defaultValue: value || null,
+        rules: {
+          required: config.required ? 'This field is required' : false,
+        }
+      })
+    : null;
+  
+  const field = controllerResult?.field || {} as Partial<ControllerRenderProps>;
+  const fieldState = controllerResult?.fieldState || {} as Partial<ControllerFieldState>;
+
+  // Get error message from react-hook-form or from props
+  const error = isUsingReactHookForm && fieldState.error
+    ? fieldState.error.message 
+    : (localError || propError);
+
+  // Get current value
+  const currentValue = isUsingReactHookForm && field.value 
+    ? field.value 
+    : value;
 
   useEffect(() => {
-    setError(propError);
+    setLocalError(propError);
   }, [propError]);
 
   useEffect(() => {
-    if (value?.url) {
-      setPreview(value.url);
+    if (currentValue?.url) {
+      setPreview(currentValue.url);
     } else {
       setPreview(null);
     }
-  }, [value]);
+  }, [currentValue]);
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
@@ -48,9 +91,9 @@ export function ImageViewer({
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: config.cameraOptions.facingMode,
-          width: { ideal: config.cameraOptions.idealResolution.width },
-          height: { ideal: config.cameraOptions.idealResolution.height }
+          facingMode: 'user',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
         }
       });
       
@@ -61,7 +104,7 @@ export function ImageViewer({
     } catch (err) {
       console.error('Error accessing camera:', err);
     }
-  }, [config.cameraOptions]);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -94,8 +137,13 @@ export function ImageViewer({
 
   const handleImageFile = useCallback(async (file: File) => {
     if (file.size > config.maxSize) {
-      onChange?.(undefined as any);
-      setError(`File size exceeds ${config.maxSize} bytes`);
+      if (isUsingReactHookForm && field.onChange) {
+        field.onChange(null);
+        if (field.onBlur) field.onBlur();
+      } else {
+        onChange?.(undefined as any);
+      }
+      setLocalError(`File size exceeds ${Math.round(config.maxSize / 1024 / 1024)}MB`);
       return;
     }
 
@@ -105,32 +153,49 @@ export function ImageViewer({
     img.onload = () => {
       URL.revokeObjectURL(url);
 
-      if (config.maxWidth && img.width > config.maxWidth) {
-        onChange?.(undefined as any);
-        setError(`Image width exceeds ${config.maxWidth}px`);
+      if (config.validation?.maxWidth && img.width > config.validation.maxWidth) {
+        if (isUsingReactHookForm && field.onChange) {
+          field.onChange(null);
+          if (field.onBlur) field.onBlur();
+        } else {
+          onChange?.(undefined as any);
+        }
+        setLocalError(`Image width exceeds ${config.validation.maxWidth}px`);
         return;
       }
 
-      if (config.maxHeight && img.height > config.maxHeight) {
-        onChange?.(undefined as any);
-        setError(`Image height exceeds ${config.maxHeight}px`);
+      if (config.validation?.maxHeight && img.height > config.validation.maxHeight) {
+        if (isUsingReactHookForm && field.onChange) {
+          field.onChange(null);
+          if (field.onBlur) field.onBlur();
+        } else {
+          onChange?.(undefined as any);
+        }
+        setLocalError(`Image height exceeds ${config.validation.maxHeight}px`);
         return;
       }
 
-      onChange?.({
+      const newValue = {
         name: file.name,
         size: file.size,
         type: file.type,
         url,
         width: img.width,
         height: img.height,
-        source: 'upload'
-      });
-      setError(undefined);
+        source: 'upload' as const
+      };
+
+      if (isUsingReactHookForm && field.onChange) {
+        field.onChange(newValue);
+        if (field.onBlur) field.onBlur();
+      } else {
+        onChange?.(newValue);
+      }
+      setLocalError(undefined);
     };
 
     img.src = url;
-  }, [config, onChange]);
+  }, [config, onChange, isUsingReactHookForm, field]);
 
   const capturePhoto = useCallback(async () => {
     if (!videoRef.current) return;
@@ -167,9 +232,14 @@ export function ImageViewer({
   }, [stopCamera]);
 
   const removeImage = () => {
-    if (value?.url) {
-      URL.revokeObjectURL(value.url);
-      onChange?.(undefined as any); // Type assertion needed as the schema doesn't properly handle optional values
+    if (currentValue?.url) {
+      URL.revokeObjectURL(currentValue.url);
+      if (isUsingReactHookForm && field.onChange) {
+        field.onChange(null);
+        if (field.onBlur) field.onBlur();
+      } else {
+        onChange?.(undefined as any);
+      }
     }
   };
 
@@ -214,53 +284,37 @@ export function ImageViewer({
           onDrop={handleDrop}
         >
           <div className="text-center">
-            {config.allowCamera ? (
-              <div className="flex flex-col items-center gap-4">
-                <div className="flex items-center gap-4">
-                  <label className="flex cursor-pointer flex-col items-center">
-                    <Upload className="mx-auto h-8 w-8 mb-2" />
-                    <p>Upload Image</p>
-                    <input
-                      type="file"
-                      id={id}
-                      className="hidden"
-                      accept={config.accept}
-                      onChange={handleFileChange}
-                    />
-                  </label>
-                  <Separator orientation="vertical" className="h-16" />
-                  <div
-                    className="flex cursor-pointer flex-col items-center"
-                    onClick={handleCameraClick}
-                  >
-                    <Camera className="mx-auto h-8 w-8 mb-2" />
-                    <p>Take Photo</p>
-                  </div>
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex items-center gap-4">
+                <label className="flex cursor-pointer flex-col items-center">
+                  <Upload className="mx-auto h-8 w-8 mb-2" />
+                  <p>Upload Image</p>
+                  <input
+                    type="file"
+                    id={id}
+                    name={config.propertyName}
+                    className="hidden"
+                    accept={config.accept.join(',')}
+                    onChange={handleFileChange}
+                    onBlur={isUsingReactHookForm && field.onBlur ? field.onBlur : onBlur}
+                    ref={isUsingReactHookForm && field.ref ? field.ref : undefined}
+                  />
+                </label>
+                <Separator orientation="vertical" className="h-16" />
+                <div
+                  className="flex cursor-pointer flex-col items-center"
+                  onClick={handleCameraClick}
+                >
+                  <Camera className="mx-auto h-8 w-8 mb-2" />
+                  <p>Take Photo</p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {config.maxWidth && config.maxHeight
-                    ? `Max dimensions: ${config.maxWidth}x${config.maxHeight}px`
-                    : 'No size restrictions'}
-                </p>
               </div>
-            ) : (
-              <label className="flex cursor-pointer flex-col items-center" htmlFor={id}>
-                <ImageIcon className="mx-auto h-8 w-8 mb-2" />
-                <p>{config.placeholder}</p>
-                <p className="text-xs mt-1 text-muted-foreground">
-                  {config.maxWidth && config.maxHeight
-                    ? `Max dimensions: ${config.maxWidth}x${config.maxHeight}px`
-                    : 'No size restrictions'}
-                </p>
-                <input
-                  type="file"
-                  id={id}
-                  className="hidden"
-                  accept={config.accept}
-                  onChange={handleFileChange}
-                />
-              </label>
-            )}
+              <p className="text-xs text-muted-foreground">
+                {config.validation?.maxWidth && config.validation?.maxHeight
+                  ? `Max dimensions: ${config.validation.maxWidth}x${config.validation.maxHeight}px`
+                  : 'No size restrictions'}
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -269,21 +323,14 @@ export function ImageViewer({
 
       <Dialog open={showCamera} onOpenChange={handleCloseCameraDialog}>
         <DialogContent className="sm:max-w-md">
-          <div className="flex flex-col items-center gap-4">
+          <div className="flex flex-col items-center space-y-4">
             <video
               ref={videoRef}
               autoPlay
               playsInline
               className="w-full rounded-lg"
             />
-            <div className="flex justify-center gap-2">
-              <Button onClick={capturePhoto}>
-                Take Photo
-              </Button>
-              <Button variant="outline" onClick={handleCloseCameraDialog}>
-                Cancel
-              </Button>
-            </div>
+            <Button onClick={capturePhoto}>Capture</Button>
           </div>
         </DialogContent>
       </Dialog>

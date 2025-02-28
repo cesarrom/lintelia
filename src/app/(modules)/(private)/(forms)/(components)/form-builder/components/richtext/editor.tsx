@@ -3,7 +3,7 @@
 import { FileText, Bold, Italic, List, ListOrdered, Heading1, Heading2, Heading3, AlignCenter, AlignRight, AlignJustify, Underline as UnderlineIcon, Code, TextQuote } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { RichtextConfig, richtextConfigSchema } from './schema';
+import { RichtextConfig } from './schema';
 import { useEditor, EditorContent, BubbleMenu } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -13,13 +13,22 @@ import Underline from '@tiptap/extension-underline';
 import { useVariables } from '../../context/variables';
 import { Button } from '@/components/ui/button';
 import tippy from 'tippy.js';
-import { EditorProps } from '../../schemas';
-import { z } from 'zod';
+import { EditorProps, FormComponentConfig } from '../../schemas';
+import { useTheme } from 'next-themes';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+
+const systemVars = [
+  { id: 'currentDate', label: 'Current Date' },
+  { id: 'currentTime', label: 'Current Time' },
+  { id: 'currentUser', label: 'Current User' },
+  { id: 'formId', label: 'Form ID' },
+  { id: 'instanceId', label: 'Instance ID' },
+];
 
 interface MentionItem {
   id: string;
   label: string;
-  prefix: 'vars' | 'form' | 'system';
+  type: 'variable' | 'form' | 'system';
 }
 
 export function RichtextEditor({
@@ -28,8 +37,170 @@ export function RichtextEditor({
   isSelected,
   onSelect,
   onConfigChange,
-}: EditorProps<z.infer<typeof richtextConfigSchema>>) {
+  formComponents,
+}: EditorProps<RichtextConfig> & {
+  formComponents?: FormComponentConfig[];
+}) {
   const { variables, definitions } = useVariables();
+  const { theme } = useTheme();
+  const [formFields, setFormFields] = useState<Array<{ id: string; label: string; propertyName: string }>>([]);
+
+  // Extract form fields from components
+  useEffect(() => {
+    if (formComponents) {
+      const fields = formComponents
+        .filter(component => component.id !== id) // Exclude self
+        .map(component => {
+          const config = component.config as any;
+          return {
+            id: component.id,
+            label: config.label || 'Unnamed Field',
+            propertyName: config.propertyName || '',
+          };
+        })
+        .filter(field => field.propertyName); // Only include fields with property names
+
+      setFormFields(fields);
+      console.log('Form fields updated:', fields);
+    }
+  }, [formComponents, id]);
+
+  console.log(formComponents);
+
+  // Create a custom mention extension
+  const customMention = useMemo(() => Mention.configure({
+    HTMLAttributes: {
+      class: 'mention',
+      'data-type': 'mention',
+    },
+    renderLabel({ options, node }) {
+      return `{{${node.attrs.id}}}`;
+    },
+    suggestion: {
+      char: '{{',
+      items: ({ query }: { query: string }): MentionItem[] => {
+        console.log('Suggestion query:', { query, formComponents });
+
+        const allItems = (query && query.includes('.') ? [
+          ...Object.entries(definitions).map(([key, value]) => ({
+            id: `vars.${key}`,
+            label: value?.name || key,
+            type: 'variable' as const
+          })),
+          ...formFields.map(field => ({
+            id: `form.${field.propertyName}`,
+            label: `${field.label} (${field.propertyName})`,
+            type: 'form' as const
+          })),
+          ...systemVars.map(sysVar => ({
+            id: `system.${sysVar.id}`,
+            label: sysVar.label,
+            type: 'system' as const
+          })),
+        ] : [
+          { id: 'vars', label: 'Variables ({{vars.}})', type: 'variable' },
+          { id: 'form', label: 'Form Fields ({{form.}})', type: 'form' },
+          { id: 'system', label: 'System Variables ({{system.}})', type: 'system' },
+        ]) as MentionItem[];
+
+
+        const enabled = {
+          variable: config.enableVariables,
+          form: config.enableFieldReferences,
+          system: config.enableSystemVariables,
+        } as const;
+
+        const [prefix, search] = (query || '').split('.') as [string | undefined, string | undefined];
+
+        const filtered = allItems.filter(item => {
+          return enabled[item.type] && (!query || (item.type.includes(prefix || '') && (!search || item.label.toLowerCase().includes(search.toLowerCase()) || item.id.toLowerCase().includes(search.toLowerCase()))));
+        }).slice(0, 10);
+
+        console.log({
+          query,
+          prefix,
+          search,
+          filtered,
+          allItems,
+        });
+
+        return filtered;
+      },
+      render: () => {
+        let popup: any = null;
+        let component: HTMLDivElement;
+
+        return {
+          onStart: (props) => {
+            component = document.createElement('div');
+            component.classList.add(
+              'rounded-md',
+              'shadow-md',
+              'border',
+              'p-1',
+              theme === 'dark' ? 'bg-background/95' : 'bg-background',
+              'backdrop-blur',
+              'supports-[backdrop-filter]:bg-background/60',
+              'min-w-[200px]', // Add minimum width
+              'z-50' // Ensure high z-index
+            );
+
+            popup = tippy(document.body, {
+              getReferenceClientRect: () => props?.clientRect?.() || new DOMRect(),
+              appendTo: () => document.body,
+              content: component,
+              showOnCreate: true,
+              interactive: true,
+              trigger: 'manual',
+              placement: 'bottom-start',
+              zIndex: 9999, // Ensure high z-index
+            });
+          },
+          onUpdate: (props) => {
+            if (!popup || !component) return;
+
+            component.innerHTML = '';
+
+            props.items.forEach((item: MentionItem) => {
+              const button = document.createElement('button');
+              button.className = cn(
+                'block w-full text-left px-2 py-1 rounded',
+                theme === 'dark' ? 'hover:bg-muted' : 'hover:bg-gray-100',
+                theme === 'dark' ? 'text-foreground' : 'text-gray-900'
+              );
+              button.textContent = item.label;
+
+              button.addEventListener('click', () => {
+                // Insert the full variable syntax
+                const text = `{{${item.id}}}`;
+                props.command({ id: text });
+                popup.hide();
+              });
+
+              component.appendChild(button);
+            });
+
+            popup.setProps({
+              getReferenceClientRect: props.clientRect,
+            });
+          },
+          onKeyDown: (props) => {
+            if (props.event.key === 'Escape' && popup) {
+              popup.hide();
+              return true;
+            }
+            return false;
+          },
+          onExit: () => {
+            if (popup) {
+              popup.destroy();
+              popup = null;
+            }
+          },
+        };
+      },
+    },
+  }), [Object.entries(definitions).length, formFields.length]);
 
   const editor = useEditor({
     extensions: [
@@ -41,113 +212,7 @@ export function RichtextEditor({
         types: ['heading', 'paragraph'],
       }),
       Underline,
-      Mention.configure({
-        HTMLAttributes: {
-          class: 'mention',
-        },
-        suggestion: {
-          char: '@',
-          items: ({ query }: { query: string }): MentionItem[] => {
-            const items: MentionItem[] = [];
-            const [prefix, search] = query.split('.') as [string | undefined, string | undefined];
-            
-            if (!prefix || !search) {
-              // Show available prefixes if no prefix or search term
-              return [
-                { id: 'vars', label: 'Variables (@vars.)', prefix: 'vars' },
-                { id: 'form', label: 'Form Fields (@form.)', prefix: 'form' },
-                { id: 'system', label: 'System Variables (@system.)', prefix: 'system' }
-              ];
-            }
-
-            switch (prefix.toLowerCase()) {
-              case 'vars':
-                // Add form variables
-                Object.entries(variables).forEach(([key, value]) => {
-                  if (!search || key.toLowerCase().includes(search.toLowerCase())) {
-                    items.push({
-                      id: `vars.${key}`,
-                      label: definitions[key]?.name || key,
-                      prefix: 'vars'
-                    });
-                  }
-                });
-                break;
-
-              case 'form':
-                // This would need to be populated with actual form fields
-                items.push({
-                  id: 'form.field',
-                  label: 'Form fields will appear here',
-                  prefix: 'form'
-                });
-                break;
-
-              case 'system':
-                // System variables would be added here in the future
-                items.push({
-                  id: 'system.variable',
-                  label: 'System variables will appear here',
-                  prefix: 'system'
-                });
-                break;
-            }
-
-            return items.slice(0, 5);
-          },
-          render: () => {
-            let popup: any;
-            let component: HTMLDivElement;
-
-            return {
-              onStart: (props) => {
-                component = document.createElement('div');
-                component.classList.add('rounded-md', 'bg-white', 'shadow-md', 'border', 'p-1');
-                
-                popup = tippy(document.body, {
-                  getReferenceClientRect: () => props?.clientRect?.() || new DOMRect(),
-                  appendTo: () => document.body,
-                  content: component,
-                  showOnCreate: true,
-                  interactive: true,
-                  trigger: 'manual',
-                  placement: 'bottom-start',
-                });
-              },
-              onUpdate: (props) => {
-                component.innerHTML = '';
-                
-                props.items.forEach((item: MentionItem) => {
-                  const button = document.createElement('button');
-                  button.className = 'block w-full text-left px-2 py-1 hover:bg-gray-100 rounded';
-                  button.textContent = item.label;
-                  
-                  button.addEventListener('click', () => {
-                    props.command({ id: item.id });
-                    popup.hide();
-                  });
-                  
-                  component.appendChild(button);
-                });
-
-                popup[0].setProps({
-                  getReferenceClientRect: props.clientRect,
-                });
-              },
-              onKeyDown: (props) => {
-                if (props.event.key === 'Escape') {
-                  popup[0].hide();
-                  return true;
-                }
-                return false;
-              },
-              onExit: () => {
-                popup[0].destroy();
-              },
-            };
-          },
-        },
-      }),
+      customMention,
     ],
     content: config.content || '',
     editable: true,
@@ -158,7 +223,57 @@ export function RichtextEditor({
         onConfigChange(updatedConfig);
       }
     },
-  });
+  }, [customMention]);
+
+  // Add CSS for mentions
+  useEffect(() => {
+    // Add a style tag for mentions if it doesn't exist
+    if (!document.getElementById('mention-styles')) {
+      const style = document.createElement('style');
+      style.id = 'mention-styles';
+      style.innerHTML = `
+        .mention {
+          background-color: rgba(var(--primary-rgb), 0.2);
+          border-radius: 0.25rem;
+          padding: 0.125rem 0.25rem;
+          font-weight: 500;
+          white-space: nowrap;
+          color: var(--primary);
+        }
+        .dark .mention {
+          background-color: rgba(var(--primary-rgb), 0.3);
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    return () => {
+      // Clean up on unmount
+      const styleTag = document.getElementById('mention-styles');
+      if (styleTag) {
+        styleTag.remove();
+      }
+    };
+  }, []);
+
+  // Ensure editor is destroyed on unmount
+  useEffect(() => {
+    return () => {
+      if (editor) {
+        editor.destroy();
+      }
+    };
+  }, [editor]);
+
+  // Update editor content when config.content changes
+  useEffect(() => {
+    if (editor && config.content) {
+      // Only update if the content is different to avoid cursor position issues
+      if (editor.getHTML() !== config.content) {
+        editor.commands.setContent(config.content);
+      }
+    }
+  }, [editor, config.content]);
 
   return (
     <div
@@ -243,42 +358,6 @@ export function RichtextEditor({
             </Button>
           </div>
 
-          {/* Alignment Controls */}
-          <div className="flex items-center gap-1 border-r pr-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn('h-8 w-8 p-0', editor?.isActive({ textAlign: 'left' }) && 'bg-muted')}
-              onClick={() => editor?.chain().focus().setTextAlign('left').run()}
-            >
-              <FileText className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn('h-8 w-8 p-0', editor?.isActive({ textAlign: 'center' }) && 'bg-muted')}
-              onClick={() => editor?.chain().focus().setTextAlign('center').run()}
-            >
-              <AlignCenter className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn('h-8 w-8 p-0', editor?.isActive({ textAlign: 'right' }) && 'bg-muted')}
-              onClick={() => editor?.chain().focus().setTextAlign('right').run()}
-            >
-              <AlignRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn('h-8 w-8 p-0', editor?.isActive({ textAlign: 'justify' }) && 'bg-muted')}
-              onClick={() => editor?.chain().focus().setTextAlign('justify').run()}
-            >
-              <AlignJustify className="h-4 w-4" />
-            </Button>
-          </div>
-
           {/* List Controls */}
           <div className="flex items-center gap-1 border-r pr-1">
             <Button
@@ -297,30 +376,51 @@ export function RichtextEditor({
             >
               <ListOrdered className="h-4 w-4" />
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn('h-8 w-8 p-0', editor?.isActive('blockquote') && 'bg-muted')}
+              onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+            >
+              <TextQuote className="h-4 w-4" />
+            </Button>
           </div>
 
-          {/* Quote Control */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn('h-8 w-8 p-0', editor?.isActive('blockquote') && 'bg-muted')}
-            onClick={() => editor?.chain().focus().toggleBlockquote().run()}
-          >
-            <TextQuote className="h-4 w-4" />
-          </Button>
+          {/* Alignment Controls */}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn('h-8 w-8 p-0', editor?.isActive({ textAlign: 'left' }) && 'bg-muted')}
+              onClick={() => editor?.chain().focus().setTextAlign('left').run()}
+            >
+              <AlignJustify className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn('h-8 w-8 p-0', editor?.isActive({ textAlign: 'center' }) && 'bg-muted')}
+              onClick={() => editor?.chain().focus().setTextAlign('center').run()}
+            >
+              <AlignCenter className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn('h-8 w-8 p-0', editor?.isActive({ textAlign: 'right' }) && 'bg-muted')}
+              onClick={() => editor?.chain().focus().setTextAlign('right').run()}
+            >
+              <AlignRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-        <EditorContent editor={editor} />
+
+        <div className="mt-2 min-h-[150px] rounded-md border p-3">
+          {editor && (
+            <EditorContent editor={editor} />
+          )}
+        </div>
       </div>
-      {isSelected && (
-        <div className="mt-2 text-sm text-muted-foreground">
-          <p>Type @ to reference variables:</p>
-          <ul className="list-disc pl-6">
-            <li>@vars. for form variables</li>
-            <li>@form. for form fields</li>
-            <li>@system. for system variables</li>
-          </ul>
-        </div>
-      )}
     </div>
   );
 }

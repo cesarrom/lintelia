@@ -2,22 +2,36 @@
 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
 import { ViewerProps } from '../../schemas';
 import { PhoneConfig } from './schema';
+import { cn } from '@/lib/utils';
+import { useController, ControllerFieldState } from 'react-hook-form';
 
+// Helper function to format phone number
 function formatPhoneNumber(value: string, format: 'international' | 'national'): string {
-  // Remove all non-numeric characters
-  const numbers = value.replace(/\D/g, '');
+  if (!value) return '';
+  
+  // Remove all non-digits
+  const digits = value.replace(/\D/g, '');
+  
+  if (digits.length === 0) return '';
   
   if (format === 'international') {
-    if (numbers.length <= 3) return numbers;
-    if (numbers.length <= 6) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-    return `${numbers.slice(0, 3)}-${numbers.slice(3, 6)}-${numbers.slice(6, 10)}`;
-  } else {
-    if (numbers.length <= 3) return numbers;
-    if (numbers.length <= 7) return `(${numbers.slice(0, 3)}) ${numbers.slice(3)}`;
-    return `(${numbers.slice(0, 3)}) ${numbers.slice(3, 6)}-${numbers.slice(6, 10)}`;
+    if (digits.length <= 3) {
+      return digits;
+    } else if (digits.length <= 6) {
+      return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+    } else {
+      return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+    }
+  } else { // national
+    if (digits.length <= 3) {
+      return `(${digits}`;
+    } else if (digits.length <= 6) {
+      return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    } else {
+      return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+    }
   }
 }
 
@@ -28,11 +42,52 @@ export function PhoneViewer({
   onChange,
   onBlur,
   error,
+  register,
+  formState,
+  control
 }: ViewerProps<PhoneConfig, string>) {
+  // Check if we're using react-hook-form
+  const isUsingReactHookForm = !!register && !!formState && !!control;
+  
+  // Use controller for react-hook-form if available
+  const controllerResult = isUsingReactHookForm 
+    ? useController({
+        name: config.propertyName,
+        control,
+        defaultValue: value || '',
+        rules: {
+          required: config.required ? 'This field is required' : false,
+          validate: {
+            validPhone: (val) => {
+              if (!val && !config.required) return true;
+              if (!val) return 'Phone number is required';
+              // Basic validation - at least 10 digits
+              const digits = val.replace(/\D/g, '');
+              return digits.length >= 10 || 'Please enter a valid phone number';
+            }
+          }
+        }
+      })
+    : null;
+
+  // Get error message from react-hook-form or from props
+  const errorMessage = isUsingReactHookForm && controllerResult?.fieldState.error
+    ? controllerResult.fieldState.error.message 
+    : error;
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/\D/g, '');
-    onChange?.(rawValue);
+    
+    if (isUsingReactHookForm && controllerResult) {
+      controllerResult.field.onChange(rawValue);
+    } else if (onChange) {
+      onChange(rawValue);
+    }
   };
+
+  const displayValue = isUsingReactHookForm && controllerResult
+    ? formatPhoneNumber(controllerResult.field.value as string, config.format)
+    : (value ? formatPhoneNumber(value as string, config.format) : '');
 
   return (
     <div className="space-y-2">
@@ -56,18 +111,19 @@ export function PhoneViewer({
           id={id}
           name={config.propertyName}
           type="tel"
-          value={value ? formatPhoneNumber(value as string, config.format) : ''}
+          value={displayValue}
           onChange={handleChange}
-          onBlur={onBlur}
+          onBlur={isUsingReactHookForm && controllerResult ? controllerResult.field.onBlur : onBlur}
           placeholder={config.placeholder}
-          className={cn('flex-1', error ? 'border-destructive' : undefined)}
-          aria-invalid={!!error}
-          aria-describedby={error ? `${id}-error` : undefined}
+          className={cn('flex-1', errorMessage ? 'border-destructive' : undefined)}
+          aria-invalid={!!errorMessage}
+          aria-describedby={errorMessage ? `${id}-error` : undefined}
+          ref={isUsingReactHookForm && controllerResult ? controllerResult.field.ref : undefined}
         />
       </div>
-      {error && (
+      {errorMessage && (
         <p id={`${id}-error`} className="text-sm text-destructive">
-          {error}
+          {errorMessage}
         </p>
       )}
     </div>

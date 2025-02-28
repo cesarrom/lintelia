@@ -5,6 +5,7 @@ import { DataSource, Repository } from "typeorm";
 import { TENANT_DB_TOKEN } from "../injector/tokens";
 import { v4 as uuid } from 'uuid';
 import { FormConfig } from "@/app/(modules)/(private)/(forms)/(components)/form-builder/schemas";
+import { LogsService } from './logs.service';
 
 @injectable()
 export class FormsService {
@@ -12,7 +13,8 @@ export class FormsService {
   private formInstanceRepository: Repository<FormInstance>;
 
   constructor(
-    @inject(TENANT_DB_TOKEN) private conn: DataSource
+    @inject(TENANT_DB_TOKEN) private conn: DataSource,
+    @inject(LogsService) private logs: LogsService
   ) {
     this.formRepository = this.conn.getRepository(Form);
     this.formInstanceRepository = this.conn.getRepository(FormInstance);
@@ -26,7 +28,19 @@ export class FormsService {
     form.config = data.config;
     form.createdBy = data.createdBy;
 
-    return await this.formRepository.save(form);
+    const savedForm = await this.formRepository.save(form);
+
+    await this.logs.info('Form created', {
+      category: 'form',
+      source: 'FormsService',
+      userId: data.createdBy,
+      metadata: {
+        formId: savedForm.id,
+        formName: data.name
+      }
+    });
+
+    return savedForm;
   }
 
   async update(id: string, data: UpdateFormInput): Promise<Form> {
@@ -35,6 +49,11 @@ export class FormsService {
     });
 
     if (!form) {
+      await this.logs.warning('Form update attempted on non-existent form', {
+        category: 'form',
+        source: 'FormsService',
+        metadata: { formId: id }
+      });
       throw new Error("Form not found");
     }
 
@@ -42,7 +61,19 @@ export class FormsService {
     if (data.description !== undefined) form.description = data.description;
     if (data.config !== undefined) form.config = data.config;
 
-    return await this.formRepository.save(form);
+    const updatedForm = await this.formRepository.save(form);
+
+    await this.logs.info('Form updated', {
+      category: 'form',
+      source: 'FormsService',
+      metadata: {
+        formId: id,
+        formName: form.name,
+        updatedFields: Object.keys(data)
+      }
+    });
+
+    return updatedForm;
   }
 
   async delete(id: string): Promise<Form> {
@@ -51,10 +82,26 @@ export class FormsService {
     });
 
     if (!form) {
+      await this.logs.warning('Form deletion attempted on non-existent form', {
+        category: 'form',
+        source: 'FormsService',
+        metadata: { formId: id }
+      });
       throw new Error("Form not found");
     }
 
-    return await this.formRepository.remove(form);
+    const deletedForm = await this.formRepository.remove(form);
+
+    await this.logs.info('Form deleted', {
+      category: 'form',
+      source: 'FormsService',
+      metadata: {
+        formId: id,
+        formName: form.name
+      }
+    });
+
+    return deletedForm;
   }
 
   async getById(id: string): Promise<Form | null> {
@@ -74,6 +121,12 @@ export class FormsService {
     });
 
     if (!form) {
+      await this.logs.error('Form instance creation attempted with non-existent form', {
+        category: 'form',
+        source: 'FormsService',
+        userId: data.submittedBy,
+        metadata: { formId: data.formId }
+      });
       throw new Error("Form template not found");
     }
 
@@ -86,7 +139,20 @@ export class FormsService {
     instance.status = "draft";
     instance.submittedBy = data.submittedBy;
 
-    return await this.formInstanceRepository.save(instance);
+    const savedInstance = await this.formInstanceRepository.save(instance);
+
+    await this.logs.info('Form instance created', {
+      category: 'form',
+      source: 'FormsService',
+      userId: data.submittedBy,
+      metadata: {
+        formId: data.formId,
+        instanceId: savedInstance.id,
+        formName: form.name
+      }
+    });
+
+    return savedInstance;
   }
 
   async getInstance(id: string): Promise<FormInstance | null> {

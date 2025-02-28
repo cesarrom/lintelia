@@ -29,14 +29,14 @@ import { list, setStatus, load } from "../../(actions)";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
-import Link from "next/link";
 import { type Workflow } from "@/lib/entities/tenant";
 import { useEffect, useState, useTransition } from "react";
 import { RunWorkflowDialog } from "../../(components)/RunWorkflowDialog";
 import { ConfirmDialog } from "../../(components)/ConfirmDialog";
 import { v4 as uuid } from 'uuid';
 import { useSession } from "@descope/nextjs-sdk/client";
-import { getTenant } from "@/lib/tenants";
+import { Link } from "@/components/ui/link";
+import { getTenant } from "../../../(profile)/(pages)/settings/actions";
 
 const run = async ({ variables, yaml, token, domain }: { variables: Record<string, unknown>, yaml: string, token: string, domain: string }) => {
   const response = await fetch(`http://127.0.0.1:8080/workflow/${uuid()}/start`, {
@@ -159,7 +159,7 @@ export default function WorkflowsPage() {
                 Manage your workflow automations
               </CardDescription>
             </div>
-            <Link href="/workflows/new" prefetch>
+            <Link href="/workflows/new" groups={['navigation', 'workflows']}>
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
                 Create Workflow
@@ -222,8 +222,8 @@ export default function WorkflowsPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem>
-                            <Link href={`/workflows/${workflow.id}`}>
-                              Edit
+                            <Link href={`/workflows/${workflow.id}`} groups={['navigation', 'workflows']} className="w-full h-full flex items-start justify-start">
+                              <span className="text-start">Edit</span>
                             </Link>
                           </DropdownMenuItem>
                           {workflow.status === "active" && (

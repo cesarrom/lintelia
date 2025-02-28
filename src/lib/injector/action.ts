@@ -3,7 +3,7 @@
 import { getInjector } from "@/lib/injector";
 import { session } from "@descope/nextjs-sdk/server";
 import { auth } from "@/lib/clients/auth.client";
-import { getTenant } from "@/lib/tenants";
+import { getTenant } from "@/app/(modules)/(private)/(profile)/(pages)/settings/actions";
 
 const promiseResultOrNull = <T>(promise: Promise<T>): Promise<T | null> => promise.catch((e) => {
   console.error(e);

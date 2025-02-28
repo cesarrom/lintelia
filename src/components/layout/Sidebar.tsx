@@ -1,7 +1,6 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import {
   LogOut,
@@ -15,6 +14,7 @@ import { PermissionGate } from '@/app/(modules)/(private)/(auth)/(components)/au
 import { useState } from 'react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
+import { Link } from '@/components/ui/link';
 import { routes } from '@/lib/routes/routes';
 import { routeIcons } from '@/lib/routes/routeIcons';
 
@@ -52,12 +52,15 @@ export function Sidebar() {
             {tenant ? tenant.charAt(0).toUpperCase() + tenant.slice(1) : 'Workflow Engine'}
           </h1>
         )}
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="hover:text-foreground"
+          groups={['navigation']}
         >
           {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-        </button>
+        </Button>
       </div>
       <div className="flex flex-1 flex-col overflow-y-auto">
         <nav className="flex-1 space-y-1 px-2 py-4">
@@ -75,6 +78,7 @@ export function Sidebar() {
                   isCollapsed && 'justify-center'
                 )}
                 title={isCollapsed ? item.name : undefined}
+                groups={['navigation']}
               >
                 <item.icon
                   className={cn(
@@ -124,6 +128,7 @@ export function Sidebar() {
               size="sm"
               onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
               className="w-full justify-start px-2"
+              groups={['theme']}
             >
               {theme === 'light' ? (
                 <>
@@ -139,17 +144,20 @@ export function Sidebar() {
             </Button>
           </div>
 
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleLogout}
             className={cn(
               "flex items-center rounded-md px-2 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground w-full",
               isCollapsed && "justify-center"
             )}
             title={isCollapsed ? "Sign out" : undefined}
+            groups={['auth']}
           >
             <LogOut className={cn("h-5 w-5", !isCollapsed && "mr-3")} />
             {!isCollapsed && "Sign out"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -1,4 +1,3 @@
-
 export const routes = [
   {
     name: 'Dashboard',
@@ -11,20 +10,31 @@ export const routes = [
   },
   {
     name: 'Users',
-    href: '/settings/users',
+    href: '/users',
     permission: 'users:manage',
   },
   {
     name: 'Roles',
-    href: '/settings/roles',
+    href: '/roles',
     permission: 'roles:manage',
   },
   {
-    name: 'Analytics',
-    href: '/analytics',
+    name: 'Logs',
+    href: '/logs',
+    permission: 'logs:manage',
   },
   {
     name: 'Settings',
     href: '/settings',
   },
+  {
+    name: 'Forms',
+    href: '/forms',
+    permission: 'forms:manage',
+  },
+  {
+    name: 'Reviews',
+    href: '/reviews',
+    permission: 'reviews:manage',
+  }
 ];

@@ -100,14 +100,14 @@ export const getFormInstance = inject(
 );
 
 export const submitFormAnswers = async (key: string, promiseId: string, answers: Record<string, unknown>) => {
-  const response = await fetch(`${process.env.NEXT_PUBLIC_URL}/resolvable/${key}/resolve`, {
+  const response = await fetch(`${env.RESTATE_ENDPOINT}/resolvable/${key}/resolve`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       promiseId,
-      payload: answers,
+      data: answers,
     }),
   });
 

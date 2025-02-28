@@ -1,10 +1,89 @@
-"use server";
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { inject } from '@/lib/injector/utils';
+import { CreateSystemVariableInput, UpdateSystemVariableInput } from '@/lib/services/system-variables.service';
 import { session } from '@descope/nextjs-sdk/server';
-import { CNAMERecord, type CreateTenant, DomainsService, InvitationsService, TenantsService, UserService } from '@/lib/services';
-import { omit } from 'lodash';
+import { CNAMERecord, type CreateTenant, DomainsService, InvitationsService, TenantsService, RolesService, SystemVariablesService } from '@/lib/services';
 import { auth } from '@/lib/clients/auth.client';
-import { getInjector } from '@/lib/injector';
 import { SdkResponse } from '@descope/node-sdk';
+import { omit } from 'lodash';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { ENVIRONMENT_TOKEN } from '@/lib/injector/tokens';
+import { getInjector } from '@/lib/injector';
+import { env } from '@/lib/constants';
+
+// Tenant Settings Actions
+export const updateTenantSettings = inject(
+  [TenantsService],
+  async (context, [tenantsService], domain: string, data: {
+    name?: string;
+    logoUrl?: string;
+    pallette?: {
+      primary: string;
+      secondary: string;
+      accent: string;
+    };
+    allowedDomains?: string[];
+    addressLine1?: string;
+    addressLine2?: string;
+    city?: string;
+    country?: string;
+    state?: string;
+    zipCode?: string;
+    startWorkingHour?: string;
+    endWorkingHour?: string;
+  }) => {
+    const tenant = await tenantsService.update(domain, data);
+    revalidatePath('/settings');
+    return tenant;
+  }
+);
+
+// System Variables Actions
+export const getSystemVariables = inject(
+  [SystemVariablesService],
+  async (context, [systemVariablesService]) => {
+    const variables = await systemVariablesService.list();
+    revalidatePath('/settings');
+    return variables;
+  }
+);
+
+export const getSystemVariable = inject(
+  [SystemVariablesService],
+  async (context, [systemVariablesService], id: string) => {
+    return await systemVariablesService.getById(id);
+  }
+);
+
+export const createSystemVariable = inject(
+  [SystemVariablesService],
+  async (context, [systemVariablesService], data: CreateSystemVariableInput) => {
+    const variable = await systemVariablesService.create(data);
+    revalidatePath('/settings');
+    return variable;
+  }
+);
+
+export const updateSystemVariable = inject(
+  [SystemVariablesService],
+  async (context, [systemVariablesService], id: string, data: UpdateSystemVariableInput) => {
+    const variable = await systemVariablesService.update(id, data);
+    revalidatePath('/settings');
+    return variable;
+  }
+);
+
+export const deleteSystemVariable = inject(
+  [SystemVariablesService],
+  async (context, [systemVariablesService], id: string) => {
+    const success = await systemVariablesService.delete(id);
+    revalidatePath('/settings');
+    return success;
+  }
+); 
 
 export type APICreateTenantRequest = CreateTenant & {
   individualContract: string;
@@ -126,7 +205,7 @@ export const deleteTenant = async (userId: string, domain: string) => {
   console.log('Starting tenant deletion process', { userId, domain });
   const injector = await getInjector();
   const tenantsService = injector.resolve(TenantsService);
-  const usersService = injector.resolve(UserService);
+  const usersService = injector.resolve(RolesService);
 
   const roles = await usersService.getRolesByUserId({ userId });
   console.log('Got user roles', { roles });
@@ -141,3 +220,51 @@ export const deleteTenant = async (userId: string, domain: string) => {
 }
 
 export type CreatedTenant = Awaited<ReturnType<typeof createTenant>>;
+
+export const getTenant = async (domainRef?: string) => {
+  const headersList = await headers();
+  const headerUrl = 'https://' + headersList.get('x-forwarded-host') || "";
+  
+  const url = new URL(headerUrl);
+  // EX: https://galicia.fintivio.org/
+  // tenant = galicia
+  // domain = galicia.fintivio.org
+  
+  const tenant = url.hostname.split(".")[0];
+  const domain = domainRef || url.hostname;
+  
+  const injector = await getInjector();
+  
+  const environment: typeof env = injector.resolve(ENVIRONMENT_TOKEN);
+
+  const tenantsService = injector.resolve(TenantsService);
+
+  let tenantObject = await tenantsService.getByDomain(domain);
+
+  if (!tenantObject) {
+    tenantObject = await tenantsService.getByDomain(tenant);
+  }
+
+  if (!tenantObject && !domain.includes('localhost')) {
+    if (domain !== environment.DOMAIN) {
+      redirect(environment.HOST);
+    }
+    return null;
+  }
+
+  return omit(tenantObject, [
+    'databaseAuthToken',
+    'databaseUrl',
+    'databaseName',
+  ]);
+}
+
+export const getTenantDatabase = async (domain: string) => {
+  const injector = await getInjector(domain);
+  const tenantsService = injector.resolve(TenantsService);
+
+  return tenantsService.getPlatformDBClient(domain);
+}
+
+export type TenantDatabase = Awaited<ReturnType<typeof getTenantDatabase>>;
+export type GetTenant = Awaited<ReturnType<typeof getTenant>>;

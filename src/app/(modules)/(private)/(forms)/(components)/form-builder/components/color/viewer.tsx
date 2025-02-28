@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { ColorConfig } from './schema';
 import { ViewerProps } from '../../schemas';
 import { cn } from '@/lib/utils';
+import { useController, ControllerFieldState } from 'react-hook-form';
 
 export function ColorViewer({
   id,
@@ -13,13 +14,54 @@ export function ColorViewer({
   onChange,
   onBlur,
   error,
+  register,
+  formState,
+  control
 }: ViewerProps<ColorConfig, string>) {
+  // Check if we're using react-hook-form
+  const isUsingReactHookForm = !!register && !!formState && !!control;
+  
+  // Use controller for react-hook-form if available
+  const controllerResult = isUsingReactHookForm 
+    ? useController({
+        name: config.propertyName,
+        control,
+        defaultValue: value || config.defaultValue || '#000000',
+        rules: {
+          required: config.required ? 'This field is required' : false,
+          pattern: {
+            value: /^#[0-9A-Fa-f]{6}$/,
+            message: 'Must be a valid hex color'
+          },
+          ...(config.validation?.pattern ? {
+            pattern: {
+              value: new RegExp(config.validation.pattern),
+              message: 'Invalid format'
+            }
+          } : {})
+        }
+      })
+    : null;
+
+  // Get error message from react-hook-form or from props
+  const errorMessage = isUsingReactHookForm && controllerResult?.fieldState.error
+    ? controllerResult.fieldState.error.message 
+    : error;
+
   const handleChange = (newValue: string) => {
     // Ensure the value is a valid hex color
     if (/^#[0-9A-Fa-f]{6}$/.test(newValue)) {
-      onChange?.(newValue);
+      if (isUsingReactHookForm && controllerResult) {
+        controllerResult.field.onChange(newValue);
+      } else if (onChange) {
+        onChange(newValue);
+      }
     }
   };
+
+  const currentValue = isUsingReactHookForm && controllerResult 
+    ? controllerResult.field.value 
+    : (value || config.defaultValue || '#000000');
 
   return (
     <div className="space-y-2">
@@ -35,29 +77,30 @@ export function ColorViewer({
           id={`${id}-picker`}
           name={`${config.propertyName}-picker`}
           type="color"
-          value={value || config.defaultValue || '#000000'}
+          value={currentValue}
           onChange={(e) => handleChange(e.target.value)}
-          onBlur={onBlur}
+          onBlur={isUsingReactHookForm && controllerResult ? controllerResult.field.onBlur : onBlur}
           className="h-10 w-20 cursor-pointer"
-          aria-invalid={!!error}
-          aria-describedby={error ? `${id}-error` : undefined}
+          aria-invalid={!!errorMessage}
+          aria-describedby={errorMessage ? `${id}-error` : undefined}
+          ref={isUsingReactHookForm && controllerResult ? controllerResult.field.ref : undefined}
         />
         <Input
           id={id}
           name={config.propertyName}
           type="text"
-          value={value || config.defaultValue || '#000000'}
+          value={currentValue}
           onChange={(e) => handleChange(e.target.value)}
-          onBlur={onBlur}
-          className={cn('flex-1', error && 'border-destructive')}
+          onBlur={isUsingReactHookForm && controllerResult ? controllerResult.field.onBlur : onBlur}
+          className={cn('flex-1', errorMessage && 'border-destructive')}
           placeholder="#000000"
-          aria-invalid={!!error}
-          aria-describedby={error ? `${id}-error` : undefined}
+          aria-invalid={!!errorMessage}
+          aria-describedby={errorMessage ? `${id}-error` : undefined}
         />
       </div>
-      {error && (
+      {errorMessage && (
         <p id={`${id}-error`} className="text-sm text-destructive">
-          {error}
+          {errorMessage}
         </p>
       )}
     </div>

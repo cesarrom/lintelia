@@ -10,49 +10,13 @@ import { GripVertical, Trash2 } from 'lucide-react';
 import { VariablesProvider } from './context/variables';
 import { Button } from '@/components/ui/button';
 import { TestFormDialog } from './components/test-form-dialog';
-import { FormEngineProps } from './schemas';
+import { FormConfig, FormEngineProps, FormVariable } from './schemas';
+import { generateFormValuesSchema } from './validation';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm, FormProvider } from 'react-hook-form';
 
-function validateField(value: unknown, component: any) {
-  const errors: string[] = [];
-  
-  // Check required
-  if (component.config.required && (!value || (typeof value === 'string' && !value.trim()))) {
-    errors.push('This field is required');
-    return errors[0]; // Return first error for required fields immediately
-  }
-
-  // Skip other validations if empty and not required
-  if (!value || (typeof value === 'string' && !value.trim())) {
-    return '';
-  }
-
-  // Process validation rules
-  component.config.validation?.forEach((rule: any) => {
-    const stringValue = String(value);
-    
-    switch (rule.type) {
-      case 'minLength':
-        if (stringValue.length < rule.value) {
-          errors.push(rule.message);
-        }
-        break;
-      case 'maxLength':
-        if (stringValue.length > rule.value) {
-          errors.push(rule.message);
-        }
-        break;
-      case 'pattern':
-        if (!new RegExp(rule.value).test(stringValue)) {
-          errors.push(rule.message);
-        }
-        break;
-    }
-  });
-
-  return errors[0] || ''; // Return first error or empty string
-}
-
-function SortableComponent({ componentConfig, isSelected, onSelect, onConfigChange, onDelete }: any) {
+// SortableComponent for editor mode
+function SortableComponent({ componentConfig, isSelected, onSelect, onConfigChange, onDelete, formComponents }: any) {
   const {
     attributes,
     listeners,
@@ -99,28 +63,43 @@ function SortableComponent({ componentConfig, isSelected, onSelect, onConfigChan
         isSelected={isSelected}
         onSelect={onSelect}
         onConfigChange={onConfigChange}
+        formComponents={formComponents}
       />
     </div>
   );
 }
 
-export function FormEngine({
-  mode,
+// Editor mode specific props
+interface FormEngineEditorProps {
+  config: FormConfig;
+  onConfigChange?: (config: FormConfig) => void;
+  selectedId?: string | null;
+  onSelectComponent?: (id: string | null) => void;
+  variables?: Record<string, unknown>;
+  variableDefinitions?: Record<string, FormVariable>;
+}
+
+// Viewer mode specific props
+interface FormEngineViewerProps {
+  config: FormConfig;
+  initialValues?: Record<string, unknown>;
+  variables?: Record<string, unknown>;
+  variableDefinitions?: Record<string, FormVariable>;
+  onChange?: (values: Record<string, unknown>) => void;
+  onSubmit?: (values: Record<string, unknown>) => void;
+}
+
+// FormEngineEditor component
+function FormEngineEditor({
   config,
-  initialValues,
-  variables,
-  variableDefinitions,
-  onChange,
-  onSubmit,
   onConfigChange,
   selectedId,
   onSelectComponent,
-}: FormEngineProps) {
-  const [values, setValues] = useState<Record<string, unknown>>(initialValues || {});
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
+  variables,
+  variableDefinitions,
+}: FormEngineEditorProps) {
   const [testDialogOpen, setTestDialogOpen] = useState(false);
-
+  
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
     id: 'canvas',
   });
@@ -131,98 +110,6 @@ export function FormEngine({
     definitions: variableDefinitions || config?.variables || {},
   }), [variables, variableDefinitions, config?.variables]);
 
-  useEffect(() => {
-    if (initialValues) {
-      setValues(initialValues);
-      // Validate initial values
-      const newErrors: Record<string, string> = {};
-      config?.components?.forEach((component) => {
-        const value = initialValues[component.id];
-        const error = validateField(value, component);
-        if (error) {
-          newErrors[component.id] = error;
-        }
-      });
-      setErrors(newErrors);
-    }
-  }, [initialValues, config?.components]);
-
-  const validateForm = useCallback(() => {
-    const newErrors: Record<string, string> = {};
-    let isValid = true;
-
-    config?.components?.forEach((component) => {
-      const value = values[component.id];
-      const error = validateField(value, component);
-      if (error) {
-        newErrors[component.id] = error;
-        isValid = false;
-      }
-    });
-
-    setErrors(newErrors);
-    return isValid;
-  }, [values, config?.components]);
-
-  const handleValueChange = useCallback(
-    (id: string, value: unknown) => {
-      const newValues = { ...values, [id]: value };
-      setValues(newValues);
-      
-      // Find component and validate
-      const component = config?.components?.find(c => c.id === id);
-      if (component) {
-        const error = validateField(value, component);
-        setErrors(prev => ({
-          ...prev,
-          [id]: error
-        }));
-      }
-
-      onChange?.(newValues);
-    },
-    [values, onChange, config?.components]
-  );
-
-  const handleBlur = useCallback((id: string) => {
-    setTouchedFields(prev => ({
-      ...prev,
-      [id]: true
-    }));
-
-    // Validate on blur
-    const component = config?.components?.find(c => c.id === id);
-    if (component) {
-      const value = values[id];
-      const error = validateField(value, component);
-      setErrors(prev => ({
-        ...prev,
-        [id]: error
-      }));
-    }
-  }, [values, config?.components]);
-
-  const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-      
-      // Mark all fields as touched
-      const allTouched: Record<string, boolean> = {};
-      config?.components?.forEach(component => {
-        allTouched[component.id] = true;
-      });
-      setTouchedFields(allTouched);
-
-      // Validate all fields
-      const isValid = validateForm();
-      
-      if (isValid) {
-        onSubmit?.(values);
-      }
-    },
-    [values, onSubmit, validateForm, config?.components]
-  );
-
   const handleDeleteComponent = useCallback((id: string) => {
     onConfigChange?.({
       ...config,
@@ -232,40 +119,22 @@ export function FormEngine({
   }, [config, onConfigChange, onSelectComponent]);
 
   const renderComponent = (componentConfig: typeof config.components[0]) => {
-    const component = registry.get(componentConfig.type);
-    if (!component) return null;
-
-    if (mode === 'editor') {
-      return (
-        <SortableComponent
-          key={componentConfig.id}
-          componentConfig={componentConfig}
-          isSelected={selectedId === componentConfig.id}
-          onSelect={() => onSelectComponent?.(componentConfig.id)}
-          onConfigChange={(newConfig: any) => {
-            onConfigChange?.({
-              ...config,
-              components: config.components.map((c) =>
-                c.id === componentConfig.id ? { ...c, config: newConfig } : c
-              ),
-            });
-          }}
-          onDelete={handleDeleteComponent}
-        />
-      );
-    }
-
-    const shouldShowError = touchedFields[componentConfig.id] || errors[componentConfig.id];
-
     return (
-      <component.Viewer
+      <SortableComponent
         key={componentConfig.id}
-        id={componentConfig.id}
-        config={componentConfig.config}
-        value={values[componentConfig.id]}
-        onChange={(value) => handleValueChange(componentConfig.id, value)}
-        onBlur={() => handleBlur(componentConfig.id)}
-        error={shouldShowError ? errors[componentConfig.id] : undefined}
+        componentConfig={componentConfig}
+        isSelected={selectedId === componentConfig.id}
+        onSelect={() => onSelectComponent?.(componentConfig.id)}
+        onConfigChange={(newConfig: any) => {
+          onConfigChange?.({
+            ...config,
+            components: config.components.map((c) =>
+              c.id === componentConfig.id ? { ...c, config: newConfig } : c
+            ),
+          });
+        }}
+        onDelete={handleDeleteComponent}
+        formComponents={config.components}
       />
     );
   };
@@ -276,9 +145,9 @@ export function FormEngine({
 
   return (
     <VariablesProvider value={variablesContext}>
-      <form onSubmit={handleSubmit} noValidate>
+      <div>
         <div className="flex justify-between items-center mb-4">
-          {mode === 'editor' && config.id && (
+          {config.id && (
             <Button
               type="button"
               variant="outline"
@@ -293,7 +162,7 @@ export function FormEngine({
           className={cn(
             'min-h-[200px] space-y-6 rounded-lg border-2 border-dashed p-4',
             isEmpty && 'flex items-center justify-center',
-            mode === 'editor' && 'border-primary/20',
+            'border-primary/20',
             isOver && 'border-primary bg-primary/5'
           )}
         >
@@ -301,22 +170,15 @@ export function FormEngine({
             <div className="text-center text-muted-foreground">
               Drag and drop components here
             </div>
-          ) : mode === 'editor' ? (
+          ) : (
             <SortableContext items={components.map(c => c.id)} strategy={verticalListSortingStrategy}>
               {components.map(renderComponent)}
             </SortableContext>
-          ) : (
-            <>
-              {components.map(renderComponent)}
-              <div className="flex justify-end">
-                <Button type="submit">Submit</Button>
-              </div>
-            </>
           )}
         </div>
-      </form>
+      </div>
 
-      {mode === 'editor' && config.id && (
+      {config.id && (
         <TestFormDialog
           open={testDialogOpen}
           onOpenChange={setTestDialogOpen}
@@ -326,4 +188,166 @@ export function FormEngine({
       )}
     </VariablesProvider>
   );
+}
+
+// FormEngineViewer component
+function FormEngineViewer({
+  config,
+  initialValues = {},
+  variables,
+  variableDefinitions,
+  onChange,
+  onSubmit,
+}: FormEngineViewerProps) {
+  // Create a context value for variables
+  const variablesContext = useMemo(() => ({
+    variables: variables || {},
+    definitions: variableDefinitions || config?.variables || {},
+  }), [variables, variableDefinitions, config?.variables]);
+
+  // Create zod schema for react-hook-form
+  const formSchema = useMemo(() => {
+    if (config) {
+      try {
+        return generateFormValuesSchema(config);
+      } catch (error) {
+        console.error('Error generating form schema:', error);
+        return null;
+      }
+    }
+    return null;
+  }, [config]);
+
+  // Initialize react-hook-form with initial values
+  const formMethods = useForm({
+    resolver: zodResolver(formSchema!),
+    defaultValues: (initialValues  || {}) as any,
+    mode: 'onChange', // Validate on change for immediate feedback
+  });
+
+  // Watch all form values
+  const formValues = formMethods.watch();
+  
+  // Track values for components that don't use react-hook-form (like layout components)
+  const [layoutValues, setLayoutValues] = useState<Record<string, unknown>>({});
+
+  // Update form when initialValues change
+  useEffect(() => {
+    if (initialValues && Object.keys(initialValues).length > 0) {
+      formMethods.reset(initialValues);
+      
+      // Extract layout component values
+      const newLayoutValues: Record<string, unknown> = {};
+      config.components.forEach(component => {
+        if (!component.config.propertyName) {
+          const id = component.id;
+          if (initialValues[id] !== undefined) {
+            newLayoutValues[id] = initialValues[id];
+          }
+        }
+      });
+      
+      setLayoutValues(newLayoutValues);
+    }
+  }, [initialValues, formMethods, config.components]);
+
+  // Notify parent of changes when form values change
+  useEffect(() => {
+    onChange?.(formValues);
+  }, [formValues, onChange]);
+
+  const renderComponent = (componentConfig: typeof config.components[0]) => {
+    const component = registry.get(componentConfig.type);
+    if (!component) return null;
+
+    // Get propertyName if it exists, otherwise use component ID
+    const propertyName = componentConfig.config.propertyName as string || componentConfig.id;
+    
+    // Check if this is a layout component (no propertyName)
+    const isLayoutComponent = !componentConfig.config.propertyName;
+
+    return (
+      <component.Viewer
+        key={componentConfig.id}
+        id={componentConfig.id}
+        config={componentConfig.config}
+        value={isLayoutComponent ? layoutValues[componentConfig.id] : formValues[propertyName]}
+        onChange={(value) => {
+          if (isLayoutComponent) {
+            // For layout components, use our custom state management
+            setLayoutValues(prev => ({
+              ...prev,
+              [componentConfig.id]: value
+            }));
+          } else {
+            // For input components, let react-hook-form handle it
+            // (this will be handled by the controller in the component)
+            formMethods.setValue(propertyName, value, {
+              shouldValidate: true,
+              shouldDirty: true,
+              shouldTouch: true
+            });
+          }
+        }}
+        onBlur={() => {
+          if (!isLayoutComponent) {
+            // Trigger validation on blur for react-hook-form fields
+            formMethods.trigger(propertyName);
+          }
+        }}
+        error={isLayoutComponent ? undefined : formMethods.formState.errors[propertyName]?.message as string}
+        formValues={formValues}
+        // Pass react-hook-form props to non-layout components
+        register={!isLayoutComponent ? formMethods.register : undefined}
+        formState={!isLayoutComponent ? formMethods.formState : undefined}
+        control={!isLayoutComponent ? formMethods.control : undefined}
+      />
+    );
+  };
+
+  // Ensure config and components are properly initialized
+  const components = config?.components || [];
+
+  // Handle form submission
+  const handleSubmit = () => {
+    // Merge data from react-hook-form with any layout component values
+    onSubmit?.(formValues);
+  };
+
+  if (!formSchema) {
+    return (
+      <div className="text-red-500">
+        Error: Unable to generate form schema. Please check form configuration.
+      </div>
+    );
+  }
+
+  return (
+    <VariablesProvider value={variablesContext}>
+      <FormProvider {...formMethods}>
+        <form 
+          onSubmit={formMethods.handleSubmit(handleSubmit)} 
+          noValidate
+        >
+          <div className="space-y-6">
+            {components.map(renderComponent)}
+            <div className="flex justify-end">
+              <Button type="submit">Submit</Button>
+            </div>
+          </div>
+        </form>
+      </FormProvider>
+    </VariablesProvider>
+  );
+}
+
+// Main FormEngine component that serves as an entry point
+export function FormEngine(props: FormEngineProps) {
+  const { mode, ...restProps } = props;
+  
+  if (mode === 'editor') {
+    return <FormEngineEditor {...restProps as FormEngineEditorProps} />;
+  }
+  
+  return <FormEngineViewer {...restProps as FormEngineViewerProps} />;
 } 

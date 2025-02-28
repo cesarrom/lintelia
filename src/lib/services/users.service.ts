@@ -2,65 +2,158 @@ import { inject, injectable } from "tsyringe";
 import { AUTH_TOKEN, TENANT_TOKEN } from "../injector/tokens";
 import { auth } from "../clients/auth.client";
 import { Tenant } from "../entities/global";
+import { SdkResponse } from "@descope/node-sdk";
+import { RolesService } from "./roles.service";
+import { env } from "../constants";
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  picture?: string;
+  roles: string[];
+  status: 'active' | 'inactive';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface InviteUserInput {
+  email: string;
+  name: string;
+  roleIds: string[];
+  loginId?: string;
+}
 
 @injectable()
-export class UserService {
-  static roles = {
-    admin: 'admin',
-    reviewer: 'reviewer',
-    user: 'user',
-  };
-
+export class UsersService {
   constructor(
     @inject(AUTH_TOKEN) private _auth: typeof auth,
-    @inject(TENANT_TOKEN) private _tenant: Tenant
+    @inject(TENANT_TOKEN) private _tenant: Tenant,
+    @inject(RolesService) private _roles: RolesService
   ) { }
 
-  async createUserRole({ userId, roleId, tenantId = this._tenant.domain }: UserRoleInput) {
-    // Add role in auth provider
-    await this._auth.management.user.addTenantRoles(userId, tenantId, [roleId]);
+  async listUsers(): Promise<User[]> {
+    try {
+      const response = await this._auth.management.user.searchAll([this._tenant.domain]);
 
-    return true;
-  }
+      if (!response.data) return [];
 
-  private async getUserAndTenant({ userId, tenantId = this._tenant.domain }: UserInput) {
-    const { data: user } = await this._auth.management.user.loadByUserId(userId);
-
-    if (!user) {
-      throw new Error('User not found');
+      return response.data.map(user => ({
+        id: user.userId,
+        email: user.email || '',
+        name: user.name || '',
+        picture: user.picture,
+        roles: user.userTenants?.find(t => t.tenantId === this._tenant.domain)?.roleNames || [],
+        status: user.status === 'enabled' ? 'active' : 'inactive',
+        createdAt: new Date(user.createTime),
+        updatedAt: new Date(),
+      }));
+    } catch (error) {
+      console.error('Failed to list users:', error);
+      return [];
     }
+  }
 
-    const tenants = user.userTenants?.filter(tenant => tenant.tenantId === tenantId) || [];
+  async inviteUser({ email, name, roleIds, loginId = email }: InviteUserInput): Promise<boolean> {
+    try {
+      // Create invitation
+      await this._auth.management.user.invite(loginId, {
+        email,
+        displayName: name,
+        inviteUrl: `https://${this._tenant.domain}.${env.HOST}/sign-on`
+      });
 
-    if (!tenants.length) {
-      return { user }
+      await this._auth.management.user.addTenant(loginId, this._tenant.domain);
+      await this._auth.management.user.addTenantRoles(loginId, this._tenant.domain, roleIds);
+
+      return true;
+    } catch (error) {
+      console.error('Failed to invite user:', error);
+      return false;
     }
-
-    const [tenant] = tenants;
-
-    return { user, tenant };
   }
 
-  async getRolesByUserId(params: UserInput): Promise<string[]> {
-    const { tenant } = await this.getUserAndTenant(params);
-
-    return tenant?.roleNames || [];
+  async deactivateUser(userId: string): Promise<boolean> {
+    try {
+      await this._auth.management.user.deactivate(userId);
+      return true;
+    } catch (error) {
+      console.error('Failed to deactivate user:', error);
+      return false;
+    }
   }
 
-  async deleteUserRole({ roleId, userId, tenantId = this._tenant.domain }: UserRoleInput) {
-    await this._auth.management.user.removeTenantRoles(userId, tenantId, [roleId]);
-
-    return true;
+  async activateUser(userId: string): Promise<boolean> {
+    try {
+      await this._auth.management.user.activate(userId);
+      return true;
+    } catch (error) {
+      console.error('Failed to activate user:', error);
+      return false;
+    }
   }
-}
 
-interface UserRoleInput {
-  userId: string;
-  roleId: string;
-  tenantId?: string
-}
+  async resetPassword(userId: string): Promise<boolean> {
+    try {
+      await this._auth.management.user.expirePassword(userId);
+      return true;
+    } catch (error) {
+      console.error('Failed to reset password:', error);
+      return false;
+    }
+  }
 
-interface UserInput {
-  userId: string;
-  tenantId?: string
-}
+  async updateUserRoles(userId: string, roleIds: string[]): Promise<boolean> {
+    try {
+      // First, get current roles
+      const user = await this._auth.management.user.loadByUserId(userId);
+      if (!user.data) return false;
+
+      const tenant = user.data.userTenants?.find(t => t.tenantId === this._tenant.domain);
+      if (!tenant) return false;
+
+      
+
+      // Remove all current roles
+      if (tenant?.roleNames?.length) {
+        await this._auth.management.user.removeTenantRoles(userId, this._tenant.domain, tenant.roleNames || []);
+      }
+
+      // Add new roles
+      if (roleIds.length > 0) {
+        await this._auth.management.user.addTenantRoles(
+          userId,
+          this._tenant.domain,
+          roleIds
+        );
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Failed to update user roles:', error);
+      return false;
+    }
+  }
+
+  async getUser(userId: string): Promise<User | null> {
+    try {
+      const response = await this._auth.management.user.loadByUserId(userId);
+      if (!response.data) return null;
+
+      const user = response.data;
+      return {
+        id: user.userId,
+        email: user.email || '',
+        name: user.name || '',
+        picture: user.picture,
+        roles: user.userTenants?.find(t => t.tenantId === this._tenant.domain)?.roleNames || [],
+        status: user.status === 'enabled' ? 'active' : 'inactive',
+        createdAt: new Date(user.createTime),
+        updatedAt: new Date(),
+      };
+    } catch (error) {
+      console.error('Failed to get user:', error);
+      return null;
+    }
+  }
+} 

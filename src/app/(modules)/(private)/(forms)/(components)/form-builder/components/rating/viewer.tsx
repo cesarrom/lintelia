@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { ViewerProps } from '../../schemas';
 import { RatingConfig } from './schema';
 import { cn } from '@/lib/utils';
+import { useController, ControllerFieldState } from 'react-hook-form';
 
 export function RatingViewer({
   id,
@@ -13,8 +14,45 @@ export function RatingViewer({
   onChange,
   onBlur,
   error,
+  register,
+  formState,
+  control
 }: ViewerProps<RatingConfig, number>) {
-  const rating = value as number | undefined;
+  // Check if we're using react-hook-form
+  const isUsingReactHookForm = !!register && !!formState && !!control;
+  
+  // Use controller for react-hook-form if available
+  const controllerResult = isUsingReactHookForm 
+    ? useController({
+        name: config.propertyName,
+        control,
+        defaultValue: value,
+        rules: {
+          required: config.required ? 'This field is required' : false,
+          min: { value: 1, message: 'Please select a rating' },
+          max: { value: config.maxRating, message: `Maximum rating is ${config.maxRating}` }
+        }
+      })
+    : null;
+
+  // Get error message from react-hook-form or from props
+  const errorMessage = isUsingReactHookForm && controllerResult?.fieldState.error
+    ? controllerResult.fieldState.error.message 
+    : error;
+
+  const rating = isUsingReactHookForm && controllerResult
+    ? controllerResult.field.value
+    : (value as number | undefined);
+
+  const handleRatingClick = (starValue: number) => {
+    if (isUsingReactHookForm && controllerResult) {
+      controllerResult.field.onChange(starValue);
+      controllerResult.field.onBlur();
+    } else {
+      onChange?.(starValue);
+      onBlur?.();
+    }
+  };
 
   return (
     <div className="space-y-2">
@@ -34,20 +72,16 @@ export function RatingViewer({
             <button
               key={i}
               type="button"
-              onClick={() => {
-                onChange?.(starValue);
-                onBlur?.();
-              }}
+              onClick={() => handleRatingClick(starValue)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  onChange?.(starValue);
-                  onBlur?.();
+                  handleRatingClick(starValue);
                 }
               }}
               className={cn(
                 'focus-visible:ring-ring ring-offset-background rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-                error ? 'text-destructive' : isFilled ? 'text-primary' : 'text-muted-foreground'
+                errorMessage ? 'text-destructive' : isFilled ? 'text-primary' : 'text-muted-foreground'
               )}
             >
               <Star className="h-5 w-5" fill={isFilled ? 'currentColor' : 'none'} />
@@ -60,7 +94,7 @@ export function RatingViewer({
           </div>
         )}
       </div>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {errorMessage && <p className="text-sm text-destructive">{errorMessage}</p>}
     </div>
   );
 } 

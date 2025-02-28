@@ -1,15 +1,16 @@
+'use client';
+
 import { ReactNode } from 'react';
 import { useAuth } from '@/lib/auth/AuthContext';
-import { useRouter } from 'next/router';
-import { UserPermissions } from '@/lib/auth/AuthContext';
+import { useRouter } from 'next/navigation';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  requiredPermissions?: Partial<UserPermissions>;
+  requiredPermissions?: string | string[];
 }
 
 export const ProtectedRoute = ({ children, requiredPermissions }: ProtectedRouteProps) => {
-  const { isAuthenticated, isLoading, permissions } = useAuth();
+  const { isAuthenticated, isLoading, hasPermission } = useAuth();
   const router = useRouter();
 
   if (isLoading) {
@@ -17,21 +18,12 @@ export const ProtectedRoute = ({ children, requiredPermissions }: ProtectedRoute
   }
 
   if (!isAuthenticated) {
-    router.push('/login');
+    router.push('/sign-in');
     return null;
   }
 
-  if (requiredPermissions) {
-    const hasRequiredPermissions = Object.entries(requiredPermissions).every(
-      ([key, required]) => {
-        if (!required) return true;
-        return permissions[key as keyof UserPermissions];
-      }
-    );
-
-    if (!hasRequiredPermissions) {
-      return <div>You don&apos;t have permission to access this page.</div>;
-    }
+  if (requiredPermissions && !hasPermission(requiredPermissions)) {
+    return <div>You don&apos;t have permission to access this page.</div>;
   }
 
   return <>{children}</>;

@@ -15,6 +15,7 @@ import { useVariables } from '../../context/variables';
 import { get } from 'lodash';
 import { cn } from '@/lib/utils';
 import { nanoid } from 'nanoid';
+import { useController, ControllerFieldState, ControllerRenderProps } from 'react-hook-form';
 
 export function SelectViewer({
   id,
@@ -23,8 +24,34 @@ export function SelectViewer({
   onChange,
   onBlur,
   error,
+  register,
+  formState,
+  control
 }: ViewerProps<SelectConfig, string>) {
   const { variables } = useVariables();
+
+  // Check if we're using react-hook-form
+  const isUsingReactHookForm = !!register && !!formState && !!control;
+  
+  // Use controller for react-hook-form if available
+  const controllerResult = isUsingReactHookForm 
+    ? useController({
+        name: config.propertyName,
+        control,
+        defaultValue: value || '',
+        rules: {
+          required: config.required ? 'This field is required' : false
+        }
+      })
+    : null;
+  
+  const field = controllerResult?.field || {} as Partial<ControllerRenderProps>;
+  const fieldState = controllerResult?.fieldState || {} as Partial<ControllerFieldState>;
+
+  // Get error message from react-hook-form or from props
+  const errorMessage = isUsingReactHookForm && fieldState.error
+    ? fieldState.error.message 
+    : error;
 
   // Get options based on source type
   const options = useMemo(() => {
@@ -50,7 +77,10 @@ export function SelectViewer({
   }, [config.source, variables]);
 
   const handleChange = (newValue: string) => {
-    if (onChange) {
+    if (isUsingReactHookForm && field.onChange) {
+      field.onChange(newValue);
+      if (field.onBlur) field.onBlur();
+    } else if (onChange) {
       onChange(newValue);
       if (onBlur) onBlur();
     }
@@ -66,15 +96,16 @@ export function SelectViewer({
         <p className="text-sm text-muted-foreground">{config.description}</p>
       )}
       <Select
-        value={value || ''}
+        value={isUsingReactHookForm && field.value !== undefined ? field.value : (value || '')}
         onValueChange={handleChange}
       >
         <SelectTrigger
           id={id}
           name={config.propertyName}
-          className={cn(error ? 'border-destructive' : undefined)}
-          aria-invalid={!!error}
-          aria-describedby={error ? `${id}-error` : undefined}
+          className={cn(errorMessage ? 'border-destructive' : undefined)}
+          aria-invalid={!!errorMessage}
+          aria-describedby={errorMessage ? `${id}-error` : undefined}
+          {...(isUsingReactHookForm && field.ref ? { ref: field.ref } : {})}
         >
           <SelectValue placeholder={config.placeholder} />
         </SelectTrigger>
@@ -86,9 +117,9 @@ export function SelectViewer({
           ))}
         </SelectContent>
       </Select>
-      {error && (
+      {errorMessage && (
         <p id={`${id}-error`} className="text-sm text-destructive">
-          {error}
+          {errorMessage}
         </p>
       )}
     </div>

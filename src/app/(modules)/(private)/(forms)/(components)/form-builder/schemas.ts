@@ -13,6 +13,7 @@ export interface EditorProps<TConfig> {
   isSelected?: boolean;
   onSelect?: () => void;
   onConfigChange?: (config: TConfig) => void;
+  formComponents?: FormComponentConfig[];
 }
 
 // Props for the component viewer in form
@@ -23,6 +24,10 @@ export interface ViewerProps<TConfig, TValue> {
   onChange?: (value: TValue) => void;
   onBlur?: () => void;
   error?: string;
+  formValues?: Record<string, unknown>;
+  register?: any; // For react-hook-form register function
+  formState?: any; // For react-hook-form formState
+  control?: any; // For react-hook-form control
 }
 
 // Props for the properties panel

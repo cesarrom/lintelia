@@ -3,13 +3,13 @@
 import { env } from "@/lib/constants";
 import { ENVIRONMENT_TOKEN } from "@/lib/injector/tokens";
 import { inject, optional, token } from "@/lib/injector/utils";
-import { InvitationsService, UserService } from "@/lib/services";
+import { InvitationsService, RolesService } from "@/lib/services";
 import { EventsService } from "@/lib/services/events.service";
 import assert from "assert";
 import { redirect } from "next/navigation";
 
 export const matchInvitationsRoles = inject(
-  [InvitationsService, UserService],
+  [InvitationsService, RolesService],
   async ({ user }, [invitationsService, userRolesService]) => {
     assert(user, 'User is required');
 
@@ -29,7 +29,7 @@ export const matchInvitationsRoles = inject(
 );
 
 export const getUserRoles = inject(
-  [UserService],
+  [RolesService],
   async ({ user }, [userRolesService]) => {
     assert(user, 'User is required');
     return userRolesService.getRolesByUserId({ userId: user.userId });

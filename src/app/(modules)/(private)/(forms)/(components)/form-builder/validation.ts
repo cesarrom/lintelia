@@ -23,7 +23,7 @@ export function generateFormValuesSchema(config: FormConfig) {
     if (!componentDef) continue;
 
     const schema = componentDef.createValidationSchema(component.config);
-    shape[component.id] = schema.getSchema();
+    shape[component.config.propertyName as string] = schema.getSchema();
   }
 
   return z.object(shape);
@@ -36,7 +36,7 @@ export function generateValidationConfig(config: FormConfig): FormConfig {
     const componentDef = registry.get(component.type);
     if (!componentDef) return acc;
 
-    acc[component.id] = {
+    acc[component.config.propertyName as string] = {
       type: component.type,
       propertyName: component.config.propertyName,
       required: component.config.required,

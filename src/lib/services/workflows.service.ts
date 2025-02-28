@@ -3,6 +3,7 @@ import { TENANT_DB_TOKEN } from '../injector/tokens';
 import { DataSource, Repository } from 'typeorm';
 import { Workflow } from '../entities/tenant/workflow.entity';
 import { WorkflowTrigger } from '../entities/tenant/workflow-trigger.entity';
+import { LogsService } from './logs.service';
 import { v4 as uuid } from 'uuid';
 import { validateWorkflowYaml, yamlToWorkflow } from '@/app/(modules)/(private)/(workflows)/(components)/yaml/converter';
 import { type NodeData } from '@/app/(modules)/(private)/(workflows)/(components)/yaml/types';
@@ -13,7 +14,8 @@ export class WorkflowsService {
   private workflowTriggerRepository: Repository<WorkflowTrigger>;
 
   constructor(
-    @inject(TENANT_DB_TOKEN) private conn: DataSource
+    @inject(TENANT_DB_TOKEN) private conn: DataSource,
+    @inject(LogsService) private logs: LogsService
   ) {
     this.workflowRepository = this.conn.getRepository(Workflow);
     this.workflowTriggerRepository = this.conn.getRepository(WorkflowTrigger);
@@ -22,6 +24,12 @@ export class WorkflowsService {
   async saveWorkflow(data: SaveWorkflowInput): Promise<Workflow> {
     // Validate YAML format and schema
     if (!validateWorkflowYaml(data.yaml)) {
+      await this.logs.error('Invalid workflow YAML', {
+        category: 'workflow',
+        source: 'WorkflowsService',
+        userId: data.createdBy,
+        metadata: { yaml: data.yaml }
+      });
       throw new Error('Invalid workflow YAML');
     }
 
@@ -41,16 +49,42 @@ export class WorkflowsService {
     // Save workflow first
     const savedWorkflow = await this.workflowRepository.save(workflow);
 
+    await this.logs.info('Workflow created', {
+      category: 'workflow',
+      source: 'WorkflowsService',
+      userId: data.createdBy,
+      metadata: {
+        workflowId: savedWorkflow.id,
+        workflowName: workflow.name,
+        triggerCount: triggers.length,
+        allowedRoles: workflow.allowedRoles,
+        allowedUsers: workflow.allowedUsers
+      }
+    });
+
     // Create triggers
     for (const trigger of triggers) {
-      await this.saveTrigger({
-        workflowId: savedWorkflow.id,
-        name: trigger.name,
-        type: trigger.type,
-        eventName: trigger.eventName,
-        config: trigger.config,
-        createdBy: data.createdBy
-      });
+      try {
+        await this.saveTrigger({
+          workflowId: savedWorkflow.id,
+          name: trigger.name,
+          type: trigger.type,
+          eventName: trigger.eventName,
+          config: trigger.config,
+          createdBy: data.createdBy
+        });
+      } catch (error) {
+        await this.logs.error('Failed to create workflow trigger', {
+          category: 'workflow',
+          source: 'WorkflowsService',
+          userId: data.createdBy,
+          metadata: {
+            workflowId: savedWorkflow.id,
+            triggerName: trigger.name,
+            error: error instanceof Error ? error.message : String(error)
+          }
+        });
+      }
     }
 
     return savedWorkflow;
@@ -62,11 +96,24 @@ export class WorkflowsService {
     });
 
     if (!workflow) {
+      await this.logs.warning('Workflow update attempted on non-existent workflow', {
+        category: 'workflow',
+        source: 'WorkflowsService',
+        metadata: { workflowId }
+      });
       throw new Error('Workflow not found');
     }
 
     // Validate new YAML
     if (!validateWorkflowYaml(data.yaml)) {
+      await this.logs.error('Invalid workflow YAML in update', {
+        category: 'workflow',
+        source: 'WorkflowsService',
+        metadata: { 
+          workflowId,
+          yaml: data.yaml 
+        }
+      });
       throw new Error('Invalid workflow YAML');
     }
 
@@ -83,22 +130,57 @@ export class WorkflowsService {
     // Save workflow
     const savedWorkflow = await this.workflowRepository.save(workflow);
 
+    await this.logs.info('Workflow updated', {
+      category: 'workflow',
+      source: 'WorkflowsService',
+      metadata: {
+        workflowId,
+        workflowName: workflow.name,
+        triggerCount: triggers.length,
+        allowedRoles: workflow.allowedRoles,
+        allowedUsers: workflow.allowedUsers
+      }
+    });
+
     // Delete existing triggers
     await this.workflowTriggerRepository.delete({ workflowId });
 
     // Create new triggers
     for (const trigger of triggers) {
-      const workflowTrigger = new WorkflowTrigger();
-      workflowTrigger.id = uuid();
-      workflowTrigger.workflowId = savedWorkflow.id;
-      workflowTrigger.name = trigger.name as string;
-      workflowTrigger.type = trigger.type as string;
-      workflowTrigger.eventName = (trigger.config.eventName as string) || trigger.name as string;
-      workflowTrigger.config = JSON.stringify(trigger.config);
-      workflowTrigger.status = 'active';
-      workflowTrigger.createdBy = workflow.createdBy;
+      try {
+        const workflowTrigger = new WorkflowTrigger();
+        workflowTrigger.id = uuid();
+        workflowTrigger.workflowId = savedWorkflow.id;
+        workflowTrigger.name = trigger.name as string;
+        workflowTrigger.type = trigger.type as string;
+        workflowTrigger.eventName = (trigger.config.eventName as string) || trigger.name as string;
+        workflowTrigger.config = JSON.stringify(trigger.config);
+        workflowTrigger.status = 'active';
+        workflowTrigger.createdBy = workflow.createdBy;
 
-      await this.workflowTriggerRepository.save(workflowTrigger);
+        await this.workflowTriggerRepository.save(workflowTrigger);
+
+        await this.logs.info('Workflow trigger updated', {
+          category: 'workflow',
+          source: 'WorkflowsService',
+          metadata: {
+            workflowId,
+            triggerId: workflowTrigger.id,
+            triggerName: workflowTrigger.name,
+            eventName: workflowTrigger.eventName
+          }
+        });
+      } catch (error) {
+        await this.logs.error('Failed to update workflow trigger', {
+          category: 'workflow',
+          source: 'WorkflowsService',
+          metadata: {
+            workflowId,
+            triggerName: trigger.name,
+            error: error instanceof Error ? error.message : String(error)
+          }
+        });
+      }
     }
 
     return savedWorkflow;
@@ -135,6 +217,11 @@ export class WorkflowsService {
     });
 
     if (!workflow) {
+      await this.logs.warning('Workflow status update attempted on non-existent workflow', {
+        category: 'workflow',
+        source: 'WorkflowsService',
+        metadata: { workflowId }
+      });
       throw new Error('Workflow not found');
     }
 
@@ -147,6 +234,25 @@ export class WorkflowsService {
         { workflowId },
         { status: 'inactive' }
       );
+
+      await this.logs.info('Workflow archived and triggers deactivated', {
+        category: 'workflow',
+        source: 'WorkflowsService',
+        metadata: {
+          workflowId,
+          workflowName: workflow.name
+        }
+      });
+    } else {
+      await this.logs.info('Workflow status updated', {
+        category: 'workflow',
+        source: 'WorkflowsService',
+        metadata: {
+          workflowId,
+          workflowName: workflow.name,
+          newStatus: status
+        }
+      });
     }
 
     return await this.workflowRepository.save(workflow);

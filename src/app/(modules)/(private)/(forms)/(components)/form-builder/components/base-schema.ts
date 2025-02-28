@@ -32,8 +32,8 @@ export abstract class BaseComponentSchema<T extends z.ZodType, C extends BaseCon
     return this;
   }
 
-  getSchema(): z.ZodObject<{[key: string]: T}> {
-    return z.object({ [this.propName]: this.schema });
+  getSchema(): T {
+    return this.schema;
   }
 
   toJSON() {
@@ -44,7 +44,7 @@ export abstract class BaseComponentSchema<T extends z.ZodType, C extends BaseCon
     const Type = this as any;
     const zodSchema = jsonSchemaToZod(json);
     // Extract the inner schema for the property
-    const innerSchema = (zodSchema as any)._def.shape()[propName];
+    const innerSchema = (zodSchema as any)._def.shape();
     return new Type(innerSchema, propName);
   }
 

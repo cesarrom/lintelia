@@ -5,10 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { PropertiesProps } from '../../schemas';
-import { RichtextComponentSchema, richtextConfigSchema } from './schema';
+import { RichtextComponentSchema, richtextConfigSchema, RichtextConfig } from './schema';
 import { z } from 'zod';
-
-type RichtextConfig = z.infer<typeof richtextConfigSchema>;
+import { Separator } from '@/components/ui/separator';
 
 export function RichtextProperties({ config, onChange }: PropertiesProps<RichtextConfig>) {
   const schemaRef = useRef(new RichtextComponentSchema(config.propertyName));
@@ -55,6 +54,27 @@ export function RichtextProperties({ config, onChange }: PropertiesProps<Richtex
     });
   }, [config, onChange]);
 
+  const handleEnableVariablesChange = useCallback((value: boolean) => {
+    onChange({
+      ...config,
+      enableVariables: value,
+    });
+  }, [config, onChange]);
+
+  const handleEnableFieldReferencesChange = useCallback((value: boolean) => {
+    onChange({
+      ...config,
+      enableFieldReferences: value,
+    });
+  }, [config, onChange]);
+
+  const handleEnableSystemVariablesChange = useCallback((value: boolean) => {
+    onChange({
+      ...config,
+      enableSystemVariables: value,
+    });
+  }, [config, onChange]);
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -95,6 +115,36 @@ export function RichtextProperties({ config, onChange }: PropertiesProps<Richtex
           onCheckedChange={handleRequiredChange}
         />
         <Label>Required</Label>
+      </div>
+
+      <Separator className="my-4" />
+      
+      <div className="space-y-4">
+        <h3 className="text-sm font-medium">References</h3>
+        
+        <div className="flex items-center space-x-2">
+          <Switch
+            checked={config.enableVariables}
+            onCheckedChange={handleEnableVariablesChange}
+          />
+          <Label>Enable Form Variables</Label>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <Switch
+            checked={config.enableFieldReferences}
+            onCheckedChange={handleEnableFieldReferencesChange}
+          />
+          <Label>Enable Form Field References</Label>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <Switch
+            checked={config.enableSystemVariables}
+            onCheckedChange={handleEnableSystemVariablesChange}
+          />
+          <Label>Enable System Variables</Label>
+        </div>
       </div>
     </div>
   );

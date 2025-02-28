@@ -100,6 +100,7 @@ export default function FormInstancePage() {
               definitions: {},
             }}
             onSubmit={(values) => {
+              console.log({ values })
               submitForm(values);
             }}
           />

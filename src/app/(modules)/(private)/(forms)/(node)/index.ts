@@ -3,6 +3,7 @@ import { FormInput } from 'lucide-react';
 import { FormToolbar } from './FormToolbar';
 import { v4 as uuid } from 'uuid';
 import { NodeDefinition } from '../../(workflows)/(components)/nodes/types';
+import { events } from '../types';
 
 export const formNode: NodeDefinition = {
   get id() {
@@ -16,14 +17,14 @@ export const formNode: NodeDefinition = {
   toolbar: FormToolbar,
   events: [
     {
-      name: 'public_url',
+      name: events.publicUrl,
       outputs: [{
         name: 'url',
         type: 'string',
       }]
     },
     {
-      name: 'form_submitted',
+      name: events.success,
       outputs: [{
         name: 'form_data',
         type: 'object',

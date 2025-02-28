@@ -8,6 +8,6 @@ export const FormNodeDataSchema = z.object({
 export type FormNodeData = z.infer<typeof FormNodeDataSchema>;
 
 export const events = {
-  publicUrl: 'publicUrl',
-  success: 'success'
+  publicUrl: 'public_url',
+  success: 'form_submitted'
 } as const;

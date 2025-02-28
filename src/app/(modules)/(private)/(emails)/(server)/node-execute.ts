@@ -2,9 +2,6 @@ import OpenAI from 'openai';
 import { events, EmailNodeData, EmailNodeDataSchema } from "../types";
 import * as restate from "@restatedev/restate-sdk/fetch";
 import { getConfiguration, nextOrEndExecution } from "@/lib/restate-utils";
-import { env } from '@/lib/constants';
-import { inject } from '@/lib/injector/utils';
-import { downloadFile } from '../../(shared)/(actions)/files';
 import { ExecuteNodeFunctionProps } from '../../(workflows)/types';
 import { getInjector } from '@/lib/injector';
 import { EmailsService as ES } from '@/lib/services';
@@ -25,8 +22,8 @@ export const emailsService = restate.object({
 
         await emailService.sendEmailTemplate({
           to: variables.to,
-          templateId: variables.emailTemplateId,
-          variables: variables.inputs,
+          subject: variables.subject,
+          template: variables.template,
           cc: variables.cc,
         });
 

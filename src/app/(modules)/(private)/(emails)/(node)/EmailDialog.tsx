@@ -10,51 +10,46 @@ import {
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CodeEditor } from '@/components/ui/code-editor';
+import { TemplateEditor } from '@/components/ui/template-editor';
 import { VariableInput } from '@/components/ui/variable-input';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { DialogProps } from '../types';
-import { useNodes } from 'reactflow';
+import { EmailNodeData } from '../types';
+import { DialogProps } from '@radix-ui/react-dialog';
+import { useNodeData } from '../../(workflows)/(components)/WorkflowContext';
 
-interface EmailConfig {
-  subject: string;
-  template: string;
-  to: string[];
-  cc?: string[];
-  bcc?: string[];
-}
 
-export function EmailDialog({ open, onOpenChange, data, onSave }: DialogProps) {
-  const nodes = useNodes();
+export function EmailDialog({ open, onOpenChange }: DialogProps) {
+  const [node, setNode] = useNodeData();
   const [selectedTab, setSelectedTab] = useState<'template' | 'config'>('template');
-  const [name, setName] = useState(data.name);
-  const [emailConfig, setEmailConfig] = useState<EmailConfig>(() => {
-    if (data.config?.email) {
-      return data.config.email as EmailConfig;
+  const [name, setName] = useState(node?.name || '');
+  const [emailConfig, setEmailConfig] = useState<EmailNodeData>(() => {
+    if (node?.config) {
+      return node.config as EmailNodeData;
     }
     return {
       subject: '',
       template: '',
-      to: [],
+      to: '',
       cc: [],
-      bcc: [],
     };
   });
 
   const handleSave = () => {
-    onSave({
-      ...data,
+    setNode({
+      ...node,
       name,
       config: {
-        ...data.config,
-        email: emailConfig,
+        ...(node?.config || {}),
+        ...emailConfig,
       },
     });
-    onOpenChange(false);
+    onOpenChange?.(false);
   };
 
   const handleConfigChange = (value: string) => {
     try {
+      debugger;
       const parsed = JSON.parse(value);
       setEmailConfig(parsed);
     } catch (err) {
@@ -89,26 +84,24 @@ export function EmailDialog({ open, onOpenChange, data, onSave }: DialogProps) {
                   <VariableInput
                     value={emailConfig.subject}
                     onChange={(value) => setEmailConfig({ ...emailConfig, subject: value })}
-                    nodes={nodes}
                     placeholder="Enter subject or reference a variable"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>To</Label>
                   <VariableInput
-                    value={emailConfig.to[0] || ''}
-                    onChange={(value) => setEmailConfig({ ...emailConfig, to: [value] })}
-                    nodes={nodes}
+                    value={emailConfig.to || ''}
+                    onChange={(value) => setEmailConfig({ ...emailConfig, to: value })}
                     placeholder="Enter email or reference a variable"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Template</Label>
-                  <CodeEditor
+                  <TemplateEditor
                     value={emailConfig.template}
                     onChange={(value) => setEmailConfig({ ...emailConfig, template: value })}
-                    language="html"
-                    placeholder="<h1>Hello {{name}}</h1>"
+                    placeholder="Enter your email content here. Use {{variables}} for dynamic content."
+                    height="250px"
                   />
                 </div>
               </div>

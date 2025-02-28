@@ -6,6 +6,7 @@ import { inject } from "@/lib/injector/utils";
 import { FormsService } from "@/lib/services/forms.service";
 import { auth } from "@/lib/clients/auth.client";
 import assert from "assert";
+import { env } from "@/lib/constants";
 
 export const formService = restate.object({
   name: "form",
@@ -41,7 +42,7 @@ export const formService = restate.object({
       // Create an awakeable promise that will be resolved when the form is submitted
       const resolvablePromise = c.awakeable<Record<string, unknown>>();
 
-      const publicUrl = `${process.env.NEXT_PUBLIC_URL}/forms/${config.formId}/instances/${instance.id}?promiseId=${resolvablePromise.id}&key=${c.key}`;
+      const publicUrl = `https://${domain}.${env.DOMAIN}/forms/${config.formId}/instances/${instance.id}?promiseId=${resolvablePromise.id}&key=${c.key}`;
 
       // Emit the public URL event first
       await nextOrEndExecution(c, { 
@@ -60,7 +61,10 @@ export const formService = restate.object({
 
       // Update the form instance with the submitted data
       await c.run('update-instance', async () => {
-        const formsService = await inject([FormsService], ({ }, [service]) => service)();
+        const formsService = await inject([FormsService], ({ }, [service]) => service)({  
+          domain,
+          token
+        });
         return formsService.updateInstance(instance.id, {
           answers: formData,
           status: 'submitted'

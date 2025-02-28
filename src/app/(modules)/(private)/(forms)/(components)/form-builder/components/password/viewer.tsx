@@ -8,6 +8,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PasswordConfig } from './schema';
 import { ViewerProps } from '../../schemas';
+import { useController, ControllerFieldState } from 'react-hook-form';
 
 export function PasswordViewer({
   id,
@@ -16,8 +17,43 @@ export function PasswordViewer({
   onChange,
   onBlur,
   error,
+  register,
+  formState,
+  control
 }: ViewerProps<PasswordConfig, string>) {
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Check if we're using react-hook-form
+  const isUsingReactHookForm = !!register && !!formState && !!control;
+  
+  // Use controller for react-hook-form if available
+  const controllerResult = isUsingReactHookForm 
+    ? useController({
+        name: config.propertyName,
+        control,
+        defaultValue: value || '',
+        rules: {
+          required: config.required ? 'This field is required' : false,
+          minLength: config.validation?.minLength 
+            ? { value: config.validation.minLength, message: `Minimum length is ${config.validation.minLength} characters` }
+            : undefined,
+          maxLength: config.validation?.maxLength
+            ? { value: config.validation.maxLength, message: `Maximum length is ${config.validation.maxLength} characters` }
+            : undefined,
+          pattern: config.validation?.pattern
+            ? { value: new RegExp(config.validation.pattern), message: 'Invalid format' }
+            : undefined
+        }
+      })
+    : null;
+  
+  const field = controllerResult?.field || {};
+  const fieldState = controllerResult?.fieldState || {} as ControllerFieldState;
+
+  // Get error message from react-hook-form or from props
+  const errorMessage = isUsingReactHookForm && fieldState.error
+    ? fieldState.error.message 
+    : error;
 
   return (
     <div className="space-y-2">
@@ -29,21 +65,36 @@ export function PasswordViewer({
         <p className="text-sm text-muted-foreground">{config.description}</p>
       )}
       <div className="relative">
-        <Input
-          id={id}
-          name={config.propertyName}
-          type={showPassword ? 'text' : 'password'}
-          value={value || ''}
-          onChange={(e) => onChange?.(e.target.value)}
-          onBlur={onBlur}
-          placeholder={config.placeholder}
-          className={cn(
-            config.showToggle && 'pr-10',
-            error && 'border-destructive'
-          )}
-          aria-invalid={!!error}
-          aria-describedby={error ? `${id}-error` : undefined}
-        />
+        {isUsingReactHookForm ? (
+          <Input
+            id={id}
+            {...field}
+            type={showPassword ? 'text' : 'password'}
+            placeholder={config.placeholder}
+            className={cn(
+              config.showToggle && 'pr-10',
+              fieldState.error && 'border-destructive'
+            )}
+            aria-invalid={!!fieldState.error}
+            aria-describedby={fieldState.error ? `${id}-error` : undefined}
+          />
+        ) : (
+          <Input
+            id={id}
+            name={config.propertyName}
+            type={showPassword ? 'text' : 'password'}
+            value={value || ''}
+            onChange={(e) => onChange?.(e.target.value)}
+            onBlur={onBlur}
+            placeholder={config.placeholder}
+            className={cn(
+              config.showToggle && 'pr-10',
+              error && 'border-destructive'
+            )}
+            aria-invalid={!!error}
+            aria-describedby={error ? `${id}-error` : undefined}
+          />
+        )}
         {config.showToggle && (
           <Button
             type="button"
@@ -64,9 +115,9 @@ export function PasswordViewer({
           </Button>
         )}
       </div>
-      {error && (
+      {errorMessage && (
         <p id={`${id}-error`} className="text-sm text-destructive">
-          {error}
+          {errorMessage}
         </p>
       )}
     </div>

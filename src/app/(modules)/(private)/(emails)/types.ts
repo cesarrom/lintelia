@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 export const EmailNodeDataSchema = z.object({
-  emailTemplateId: z.string(),
-  inputs: z.record(z.string(), z.any()),
+  template: z.string(),
+  subject: z.string(),
   to: z.string(),
   cc: z.array(z.string()).optional(),
 });

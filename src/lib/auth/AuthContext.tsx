@@ -4,6 +4,7 @@ import { useSession, useUser } from '@descope/nextjs-sdk/client';
 import { AuthProvider } from '@descope/nextjs-sdk';
 import { useRouter } from 'next/navigation';
 import { getUserRoles } from '@/app/(modules)/(public)/(auth)/(actions)/actions';
+import { Permission, PERMISSIONS } from './permissions';
 
 type User = ReturnType<typeof useUser>['user'];
 
@@ -15,6 +16,7 @@ export interface AuthContextType {
   permissions: string[];
   isSuperAdmin: boolean;
   isAdmin: boolean;
+  hasPermission: (permission: string | string[]) => boolean;
   logout: () => Promise<void>;
 }
 
@@ -27,7 +29,6 @@ const AP = ({ children }: { children: ReactNode }) => {
   const [_, startTransition] = useTransition();
   const [permissions, setPermissions] = useState<string[]>([]);
 
-  // In a real implementation, you would fetch these from your backend
   useEffect(() => {
     if (!user) { return };
     startTransition(async () => {
@@ -44,10 +45,24 @@ const AP = ({ children }: { children: ReactNode }) => {
     navigate.replace('/sign-out');
   };
 
-  console.log({
-    permissions,
-    user,
-  });
+  const hasPermission = (requiredPermissions: string | string[]): boolean => {
+    const permissionsToCheck = Array.isArray(requiredPermissions) 
+      ? requiredPermissions 
+      : [requiredPermissions];
+
+    // Super admin has all permissions
+    if (permissions.includes('super_admin')) {
+      return true;
+    }
+
+    // Admin has all permissions except super_admin specific ones
+    if (permissions.includes('admin')) {
+      return !permissionsToCheck.includes('super_admin');
+    }
+
+    // Check if user has any of the required permissions
+    return permissionsToCheck.some(permission => permissions.includes(permission));
+  };
 
   const value = {
     isAuthenticated,
@@ -57,6 +72,7 @@ const AP = ({ children }: { children: ReactNode }) => {
     permissions,
     isSuperAdmin: permissions.includes('super_admin'),
     isAdmin: permissions.includes('admin'),
+    hasPermission,
     logout: handleLogout,
   };
 
