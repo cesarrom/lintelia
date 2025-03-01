@@ -5,12 +5,13 @@ import { ENVIRONMENT_TOKEN } from "@/lib/injector/tokens";
 import { inject, optional, token } from "@/lib/injector/utils";
 import { InvitationsService, RolesService } from "@/lib/services";
 import { EventsService } from "@/lib/services/events.service";
+import { LogsService } from "@/lib/services/logs.service";
 import assert from "assert";
 import { redirect } from "next/navigation";
 
 export const matchInvitationsRoles = inject(
-  [InvitationsService, RolesService],
-  async ({ user }, [invitationsService, userRolesService]) => {
+  [InvitationsService, RolesService, LogsService],
+  async ({ user }, [invitationsService, userRolesService, logs]) => {
     assert(user, 'User is required');
 
     const invitation = user.email && await invitationsService.getInvitationByEmail(user.email);
@@ -25,56 +26,121 @@ export const matchInvitationsRoles = inject(
       roleId: role as string,
       userId: user.userId,
     });
+
+    await logs.info('User roles matched from invitation', {
+      category: 'security',
+      source: 'AuthActions',
+      userId: user.userId,
+      metadata: {
+        email: user.email,
+        role: role as string
+      }
+    });
   }
 );
 
 export const getUserRoles = inject(
-  [RolesService],
-  async ({ user }, [userRolesService]) => {
+  [RolesService, LogsService],
+  async ({ user }, [userRolesService, logs]) => {
     assert(user, 'User is required');
-    return userRolesService.getRolesByUserId({ userId: user.userId });
+    const roles = await userRolesService.getRolesByUserId({ userId: user.userId });
+
+    await logs.debug('User roles retrieved', {
+      category: 'security',
+      source: 'AuthActions',
+      userId: user.userId,
+      metadata: {
+        roles
+      }
+    });
+
+    return roles;
   }
 );
 
 export const verifyIdentity = inject(
-  [token<typeof env>(ENVIRONMENT_TOKEN)],
-  async ({ user }, [environment], person: { givenName: string, familyName: string, primaryEmail: string, primaryPhone: string }) => {
+  [token<typeof env>(ENVIRONMENT_TOKEN), LogsService],
+  async ({ user }, [environment, logs], person: { givenName: string, familyName: string, primaryEmail: string, primaryPhone: string }) => {
     assert(user, 'User is required');
 
-    const verifyPersonBody = {
-      appDomain: environment.DOMAIN, // your product app domain (e.g. ‘example.com’).
-      totApiKey: environment.KYC_TOKEN,
-      totSecretKey: environment.KYC_SECRET,
-      appUserid: user.userId, // you define - unique user constant.
-      person,
-    };
+    try {
+      const verifyPersonBody = {
+        appDomain: environment.DOMAIN,
+        totApiKey: environment.KYC_TOKEN,
+        totSecretKey: environment.KYC_SECRET,
+        appUserid: user.userId,
+        person,
+      };
 
-    const response = await fetch(`https://${environment.KYC_ENDPOINT}/api/person`, {
-      method: "POST",
-      body: JSON.stringify(verifyPersonBody),
-      headers: {
-        "Content-Type": "application/json",
-      }
-    }).then(res => res.json());
+      const response = await fetch(`https://${environment.KYC_ENDPOINT}/api/person`, {
+        method: "POST",
+        body: JSON.stringify(verifyPersonBody),
+        headers: {
+          "Content-Type": "application/json",
+        }
+      }).then(res => res.json());
 
-    const content = (response && response.content) || {};
+      const content = (response && response.content) || {};
 
-    if (content.code === "WorkflowService:conditionsMet") {
-      return { verificationRequired: false, continuation: undefined };
+      const verificationRequired = content.code !== "WorkflowService:conditionsMet";
+
+      await logs.info('Identity verification attempt', {
+        category: 'security',
+        source: 'AuthActions',
+        userId: user.userId,
+        metadata: {
+          verificationRequired,
+          person: {
+            givenName: person.givenName,
+            familyName: person.familyName,
+            email: person.primaryEmail
+          },
+          continuation: content.continuation
+        }
+      });
+
+      return { 
+        verificationRequired, 
+        continuation: content.continuation 
+      };
+    } catch (error) {
+      await logs.error('Identity verification failed', {
+        category: 'security',
+        source: 'AuthActions',
+        userId: user.userId,
+        metadata: {
+          person: {
+            givenName: person.givenName,
+            familyName: person.familyName,
+            email: person.primaryEmail
+          },
+          error: error instanceof Error ? error.message : String(error)
+        }
+      });
+      throw error;
     }
-
-    return { verificationRequired: true, continuation: content.continuation };
   }
 );
 
 export const afterLogin = inject(
-  [optional<EventsService>(EventsService)],
-  async ({ user, tenant }, [eventsService], firstSeen: boolean) => {
+  [optional<EventsService>(EventsService), LogsService],
+  async ({ user, tenant }, [eventsService, logs], firstSeen: boolean) => {
     if (tenant) {
       assert(user, 'User is required');
       assert(eventsService, 'Events service is required');
 
       await matchInvitationsRoles();
+
+      await logs.info(firstSeen ? 'User signed up' : 'User signed in', {
+        category: 'security',
+        source: 'AuthActions',
+        userId: user.userId,
+        metadata: {
+          firstSeen,
+          tenant: tenant.domain
+        }
+      });
+
       await eventsService.logEvent(firstSeen ? 'sign-up' : 'sign-in', { userId: user.userId });
 
       return redirect('/dashboard');

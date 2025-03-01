@@ -11,7 +11,7 @@ export const getLogs = inject(
   async (context, [logsService], filter?: LogsFilter) => {
     const logs = await logsService.list(filter);
     revalidatePath('/logs');
-    return logs;
+    return logs.map(log => ({ ...log }))
   }
 );
 
@@ -19,7 +19,8 @@ export const getLogs = inject(
 export const getLog = inject(
   [LogsService],
   async (context, [logsService], id: string) => {
-    return await logsService.getById(id);
+    const log = await logsService.getById(id);
+    return { ...log };
   }
 );
 
@@ -37,7 +38,7 @@ export const createLog = inject(
   }) => {
     const log = await logsService.create(data);
     revalidatePath('/logs');
-    return log;
+    return {...log};
   }
 );
 
@@ -68,5 +69,41 @@ export const deleteOldLogs = inject(
     const success = await logsService.deleteOlderThan(date);
     revalidatePath('/logs');
     return success;
+  }
+);
+
+// Get logs analytics
+export const getLogsAnalytics = inject(
+  [LogsService],
+  async (context, [logsService], filter?: LogsFilter) => {
+    const analytics = await logsService.getAnalytics(filter);
+    return JSON.parse(JSON.stringify(analytics));
+  }
+);
+
+// Get top users by log count
+export const getTopUsers = inject(
+  [LogsService],
+  async (context, [logsService], limit: number = 10) => {
+    const topUsers = await logsService.getTopUsers(limit);
+    return JSON.parse(JSON.stringify(topUsers));
+  }
+);
+
+// Get top sources by log count
+export const getTopSources = inject(
+  [LogsService],
+  async (context, [logsService], limit: number = 10) => {
+    const topSources = await logsService.getTopSources(limit);
+    return JSON.parse(JSON.stringify(topSources));
+  }
+);
+
+// Get logs trend over time
+export const getLogsTrend = inject(
+  [LogsService],
+  async (context, [logsService], days: number = 30) => {
+    const trend = await logsService.getLogsTrend(days);
+    return JSON.parse(JSON.stringify(trend));
   }
 );

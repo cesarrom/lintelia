@@ -2,14 +2,17 @@
 
 import { env } from "@/lib/constants";
 import { inject } from "@/lib/injector/utils";
-import * as clients from "@restatedev/restate-sdk-clients";
-import { workflowService } from "../(server)/workflow-service";
-import assert from "assert";
-import { WorkflowsService } from "@/lib/services/workflows.service";
+import { WorkflowsService, LogsService } from "@/lib/services";
+import { v4 as uuid } from 'uuid';
 
 export const list = inject(
-  [WorkflowsService],
-  async ({ }, [workflowsService]) => {
+  [WorkflowsService, LogsService],
+  async ({ }, [workflowsService, logs]) => {
+    await logs.debug('Listing workflows', {
+      category: 'workflow',
+      source: 'WorkflowActions'
+    });
+
     const workflows = await workflowsService.listWorkflows();
     return workflows.map((workflow) => ({
       ...workflow,
@@ -18,8 +21,14 @@ export const list = inject(
 );
 
 export const load = inject(
-  [WorkflowsService],
-  async ({ }, [workflowsService], workflowId: string) => {
+  [WorkflowsService, LogsService],
+  async ({ }, [workflowsService, logs], workflowId: string) => {
+    await logs.debug('Loading workflow', {
+      category: 'workflow',
+      source: 'WorkflowActions',
+      metadata: { workflowId }
+    });
+
     const workflow = await workflowsService.loadWorkflow(workflowId);
     return {
       id: workflow.id,
@@ -29,36 +38,75 @@ export const load = inject(
 );
 
 export const save = inject(
-  [WorkflowsService],
-  async ({ user }, [workflowsService], { workflowId, yaml }: { workflowId?: string, yaml: string }) => {
+  [WorkflowsService, LogsService],
+  async ({ user }, [workflowsService, logs], { workflowId, yaml }: { workflowId?: string, yaml: string }) => {
     if (!user?.email) {
+      await logs.error('User email is required for saving workflow', {
+        category: 'workflow',
+        source: 'WorkflowActions'
+      });
       throw new Error('User email is required');
     }
 
-    if (workflowId) {
-      const workflow = await workflowsService.updateWorkflow(workflowId, {
-        yaml,
+    try {
+      if (workflowId) {
+        await logs.info('Updating workflow', {
+          category: 'workflow',
+          source: 'WorkflowActions',
+          userId: user.email,
+          metadata: { workflowId }
+        });
+
+        const workflow = await workflowsService.updateWorkflow(workflowId, {
+          yaml,
+        });
+        return {
+          id: workflow.id,
+          yaml: workflow.yaml
+        };
+      } else {
+        await logs.info('Creating new workflow', {
+          category: 'workflow',
+          source: 'WorkflowActions',
+          userId: user.email
+        });
+
+        const workflow = await workflowsService.saveWorkflow({
+          yaml,
+          createdBy: user.email,
+        });
+        return {
+          id: workflow.id,
+          yaml: workflow.yaml
+        };
+      }
+    } catch (error) {
+      await logs.error('Failed to save workflow', {
+        category: 'workflow',
+        source: 'WorkflowActions',
+        userId: user.email,
+        metadata: {
+          workflowId,
+          error: error instanceof Error ? error.message : String(error)
+        }
       });
-      return {
-        id: workflow.id,
-        yaml: workflow.yaml
-      };
-    } else {
-      const workflow = await workflowsService.saveWorkflow({
-        yaml,
-        createdBy: user.email,
-      });
-      return {
-        id: workflow.id,
-        yaml: workflow.yaml
-      };
+      throw error;
     }
   }
 );
 
 export const setStatus = inject(
-  [WorkflowsService],
-  async ({ }, [workflowsService], { workflowId, status }: { workflowId: string, status: 'draft' | 'active' | 'archived' }) => {
+  [WorkflowsService, LogsService],
+  async ({ }, [workflowsService, logs], { workflowId, status }: { workflowId: string, status: 'draft' | 'active' | 'archived' }) => {
+    await logs.info('Setting workflow status', {
+      category: 'workflow',
+      source: 'WorkflowActions',
+      metadata: {
+        workflowId,
+        status
+      }
+    });
+
     const workflow = await workflowsService.setWorkflowStatus(workflowId, status);
     return {
       id: workflow.id,
@@ -68,17 +116,78 @@ export const setStatus = inject(
 );
 
 export const run = inject(
-  [],
-  async ({ user }, [], { workflowId, inputs }: { workflowId: string, inputs: Record<string, unknown> }) => {
-    assert(user, 'User not found');
+  [LogsService],
+  async ({ user }, [logs], { variables, yaml, token, domain }: { variables: Record<string, unknown>, yaml: string, token: string, domain: string }) => {
+    const executionId = uuid();
     
-    const rs = clients.connect({ url: env.RESTATE_ENDPOINT });
+    try {
+      await logs.info('Starting workflow execution', {
+        category: 'workflow',
+        source: 'WorkflowActions',
+        userId: user?.email,
+        metadata: {
+          executionId,
+          domain,
+          variables: Object.keys(variables),
+          yamlLength: yaml.length
+        }
+      });
 
-    const count = await rs
-      .objectSendClient(workflowService, "start")
-      .start({ workflowId, variables: inputs });
+      const response = await fetch(`${env.RESTATE_ENDPOINT}/workflow/${executionId}/start`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          variables,
+          yaml,
+          token,
+          domain,
+        }),
+      });
 
-    console.log('Running workflow', workflowId, 'with inputs', inputs, 'and count', count);
-    return { success: true };
+      if (!response.ok) {
+        const errorText = await response.text();
+        await logs.error('Failed to run workflow', {
+          category: 'workflow',
+          source: 'WorkflowActions',
+          userId: user?.email,
+          metadata: {
+            executionId,
+            domain,
+            statusCode: response.status,
+            error: errorText
+          }
+        });
+        throw new Error("Failed to run workflow");
+      }
+
+      const result = await response.json();
+
+      await logs.info('Workflow execution started successfully', {
+        category: 'workflow',
+        source: 'WorkflowActions',
+        userId: user?.email,
+        metadata: {
+          executionId,
+          domain,
+          result
+        }
+      });
+
+      return result;
+    } catch (error) {
+      await logs.error('Workflow execution failed', {
+        category: 'workflow',
+        source: 'WorkflowActions',
+        userId: user?.email,
+        metadata: {
+          executionId,
+          domain,
+          error: error instanceof Error ? error.message : String(error)
+        }
+      });
+      throw error;
+    }
   }
 );

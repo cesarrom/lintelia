@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/table";
 import { useQuery } from "@tanstack/react-query";
 import { MoreHorizontal, Plus } from "lucide-react";
-import { list, setStatus, load } from "../../(actions)";
+import { list, setStatus, load, run } from "../../(actions)";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
@@ -33,31 +33,9 @@ import { type Workflow } from "@/lib/entities/tenant";
 import { useEffect, useState, useTransition } from "react";
 import { RunWorkflowDialog } from "../../(components)/RunWorkflowDialog";
 import { ConfirmDialog } from "../../(components)/ConfirmDialog";
-import { v4 as uuid } from 'uuid';
 import { useSession } from "@descope/nextjs-sdk/client";
 import { Link } from "@/components/ui/link";
 import { getTenant } from "../../../(profile)/(pages)/settings/actions";
-
-const run = async ({ variables, yaml, token, domain }: { variables: Record<string, unknown>, yaml: string, token: string, domain: string }) => {
-  const response = await fetch(`http://127.0.0.1:8080/workflow/${uuid()}/start`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      variables,
-      yaml,
-      token,
-      domain,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to run workflow");
-  }
-
-  return response.json();
-}
 
 interface StatusChangeConfirmation {
   workflowId: string;

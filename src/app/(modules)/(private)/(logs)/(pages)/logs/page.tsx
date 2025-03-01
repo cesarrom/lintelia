@@ -2,6 +2,8 @@ import { Metadata } from 'next';
 import { getLogs } from '../../(actions)/actions';
 import LogsTable from './components/logs-table';
 import LogsFilter from './components/logs-filter';
+import LogsDashboard from './components/logs-dashboard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export const metadata: Metadata = {
   title: 'System Logs',
@@ -20,20 +22,22 @@ export default async function LogsPage({
     userId?: string;
     acknowledged?: string;
     search?: string;
+    view?: string;
   };
 }) {
   const filter = searchParams ? {
     startDate: searchParams.startDate ? new Date(searchParams.startDate) : undefined,
     endDate: searchParams.endDate ? new Date(searchParams.endDate) : undefined,
-    level: searchParams.level as any,
-    category: searchParams.category as any,
+    level: searchParams.level ? searchParams.level as any : undefined,
+    category: searchParams.category ? searchParams.category as any : undefined,
     source: searchParams.source,
     userId: searchParams.userId,
-    acknowledged: searchParams.acknowledged === 'true',
+    acknowledged: searchParams.acknowledged !== undefined ? searchParams.acknowledged === 'true' : undefined,
     search: searchParams.search,
   } : undefined;
 
   const logs = await getLogs(filter);
+  const activeView = searchParams?.view || 'analytics';
 
   return (
     <div className="container mx-auto py-10">
@@ -44,10 +48,40 @@ export default async function LogsPage({
         </p>
       </div>
 
-      <div className="space-y-4">
+      <Tabs defaultValue={activeView} className="space-y-4">
+        <div className="flex justify-between items-center">
+          <TabsList>
+            <TabsTrigger value="analytics" asChild>
+              <a href={`/logs?view=analytics${searchParams ? `&${new URLSearchParams({
+                ...Object.fromEntries(
+                  Object.entries(searchParams).filter(([key]) => key !== 'view')
+                )
+              }).toString()}` : ''}`}>
+                Analytics Dashboard
+              </a>
+            </TabsTrigger>
+            <TabsTrigger value="logs" asChild>
+              <a href={`/logs?view=logs${searchParams ? `&${new URLSearchParams({
+                ...Object.fromEntries(
+                  Object.entries(searchParams).filter(([key]) => key !== 'view')
+                )
+              }).toString()}` : ''}`}>
+                Logs Table
+              </a>
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
         <LogsFilter />
-        <LogsTable logs={logs} />
-      </div>
+
+        <TabsContent value="analytics" className="space-y-4">
+          <LogsDashboard initialFilter={filter} />
+        </TabsContent>
+
+        <TabsContent value="logs" className="space-y-4">
+          <LogsTable logs={logs} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

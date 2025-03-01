@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { AUTH_TOKEN, DISTRIBUTION_ID_TOKEN, ENVIRONMENT_TOKEN, TENANT_TOKEN, GLOBAL_DB_TOKEN, TENANT_DB_TOKEN, DOMAIN_TOKEN } from "./tokens";
+import { AUTH_TOKEN, DISTRIBUTION_ID_TOKEN, ENVIRONMENT_TOKEN, TENANT_TOKEN, GLOBAL_DB_TOKEN, TENANT_DB_TOKEN, DOMAIN_TOKEN, USER_TOKEN } from "./tokens";
 import { UsersService, InvitationsService, DomainsService, SystemVariablesService, EnvironmentsService, FilesService, FormsService, KYCService, WorkflowsService, WorkflowExecutionsService, TenantsService, RolesService, EmailsService, EmailTemplatesService, LogsService } from "../services";
 import { container, DependencyContainer } from "tsyringe";
 import { Resource } from "sst";
@@ -8,6 +8,7 @@ import { env } from "../constants";
 import { DatabaseService } from "../services/database.service";
 import { EventsService } from "../services/events.service";
 import assert from "assert";
+import { getUser } from "./action";
 
 const injectors: Record<string, DependencyContainer> = {};
 
@@ -81,6 +82,9 @@ export async function getInjector(domain?: string) {
   const tenant = await tenantsService.getByDomain(domain);
   const tenantsDb = await tenantsService.getPlatformDBClient(domain);
 
+  const user = await getUser().catch(() => null);
+
+  childContainer.register(USER_TOKEN, { useValue: user });
   childContainer.register(TENANT_TOKEN, { useValue: tenant });
   childContainer.register(DOMAIN_TOKEN, { useValue: domain });
   childContainer.register(TENANT_DB_TOKEN, { useValue: tenantsDb });

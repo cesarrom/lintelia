@@ -19,7 +19,8 @@ import {
   Bug,
   Trash2,
   Eye,
-  Check
+  Check,
+  User
 } from 'lucide-react';
 import { 
   DropdownMenu,
@@ -51,8 +52,8 @@ export default function LogsTable({ logs }: LogsTableProps) {
   };
 
   const handleAcknowledge = async (id: string) => {
-    if (!user?.userId) return;
-    await acknowledgeLog(id, user.userId);
+    if (!user?.email) return;
+    await acknowledgeLog(id, user.email);
     router.refresh();
   };
 
@@ -81,9 +82,9 @@ export default function LogsTable({ logs }: LogsTableProps) {
       case 'error':
         return <Badge variant="destructive">{level}</Badge>;
       case 'warning':
-        return <Badge variant="warning">{level}</Badge>;
+        return <Badge variant="secondary" className="bg-yellow-500 hover:bg-yellow-500/90">{level}</Badge>;
       case 'info':
-        return <Badge variant="info">{level}</Badge>;
+        return <Badge variant="secondary" className="bg-blue-500 hover:bg-blue-500/90">{level}</Badge>;
       case 'debug':
         return <Badge variant="secondary">{level}</Badge>;
       default:
@@ -100,6 +101,7 @@ export default function LogsTable({ logs }: LogsTableProps) {
             <TableHead>Message</TableHead>
             <TableHead>Category</TableHead>
             <TableHead>Source</TableHead>
+            <TableHead>User</TableHead>
             <TableHead>Created</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
@@ -120,11 +122,19 @@ export default function LogsTable({ logs }: LogsTableProps) {
               </TableCell>
               <TableCell>{log.source || '-'}</TableCell>
               <TableCell>
+                {log.userId ? (
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    {log.userId}
+                  </div>
+                ) : '-'}
+              </TableCell>
+              <TableCell>
                 {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
               </TableCell>
               <TableCell>
                 {log.acknowledged ? (
-                  <Badge variant="success">
+                  <Badge variant="secondary" className="bg-green-500 hover:bg-green-500/90">
                     <CheckCircle2 className="mr-1 h-3 w-3" />
                     Acknowledged
                   </Badge>
@@ -165,7 +175,7 @@ export default function LogsTable({ logs }: LogsTableProps) {
           ))}
           {logs.length === 0 && (
             <TableRow>
-              <TableCell colSpan={7} className="text-center py-6">
+              <TableCell colSpan={8} className="text-center py-6">
                 No logs found. System events will appear here when they occur.
               </TableCell>
             </TableRow>

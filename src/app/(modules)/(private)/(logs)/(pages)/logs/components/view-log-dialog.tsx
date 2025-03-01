@@ -10,6 +10,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { User } from 'lucide-react';
 
 interface ViewLogDialogProps {
   log: Log | null;
@@ -49,9 +50,11 @@ export default function ViewLogDialog({
               <h3 className="font-medium mb-1">Level</h3>
               <Badge variant={
                 log.level === 'error' ? 'destructive' :
-                log.level === 'warning' ? 'warning' :
-                log.level === 'info' ? 'info' :
                 'secondary'
+              } className={
+                log.level === 'warning' ? 'bg-yellow-500 hover:bg-yellow-500/90' :
+                log.level === 'info' ? 'bg-blue-500 hover:bg-blue-500/90' :
+                undefined
               }>
                 {log.level}
               </Badge>
@@ -70,8 +73,13 @@ export default function ViewLogDialog({
             </div>
 
             <div>
-              <h3 className="font-medium mb-1">User ID</h3>
-              <p>{log.userId || '-'}</p>
+              <h3 className="font-medium mb-1">Created By</h3>
+              {log.userId ? (
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  <span>{log.userId}</span>
+                </div>
+              ) : '-'}
             </div>
           </div>
 
@@ -95,10 +103,13 @@ export default function ViewLogDialog({
             {log.acknowledged && (
               <div>
                 <h3 className="font-medium mb-1">Acknowledged</h3>
-                <p>
-                  By: {log.acknowledgedBy}<br />
-                  At: {format(new Date(log.acknowledgedAt!), 'PPpp')}
-                </p>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    <span>By: {log.acknowledgedBy}</span>
+                  </div>
+                  <p>At: {format(new Date(log.acknowledgedAt!), 'PPpp')}</p>
+                </div>
               </div>
             )}
           </div>

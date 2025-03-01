@@ -28,6 +28,16 @@ export class FormsService {
     form.config = data.config;
     form.createdBy = data.createdBy;
 
+    await this.logs.info('Creating new form', {
+      category: 'form',
+      source: 'FormsService',
+      userId: data.createdBy,
+      metadata: {
+        formId: form.id,
+        formName: form.name
+      }
+    });
+
     const savedForm = await this.formRepository.save(form);
 
     await this.logs.info('Form created', {
@@ -49,7 +59,7 @@ export class FormsService {
     });
 
     if (!form) {
-      await this.logs.warning('Form update attempted on non-existent form', {
+      await this.logs.error('Form not found for update', {
         category: 'form',
         source: 'FormsService',
         metadata: { formId: id }
@@ -60,6 +70,16 @@ export class FormsService {
     if (data.name !== undefined) form.name = data.name;
     if (data.description !== undefined) form.description = data.description;
     if (data.config !== undefined) form.config = data.config;
+
+    await this.logs.info('Updating form', {
+      category: 'form',
+      source: 'FormsService',
+      metadata: {
+        formId: form.id,
+        formName: form.name,
+        changes: data
+      }
+    });
 
     const updatedForm = await this.formRepository.save(form);
 
@@ -82,13 +102,22 @@ export class FormsService {
     });
 
     if (!form) {
-      await this.logs.warning('Form deletion attempted on non-existent form', {
+      await this.logs.error('Form not found for deletion', {
         category: 'form',
         source: 'FormsService',
         metadata: { formId: id }
       });
       throw new Error("Form not found");
     }
+
+    await this.logs.warning('Deleting form', {
+      category: 'form',
+      source: 'FormsService',
+      metadata: {
+        formId: form.id,
+        formName: form.name
+      }
+    });
 
     const deletedForm = await this.formRepository.remove(form);
 
@@ -121,7 +150,7 @@ export class FormsService {
     });
 
     if (!form) {
-      await this.logs.error('Form instance creation attempted with non-existent form', {
+      await this.logs.error('Form not found for instance creation', {
         category: 'form',
         source: 'FormsService',
         userId: data.submittedBy,
@@ -138,6 +167,17 @@ export class FormsService {
     instance.answers = {};
     instance.status = "draft";
     instance.submittedBy = data.submittedBy;
+
+    await this.logs.info('Creating form instance', {
+      category: 'form',
+      source: 'FormsService',
+      userId: data.submittedBy,
+      metadata: {
+        formId: form.id,
+        formName: form.name,
+        instanceId: instance.id
+      }
+    });
 
     const savedInstance = await this.formInstanceRepository.save(instance);
 
@@ -169,12 +209,27 @@ export class FormsService {
     });
 
     if (!instance) {
+      await this.logs.error('Form instance not found for update', {
+        category: 'form',
+        source: 'FormsService',
+        metadata: { instanceId: id }
+      });
       throw new Error("Form instance not found");
     }
 
     if (data.answers !== undefined) instance.answers = data.answers;
     if (data.status !== undefined) instance.status = data.status;
     if (data.variables !== undefined) instance.variables = data.variables;
+
+    await this.logs.info('Updating form instance', {
+      category: 'form',
+      source: 'FormsService',
+      metadata: {
+        instanceId: instance.id,
+        formId: instance.formId,
+        changes: data
+      }
+    });
 
     return await this.formInstanceRepository.save(instance);
   }
