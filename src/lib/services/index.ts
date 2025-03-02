@@ -15,3 +15,4 @@ export * from './users.service';
 export * from './workflow-executions.service';
 export * from './workflows.service';
 export * from './logs.service';
+export * from './reviews.service';

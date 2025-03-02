@@ -2,22 +2,27 @@ import { injectable, inject } from "tsyringe";
 import { Form } from "../entities/tenant/form.entity";
 import { FormInstance } from "../entities/tenant/form-instance.entity";
 import { DataSource, Repository } from "typeorm";
-import { TENANT_DB_TOKEN } from "../injector/tokens";
+import { TENANT_DB_TOKEN, USER_TOKEN } from "../injector/tokens";
 import { v4 as uuid } from 'uuid';
 import { FormConfig } from "@/app/(modules)/(private)/(forms)/(components)/form-builder/schemas";
 import { LogsService } from './logs.service';
+import { FormAnswer } from "../entities/tenant";
+import { User } from "@/types/auth";
 
 @injectable()
 export class FormsService {
   private formRepository: Repository<Form>;
   private formInstanceRepository: Repository<FormInstance>;
+  private formAnswersRepository: Repository<FormAnswer>;
 
   constructor(
     @inject(TENANT_DB_TOKEN) private conn: DataSource,
+    @inject(USER_TOKEN) private user: User | null,
     @inject(LogsService) private logs: LogsService
   ) {
     this.formRepository = this.conn.getRepository(Form);
     this.formInstanceRepository = this.conn.getRepository(FormInstance);
+    this.formAnswersRepository = this.conn.getRepository(FormAnswer);
   }
 
   async create(data: CreateFormInput): Promise<Form> {
@@ -51,6 +56,16 @@ export class FormsService {
     });
 
     return savedForm;
+  }
+
+  async createAnswers(data: CreateFormAnswersInput): Promise<FormAnswer> {
+    const formAnswer = new FormAnswer();
+    formAnswer.id = uuid();
+    formAnswer.formInstanceId = data.instanceId;
+    formAnswer.fieldId = data.formId;
+    formAnswer.value = data.answers;
+    formAnswer.createdBy = this.user?.userId || 'system';
+    return await this.formAnswersRepository.save(formAnswer);
   }
 
   async update(id: string, data: UpdateFormInput): Promise<Form> {
@@ -233,6 +248,12 @@ export class FormsService {
 
     return await this.formInstanceRepository.save(instance);
   }
+}
+
+export interface CreateFormAnswersInput {
+  formId: string;
+  instanceId: string;
+  answers: Record<string, any>;
 }
 
 export interface CreateFormInput {

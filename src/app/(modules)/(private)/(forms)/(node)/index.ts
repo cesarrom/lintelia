@@ -18,17 +18,37 @@ export const formNode: NodeDefinition = {
   events: [
     {
       name: events.publicUrl,
-      outputs: [{
-        name: 'url',
-        type: 'string',
-      }]
+      outputs: [
+        {
+          name: 'url',
+          type: 'string',
+        },
+        {
+          name: 'form_id',
+          type: 'string',
+        },
+        {
+          name: 'instance_id',
+          type: 'string',
+        },
+      ]
     },
     {
       name: events.success,
-      outputs: [{
-        name: 'form_data',
-        type: 'object',
-      }]
+      outputs: [
+        {
+          name: 'form_id',
+          type: 'string',
+        },
+        {
+          name: 'instance_id',
+          type: 'string',
+        },
+        {
+          name: 'answers_id',
+          type: 'string',
+        }
+      ]
     }
   ],
   initialConfig: {},

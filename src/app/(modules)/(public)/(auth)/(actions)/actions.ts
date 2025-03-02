@@ -123,11 +123,11 @@ export const verifyIdentity = inject(
 );
 
 export const afterLogin = inject(
-  [optional<EventsService>(EventsService), LogsService],
-  async ({ user, tenant }, [eventsService, logs], firstSeen: boolean) => {
+  [optional<LogsService>(LogsService)],
+  async ({ user, tenant }, [logs], firstSeen: boolean) => {
     if (tenant) {
       assert(user, 'User is required');
-      assert(eventsService, 'Events service is required');
+      assert(logs, 'Events service is required');
 
       await matchInvitationsRoles();
 
@@ -140,8 +140,6 @@ export const afterLogin = inject(
           tenant: tenant.domain
         }
       });
-
-      await eventsService.logEvent(firstSeen ? 'sign-up' : 'sign-in', { userId: user.userId });
 
       return redirect('/dashboard');
     }

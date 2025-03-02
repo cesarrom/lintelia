@@ -1,2 +1,5 @@
 export * from './1710000000000-InitialTenantMigration';
 export * from './1710000000001-FormInstancesAndAnswers';
+export * from './1711170000000-create-system-variables-table';
+export * from './1719170100000-create-logs-table';
+export * from './1720000000000-create-reviews-table';

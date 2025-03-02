@@ -38,49 +38,61 @@ export const formService = restate.object({
       });
 
       // Create the public URL with the instance ID
-      
+
       // Create an awakeable promise that will be resolved when the form is submitted
       const resolvablePromise = c.awakeable<Record<string, unknown>>();
 
       const publicUrl = `https://${domain}.${env.DOMAIN}/forms/${config.formId}/instances/${instance.id}?promiseId=${resolvablePromise.id}&key=${c.key}`;
 
       // Emit the public URL event first
-      await nextOrEndExecution(c, { 
-        nodeData, 
-        event: events.publicUrl, 
-        executionId, 
-        localResult: { url: publicUrl }, 
-        globalResult: r, 
-        yaml, 
-        domain, 
-        token 
+      await nextOrEndExecution(c, {
+        nodeData,
+        event: events.publicUrl,
+        executionId,
+        localResult: { url: publicUrl, form_id: config.formId, instance_id: instance.id },
+        globalResult: r,
+        yaml,
+        domain,
+        token
       });
 
       // Wait for the form to be submitted
       const formData = await resolvablePromise.promise;
 
       // Update the form instance with the submitted data
-      await c.run('update-instance', async () => {
-        const formsService = await inject([FormsService], ({ }, [service]) => service)({  
+      const { instanceId, answersId } = await c.run('update-instance', async () => {
+        const formsService = await inject([FormsService], ({ }, [service]) => service)({
           domain,
           token
         });
-        return formsService.updateInstance(instance.id, {
+
+        const answers = await formsService.createAnswers({
+          formId: config.formId,
+          instanceId: instance.id,
+          answers: formData,
+        });
+
+        const updatedInstance = await formsService.updateInstance(instance.id, {
           answers: formData,
           status: 'submitted'
         });
+
+        return {
+          instanceId: updatedInstance.id,
+          answersId: answers.id,
+        };
       });
 
       // Continue workflow execution with the form data
-      return nextOrEndExecution(c, { 
-        nodeData, 
-        event: events.success, 
-        executionId, 
-        localResult: formData, 
-        globalResult: r, 
-        yaml, 
-        domain, 
-        token 
+      return nextOrEndExecution(c, {
+        nodeData,
+        event: events.success,
+        executionId,
+        localResult: { ...formData, form_id: config.formId, instance_id: instanceId, answers_id: answersId },
+        globalResult: r,
+        yaml,
+        domain,
+        token
       });
     },
   }

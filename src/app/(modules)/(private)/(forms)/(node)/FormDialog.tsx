@@ -20,7 +20,6 @@ import {
 } from '@/components/ui/select';
 import { Plus, ChevronDown, Pencil } from 'lucide-react';
 import { v4 as uuid } from 'uuid';
-import { FormConfig as DBFormConfig } from '@/types/form';
 import { DialogProps } from '../../(workflows)/(components)/nodes/types';
 import { FormBuilder } from '../(components)/form-builder';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -37,27 +36,7 @@ import { createForm, listForms, updateForm } from '../(actions)/actions';
 import { toast } from 'sonner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Form } from '@/lib/entities/tenant/form.entity';
-
-// UI Form Config type (different from database FormConfig)
-interface UIFormConfig {
-  id: string;
-  name: string;
-  description?: string;
-  variables: Record<string, {
-    name: string;
-    type: 'string' | 'number' | 'boolean' | 'object' | 'array';
-    description?: string;
-    required?: boolean;
-    defaultValue?: unknown;
-  }>;
-  components: Array<{
-    id: string;
-    type: string;
-    config: Record<string, unknown>;
-  }>;
-  validation?: Record<string, any>;
-}
-
+import { FormConfig } from '../(components)/form-builder/schemas';
 // Query keys
 export const formKeys = {
   all: ['forms'] as const,
@@ -80,7 +59,7 @@ export const useCreateForm = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: { name: string; description?: string; config: UIFormConfig }) =>
+    mutationFn: (data: { name: string; description?: string; config: FormConfig }) =>
       createForm({
         name: data.name,
         description: data.description,
@@ -90,7 +69,7 @@ export const useCreateForm = () => {
           description: data.config.description,
           variables: data.config.variables,
           components: data.config.components,
-          validation: data.config.validation,
+          validation: data.config.validation as any,
         },
       }),
     onSuccess: () => {
@@ -108,7 +87,7 @@ export const useUpdateForm = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { name: string; description?: string; config: UIFormConfig } }) =>
+    mutationFn: ({ id, data }: { id: string; data: { name: string; description?: string; config: FormConfig } }) =>
       updateForm(id, {
         name: data.name,
         description: data.description,
@@ -118,7 +97,7 @@ export const useUpdateForm = () => {
           description: data.config.description,
           variables: data.config.variables,
           components: data.config.components,
-          validation: data.config.validation,
+          validation: data.config.validation as any,
         },
       }),
     onSuccess: () => {
@@ -134,11 +113,11 @@ export const useUpdateForm = () => {
 
 interface FormNodeConfig {
   selectedForm?: string;
-  config?: UIFormConfig;
+  config?: FormConfig;
   variables?: Record<string, string>;
 }
 
-const mapFormToConfig = (form: Form): UIFormConfig => {
+const mapFormToConfig = (form: Form): FormConfig => {
   return {
     id: form.id,
     name: form.name,
@@ -153,7 +132,6 @@ export function FormDialog({ open, onOpenChange }: DialogProps) {
   const [data, setData] = useNodeData();
   const [config, setConfig] = useNodeConfig<FormNodeData>((data?.config as FormNodeData) || { formId: '', variables: {} });
   const [name, setName] = useState(data?.name || '');
-  const [loading, setLoading] = useState(false);
 
   const [formConfig, setFormConfig] = useState<FormNodeConfig>(() => {
     return {
@@ -169,22 +147,38 @@ export function FormDialog({ open, onOpenChange }: DialogProps) {
   });
 
   const [builderOpen, setBuilderOpen] = useState(false);
-  const [newForm, setNewForm] = useState<UIFormConfig | null>(null);
+  const [newForm, setNewForm] = useState<FormConfig | null>(null);
 
   // Queries
   const { data: forms = [] } = useFormsList();
   const createFormMutation = useCreateForm();
   const updateFormMutation = useUpdateForm();
 
-  const updateState = useCallback((e: UIFormConfig) => {
+  const updateState = useCallback((e: FormConfig) => {
     const events = data?.events.map(evt => {
       if (evt.name === 'form_submitted') {
+        const outputs = Object.entries(generateFormSchema(e)).map(([key, value]) => ({
+          name: key,
+          type: value.type,
+        }));
+
         return {
           name: 'form_submitted',
-          outputs: Object.entries(generateFormSchema(e)).map(([key, value]) => ({
-            name: key,
-            type: value.type,
-          })),
+          outputs: [
+            ...outputs,
+            {
+              name: 'form_id',
+              type: 'string',
+            },
+            {
+              name: 'instance_id',
+              type: 'string',
+            },
+            {
+              name: 'answers_id',
+              type: 'string',
+            }
+          ],
         };
       }
 
@@ -215,7 +209,7 @@ export function FormDialog({ open, onOpenChange }: DialogProps) {
     return formConfig.config;
   }, [formConfig, forms]);
 
-  const generateFormSchema = useCallback((config: UIFormConfig) => {
+  const generateFormSchema = useCallback((config: FormConfig) => {
     const schema: Record<string, { type: string }> = {};
 
     config.components.forEach(component => {
@@ -246,9 +240,8 @@ export function FormDialog({ open, onOpenChange }: DialogProps) {
     return schema;
   }, []);
 
-  const handleSaveForm = async (form: UIFormConfig) => {
+  const handleSaveForm = async (form: FormConfig) => {
     try {
-      setLoading(true);
       let result;
       
       // If we're editing an existing form, use its ID
@@ -287,8 +280,8 @@ export function FormDialog({ open, onOpenChange }: DialogProps) {
       setBuilderOpen(false);
     } catch (error) {
       // Error is handled by the mutation
-    } finally {
-      setLoading(false);
+      console.error('Failed to save form:', error);
+      toast.error('Failed to save form');
     }
   };
 
