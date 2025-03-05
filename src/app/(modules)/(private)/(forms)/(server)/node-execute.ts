@@ -42,7 +42,7 @@ export const formService = restate.object({
       // Create an awakeable promise that will be resolved when the form is submitted
       const resolvablePromise = c.awakeable<Record<string, unknown>>();
 
-      const publicUrl = `https://${domain}.${env.DOMAIN}/forms/${config.formId}/instances/${instance.id}?promiseId=${resolvablePromise.id}&key=${c.key}`;
+      const publicUrl = `https://${domain}.${env.DOMAIN}/forms/${config.formId}/instances/${instance.id}/answers/new?promiseId=${resolvablePromise.id}&key=${c.key}`;
 
       // Emit the public URL event first
       await nextOrEndExecution(c, {

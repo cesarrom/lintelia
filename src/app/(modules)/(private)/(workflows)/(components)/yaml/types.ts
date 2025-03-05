@@ -14,12 +14,13 @@ export const ValueTypeSchema = z.enum([
 
 export type ValueType = z.infer<typeof ValueTypeSchema>;
 
+
 // Schema for type definitions
 export const TypeDefinitionSchema = z.union([
   ValueTypeSchema,
   z.object({
     type: z.literal('object'),
-    properties: z.record(z.lazy(() => TypeDefinitionSchema)),
+    properties: z.record(z.string(), z.lazy(() => TypeDefinitionSchema)),
   }),
   z.object({
     type: z.literal('array'),

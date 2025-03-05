@@ -40,6 +40,7 @@ import { NodeData } from './yaml/types';
 import { wizardNode } from '../../(wizard)/(node)';
 import { startNode } from '../../(shared)/(nodes)/start';
 import { reviewNode } from '../../(reviews)/(node)';
+import { endNode } from '../../(shared)/(nodes)/end';
 
 // Available node types and their definitions
 const nodeDefinitions = {
@@ -58,6 +59,7 @@ const nodeDefinitions = {
   wizard: wizardNode,
   scheduler: schedulerNode,
   review: reviewNode,
+  end: endNode,
 } as const;
 
 // Map node types to their React components for ReactFlow

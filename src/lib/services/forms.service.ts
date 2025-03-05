@@ -155,8 +155,34 @@ export class FormsService {
     });
   }
 
-  async list(): Promise<Form[]> {
-    return await this.formRepository.find({ });
+  async list(search?: string): Promise<Form[]> {
+    try {
+      const queryBuilder = this.formRepository.createQueryBuilder('form');
+
+      if (search) {
+        queryBuilder.where(
+          'LOWER(form.name) LIKE LOWER(:search) OR LOWER(form.description) LIKE LOWER(:search)',
+          { search: `%${search}%` }
+        );
+      }
+
+      queryBuilder.orderBy('form.createdAt', 'DESC');
+
+      const forms = await queryBuilder.getMany();
+
+      await this.logs.info('Listed forms', {
+        category: 'form',
+        metadata: { search }
+      });
+
+      return forms;
+    } catch (error) {
+      await this.logs.error('Failed to list forms', {
+        category: 'form',
+        metadata: { search, error }
+      });
+      throw error;
+    }
   }
 
   async createInstance(data: CreateFormInstanceInput): Promise<FormInstance> {
@@ -247,6 +273,29 @@ export class FormsService {
     });
 
     return await this.formInstanceRepository.save(instance);
+  }
+
+  async listInstances(formId: string): Promise<FormInstance[]> {
+    try {
+      const instances = await this.formInstanceRepository.find({
+        where: { formId },
+        relations: ['form'],
+        order: { createdAt: 'DESC' }
+      });
+
+      await this.logs.info('Listed form instances', {
+        category: 'form',
+        metadata: { formId }
+      });
+
+      return instances;
+    } catch (error) {
+      await this.logs.error('Failed to list form instances', {
+        category: 'form',
+        metadata: { formId, error }
+      });
+      throw error;
+    }
   }
 }
 

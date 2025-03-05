@@ -31,7 +31,7 @@ export const BaseNode = (
     console.log(updates);
   };
 
-  if (!data) return null;
+  if (!data || !node) return null;
 
   return (
     <>

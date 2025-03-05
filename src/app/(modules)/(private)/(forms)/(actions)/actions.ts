@@ -6,6 +6,8 @@ import OpenAI from 'openai';
 import { env } from '@/lib/constants';
 import { systemPrompt } from "./prompt";
 import { FormConfig } from "../(components)/form-builder/schemas";
+import { revalidatePath } from "next/cache";
+import { FormInstance } from "@/lib/entities/tenant";
 
 export const generateFormWithAI = inject(
   [],
@@ -49,6 +51,7 @@ export const createForm = inject(
       ...data,
       createdBy: user!.userId,
     });
+    revalidatePath('/forms');
     return { ...result };
   }
 );
@@ -57,14 +60,16 @@ export const updateForm = inject(
   [FormsService],
   async ({ }, [formsService], id: string, data: { name?: string, description?: string, config?: FormConfig }) => {
     const result = await formsService.update(id, data);
+    revalidatePath('/forms');
+    revalidatePath(`/forms/${id}`);
     return { ...result };
   }
 );
 
 export const listForms = inject(
   [FormsService],
-  async ({ }, [formsService]) => {
-    const results = await formsService.list();
+  async ({ }, [formsService], search?: string) => {
+    const results = await formsService.list(search);
     return results.map(form => ({ ...form }));
   }
 );
@@ -77,6 +82,23 @@ export const getFormById = inject(
   }
 );
 
+export const getFormInstances = inject(
+  [FormsService],
+  async ({ }, [formsService], formId: string): Promise<FormInstance[]> => {
+    const instances = await formsService.listInstances(formId);
+    return instances.map(instance => ({ ...instance }));
+  }
+);
+
+export const getFormInstance = inject(
+  [FormsService],
+  async ({ }, [formsService], instanceId: string) => {
+    const instance = await formsService.getInstance(instanceId);
+    if (!instance) throw new Error('Form instance not found');
+    return { ...instance };
+  }
+);
+
 export const createTestFormInstance = inject(
   [FormsService],
   async ({ user }, [formsService], formId: string, variables: Record<string, unknown> = {}) => {
@@ -86,16 +108,8 @@ export const createTestFormInstance = inject(
       submittedBy: user!.userId,
     });
 
-    return JSON.parse(JSON.stringify(instance));
-  }
-);
-
-export const getFormInstance = inject(
-  [FormsService],
-  async ({ }, [formsService], instanceId: string) => {
-    const instance = await formsService.getInstance(instanceId);
-    if (!instance) throw new Error('Form instance not found');
-    return JSON.parse(JSON.stringify(instance));
+    revalidatePath(`/forms/${formId}`);
+    return { ...instance };
   }
 );
 
