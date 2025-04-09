@@ -178,7 +178,7 @@ export function RadioProperties({ config, onChange }: PropertiesProps<RadioConfi
             <SelectValue placeholder="Select a default value" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">None</SelectItem>
+            <SelectItem value=" ">None</SelectItem>
             {options.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}

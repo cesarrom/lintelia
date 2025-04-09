@@ -25,7 +25,7 @@ export function SelectProperties({
   config,
   onChange,
 }: PropertiesProps<SelectConfig>) {
-  const { variables, definitions } = useVariables();
+  const { variables: vrbs, definitions } = useVariables();
   const [newOptionLabel, setNewOptionLabel] = useState('');
   const [newOptionValue, setNewOptionValue] = useState('');
 
@@ -271,7 +271,7 @@ export function SelectProperties({
                   <SelectValue placeholder="Select variable" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(variables || {}).map(([id, value]) => (
+                  {Object.entries(definitions || {}).map(([id, value]) => (
                     <SelectItem key={id} value={id}>
                       {id}
                     </SelectItem>

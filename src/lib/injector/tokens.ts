@@ -6,3 +6,4 @@ export const GLOBAL_DB_TOKEN = "GLOBAL_DB";
 export const DOMAIN_TOKEN = "DOMAIN";
 export const DISTRIBUTION_ID_TOKEN = "DISTRIBUTION_ID";
 export const USER_TOKEN = "USER";
+export const RESTATE_CONTEXT_TOKEN = "RESTATE_CONTEXT";

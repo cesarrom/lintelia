@@ -31,7 +31,7 @@ export default function FormsTable({ forms }: FormsTableProps) {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const handleView = (id: string) => {
-    router.push(`/forms/${id}`);
+    router.push(`/forms/${id}/instances`);
   };
 
   const handleEdit = (form: Form) => {

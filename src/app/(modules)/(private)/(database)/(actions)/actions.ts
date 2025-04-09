@@ -4,8 +4,10 @@ import { inject } from "@/lib/injector/utils";
 import { DatabaseService } from "@/lib/services/database.service";
 import { TENANT_DB_TOKEN } from "@/lib/injector/tokens";
 import { DataSource, TableColumn } from "typeorm";
-import { DatabaseNodeData } from "../types";
+import { DatabaseNodeData } from "../../(workflows)/(components)/nodes/(database)/types";
 import { token } from "@/lib/injector/utils";
+import { LogsService } from "@/lib/services/logs.service";
+import { TriggerBuilder } from "@/lib/triggers-utils";
 
 export const listTables = inject(
   [token<DataSource>(TENANT_DB_TOKEN), DatabaseService],
@@ -22,10 +24,10 @@ export const getTableSchema = inject(
 );
 
 export const executeQuery = inject(
-  [token<DataSource>(TENANT_DB_TOKEN), DatabaseService],
-  async ({ }, [db, dbService], config: DatabaseNodeData) => {
+  [token<DataSource>(TENANT_DB_TOKEN), DatabaseService, LogsService],
+  async ({ }, [db, dbService, logsService], config: DatabaseNodeData) => {
     switch (config.operation) {
-      case 'create_table':
+      case 'create_table': {
         await dbService.createTable(
           db,
           config.schema.name,
@@ -45,9 +47,17 @@ export const executeQuery = inject(
             return column;
           })
         );
-        return { success: true };
 
-      case 'read':
+        logsService.info(`${TriggerBuilder.Events.DATABASE_CREATE} - ${config.schema.name}`, {
+          metadata: {
+            eventName: TriggerBuilder.Events.DATABASE_CREATE,
+            table: config.schema.name,
+            columns: config.schema.columns.map(col => col.name)
+          }
+        });
+
+        return { success: true };
+      } case 'read': {
         const conditions = config.conditions?.reduce((acc, condition) => {
           if (condition.operator === 'eq') {
             acc[condition.field] = condition.value;
@@ -55,7 +65,7 @@ export const executeQuery = inject(
           return acc;
         }, {} as Record<string, any>);
 
-        return dbService.query(
+        const result = await dbService.query(
           db,
           config.table,
           conditions,
@@ -69,10 +79,29 @@ export const executeQuery = inject(
           }
         );
 
-      case 'insert':
-        return dbService.insert(db, config.table, config.data);
+        logsService.info(`${TriggerBuilder.Events.DATABASE_SELECT} - ${config.table}`, {
+          metadata: {
+            eventName: TriggerBuilder.Events.DATABASE_SELECT,
+            table: config.table,
+            conditions,
+            result
+          }
+        });
 
-      case 'update':
+        return result;
+      } case 'insert': {
+        const result = await dbService.insert(db, config.table, config.data);
+
+        logsService.info(`${TriggerBuilder.Events.DATABASE_INSERT} - ${config.table}`, {
+          metadata: {
+            eventName: TriggerBuilder.Events.DATABASE_INSERT,
+            table: config.table,
+            data: config.data
+          }
+        });
+
+        return result;
+      } case 'update': {
         const updateConditions = config.conditions?.reduce((acc, condition) => {
           if (condition.operator === 'eq') {
             acc[condition.field] = condition.value;
@@ -80,9 +109,19 @@ export const executeQuery = inject(
           return acc;
         }, {} as Record<string, any>);
 
-        return dbService.update(db, config.table, config.data, updateConditions);
+        const result = await dbService.update(db, config.table, config.data, updateConditions);
 
-      case 'delete':
+        logsService.info(`${TriggerBuilder.Events.DATABASE_UPDATE} - ${config.table}`, {
+          metadata: {
+            eventName: TriggerBuilder.Events.DATABASE_UPDATE,
+            table: config.table,
+            data: config.data,
+            conditions: updateConditions
+          }
+        });
+
+        return result;
+      } case 'delete': {
         const deleteConditions = config.conditions?.reduce((acc, condition) => {
           if (condition.operator === 'eq') {
             acc[condition.field] = condition.value;
@@ -90,10 +129,20 @@ export const executeQuery = inject(
           return acc;
         }, {} as Record<string, any>);
 
-        return dbService.delete(db, config.table, deleteConditions);
+        const result = await dbService.delete(db, config.table, deleteConditions);
 
-      default:
+        logsService.info(`${TriggerBuilder.Events.DATABASE_DELETE} - ${config.table}`, {
+          metadata: {
+            eventName: TriggerBuilder.Events.DATABASE_DELETE,
+            table: config.table,
+            conditions: deleteConditions
+          }
+        });
+
+        return result;
+      } default: {
         throw new Error(`Unsupported operation: ${(config as any).operation}`);
+      }
     }
   }
 );

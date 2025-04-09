@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Input } from './input';
 import { cn } from '@/lib/utils';
 import { useNodeData, useWorkflow } from '@/app/(modules)/(private)/(workflows)/(components)/WorkflowContext';
+import { useSystemVariables } from '@/lib/hooks/use-system-variables';
 
 interface Suggestion {
   label: string;
@@ -17,6 +18,7 @@ interface VariableInputProps {
   onChange: (value: string) => void;
   className?: string;
   placeholder?: string;
+  includeTriggers?: boolean;
 }
 
 export function VariableInput({
@@ -24,14 +26,50 @@ export function VariableInput({
   onChange,
   className,
   placeholder,
+  includeTriggers = false,
 }: VariableInputProps) {
-  const { nodes } = useWorkflow();
+  const { data: systemVariables = [] } = useSystemVariables();
+  const { nodes: nodesRef, triggers: triggersRef } = useWorkflow();
   const [currentNode] = useNodeData();
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [cursorPosition, setCursorPosition] = useState(0);
   const [currentType, setCurrentType] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const systemVariablesItem = React.useMemo(() => ({
+    id: 'system_variables',
+    type: 'system_variables',
+    data: {
+      name: 'System',
+      events: [{
+        name: 'variables',
+        outputs: systemVariables.map(v => ({
+          name: v.name,
+          type: v.type
+        }))
+      }],
+    }
+  }), [systemVariables]);
+
+  const nodes = React.useMemo(() => {
+    if (includeTriggers) {
+      return [
+        systemVariablesItem,
+        {
+        id: 'triggers',
+        type: 'trigger',
+        data: {
+          name: 'Triggers',
+          events: triggersRef?.map(t => ({
+            name: t.name,
+            outputs: []
+          }))
+        }
+      }];
+    }
+
+    return [systemVariablesItem, ...nodesRef];
+  }, [nodesRef, triggersRef, includeTriggers, systemVariablesItem]);
 
   // Helper to get output type properties
   const getTypeProperties = (type: string | Record<string, unknown>): string[] => {

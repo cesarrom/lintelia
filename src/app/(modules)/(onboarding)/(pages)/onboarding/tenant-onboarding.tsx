@@ -14,10 +14,10 @@ import { InviteeList } from "@/components/InviteApplicants";
 import countries from './countries.json'
 import timezones from './timezones.json';
 import { TimePicker } from "@/components/TimePicker";
-import { APICreateTenantRequest, CreatedTenant, createTenant } from "../../../(private)/(shared)/(actions)/tenants";
 import { uploadFile } from "../../../(private)/(shared)/(actions)/files";
 import Image from "next/image";
 import { OnboardingData, OnboardingDataSchema, onboardingDefaultValues } from "../../types";
+import { APICreateTenantRequest, CreatedTenant, createTenant } from "@/app/(modules)/(private)/(profile)/(pages)/settings/actions";
 
 export default function TenantOnboardingPage() {
   const [sending, startTransition] = React.useTransition();

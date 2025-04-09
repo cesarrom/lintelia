@@ -75,8 +75,6 @@ interface FormEngineEditorProps {
   onConfigChange?: (config: FormConfig) => void;
   selectedId?: string | null;
   onSelectComponent?: (id: string | null) => void;
-  variables?: Record<string, unknown>;
-  variableDefinitions?: Record<string, FormVariable>;
 }
 
 // Viewer mode specific props
@@ -95,20 +93,12 @@ function FormEngineEditor({
   onConfigChange,
   selectedId,
   onSelectComponent,
-  variables,
-  variableDefinitions,
 }: FormEngineEditorProps) {
   const [testDialogOpen, setTestDialogOpen] = useState(false);
-  
+
   const { setNodeRef: setDroppableRef, isOver } = useDroppable({
     id: 'canvas',
   });
-
-  // Create a context value for variables
-  const variablesContext = useMemo(() => ({
-    variables: variables || {},
-    definitions: variableDefinitions || config?.variables || {},
-  }), [variables, variableDefinitions, config?.variables]);
 
   const handleDeleteComponent = useCallback((id: string) => {
     onConfigChange?.({
@@ -144,7 +134,7 @@ function FormEngineEditor({
   const isEmpty = components.length === 0;
 
   return (
-    <VariablesProvider value={variablesContext}>
+    <>
       <div>
         <div className="flex justify-between items-center mb-4">
           {config.id && (
@@ -186,7 +176,7 @@ function FormEngineEditor({
           formConfig={config}
         />
       )}
-    </VariablesProvider>
+    </>
   );
 }
 
@@ -221,13 +211,13 @@ function FormEngineViewer({
   // Initialize react-hook-form with initial values
   const formMethods = useForm({
     resolver: zodResolver(formSchema!),
-    defaultValues: (initialValues  || {}) as any,
+    defaultValues: (initialValues || {}) as any,
     mode: 'onChange', // Validate on change for immediate feedback
   });
 
   // Watch all form values
   const formValues = formMethods.watch();
-  
+
   // Track values for components that don't use react-hook-form (like layout components)
   const [layoutValues, setLayoutValues] = useState<Record<string, unknown>>({});
 
@@ -235,7 +225,7 @@ function FormEngineViewer({
   useEffect(() => {
     if (initialValues && Object.keys(initialValues).length > 0) {
       formMethods.reset(initialValues);
-      
+
       // Extract layout component values
       const newLayoutValues: Record<string, unknown> = {};
       config.components.forEach(component => {
@@ -246,7 +236,7 @@ function FormEngineViewer({
           }
         }
       });
-      
+
       setLayoutValues(newLayoutValues);
     }
   }, [initialValues, formMethods, config.components]);
@@ -262,7 +252,7 @@ function FormEngineViewer({
 
     // Get propertyName if it exists, otherwise use component ID
     const propertyName = componentConfig.config.propertyName as string || componentConfig.id;
-    
+
     // Check if this is a layout component (no propertyName)
     const isLayoutComponent = !componentConfig.config.propertyName;
 
@@ -323,10 +313,10 @@ function FormEngineViewer({
   }
 
   return (
-    <VariablesProvider value={variablesContext}>
+    <VariablesProvider {...variablesContext}>
       <FormProvider {...formMethods}>
-        <form 
-          onSubmit={formMethods.handleSubmit(handleSubmit)} 
+        <form
+          onSubmit={formMethods.handleSubmit(handleSubmit)}
           noValidate
         >
           <div className="space-y-6">
@@ -344,10 +334,10 @@ function FormEngineViewer({
 // Main FormEngine component that serves as an entry point
 export function FormEngine(props: FormEngineProps) {
   const { mode, ...restProps } = props;
-  
+
   if (mode === 'editor') {
     return <FormEngineEditor {...restProps as FormEngineEditorProps} />;
   }
-  
+
   return <FormEngineViewer {...restProps as FormEngineViewerProps} />;
 } 

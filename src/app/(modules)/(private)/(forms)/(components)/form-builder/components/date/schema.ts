@@ -6,10 +6,10 @@ export const dateConfigSchema = baseConfigSchema.extend({
   label: z.string().min(1, 'Label is required'),
   placeholder: z.string().optional(),
   description: z.string().optional(),
-  defaultValue: z.string().datetime().optional(),
+  defaultValue: z.string().date().optional(),
   validation: z.object({
-    minDate: z.string().datetime().optional(),
-    maxDate: z.string().datetime().optional(),
+    minDate: z.string().date().optional(),
+    maxDate: z.string().date().optional(),
   }).optional(),
 }).transform((data) => ({
   ...data,
@@ -23,7 +23,7 @@ export type DateConfig = z.infer<typeof dateConfigSchema>;
 // Value validation schema generator
 export class DateComponentSchema extends BaseComponentSchema<z.ZodString, DateConfig> {
   constructor(propertyName: string) {
-    super(z.string().datetime(), propertyName);
+    super(z.string().date(), propertyName);
   }
 
   setMinDate(date: string | undefined): this {
@@ -65,5 +65,5 @@ export class DateComponentSchema extends BaseComponentSchema<z.ZodString, DateCo
   }
 }
 
-export const dateInputSchema = z.string().datetime().optional();
-export const dateOutputSchema = z.string().datetime(); 
+export const dateInputSchema = z.string().date().optional();
+export const dateOutputSchema = z.string().date(); 

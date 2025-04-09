@@ -4,8 +4,9 @@ import { env } from "@/lib/constants";
 import { ENVIRONMENT_TOKEN } from "@/lib/injector/tokens";
 import { inject, optional, token } from "@/lib/injector/utils";
 import { InvitationsService, RolesService } from "@/lib/services";
-import { EventsService } from "@/lib/services/events.service";
 import { LogsService } from "@/lib/services/logs.service";
+import { SystemTriggersService } from "@/lib/services/system-triggers.service";
+import { TriggerBuilder } from "@/lib/triggers-utils";
 import assert from "assert";
 import { redirect } from "next/navigation";
 
@@ -123,21 +124,24 @@ export const verifyIdentity = inject(
 );
 
 export const afterLogin = inject(
-  [optional<LogsService>(LogsService)],
+  [optional<LogsService>(LogsService), optional<SystemTriggersService>(SystemTriggersService)],
   async ({ user, tenant }, [logs], firstSeen: boolean) => {
     if (tenant) {
       assert(user, 'User is required');
-      assert(logs, 'Events service is required');
+      assert(logs, 'Logs service is required');
 
       await matchInvitationsRoles();
 
-      await logs.info(firstSeen ? 'User signed up' : 'User signed in', {
-        category: 'security',
-        source: 'AuthActions',
+      await logs.info(firstSeen ? TriggerBuilder.Events.USER_SIGNUP : TriggerBuilder.Events.USER_SIGNIN, {
+        category: TriggerBuilder.Categories.SECURITY,
+        source: TriggerBuilder.Sources.AUTH,
         userId: user.userId,
         metadata: {
+          eventName: firstSeen ? TriggerBuilder.Events.USER_SIGNUP : TriggerBuilder.Events.USER_SIGNIN,
           firstSeen,
-          tenant: tenant.domain
+          tenant: tenant.domain,
+          email: user.email,
+          userId: user.userId,
         }
       });
 

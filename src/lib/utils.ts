@@ -1,7 +1,6 @@
 import { NodeData } from "@/app/(modules)/(private)/(workflows)/(components)/yaml/types";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { atom, useAtom } from "jotai"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -64,36 +63,3 @@ export type WorkflowSchema = {
 }; 
 
 export const wait = (ms: number) => new Promise(resolve => { setTimeout(resolve, ms) });
-
-// Global state atom for locked groups
-const lockedGroupsAtom = atom<Set<string>>(new Set<string>())
-
-// Hook for components to check if they're locked
-export const useGroupLock = (groups?: string[]) => {
-  const [lockedGroups] = useAtom(lockedGroupsAtom)
-  if (!groups?.length) return false
-  return groups.some(group => lockedGroups.has(group))
-}
-
-// Hook for services to control group locking
-export const useGroupLocker = () => {
-  const [lockedGroups, setLockedGroups] = useAtom(lockedGroupsAtom)
-
-  return {
-    lock: (groups: string[]) => {
-      setLockedGroups(prev => {
-        const next = new Set(prev)
-        groups.forEach(g => next.add(g))
-        return next
-      })
-    },
-    unlock: (groups: string[]) => {
-      setLockedGroups(prev => {
-        const next = new Set(prev)
-        groups.forEach(g => next.delete(g))
-        return next
-      })
-    },
-    isLocked: (group: string) => lockedGroups.has(group)
-  }
-}

@@ -1,6 +1,7 @@
 import { NodeProps } from 'reactflow';
 import { LucideIcon } from 'lucide-react';
 import { NodeData } from '../yaml/types';
+import { ComponentType } from "react";
 
 export type NodeDefinition = NodeData & {
   icon: LucideIcon;
@@ -15,3 +16,21 @@ export type DialogProps = {
   onOpenChange: (open: boolean) => void;
   onSave: (data: NodeData) => void;
 }
+export interface TriggerConfigProps<T = unknown> {
+  onSubmit: (config: T) => void;
+  initialConfig?: T;
+}
+
+export interface TriggerDefinition<T = unknown> {
+  name: string;
+  description: string;
+  icon: LucideIcon;
+  configComponent: ComponentType<TriggerConfigProps<T>>;
+  initialConfig: T;
+}
+
+export interface TriggerEvent {
+  type: string;
+  eventName: string;
+  payload?: Record<string, unknown>;
+} 

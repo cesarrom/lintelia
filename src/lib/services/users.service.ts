@@ -385,4 +385,36 @@ export class UsersService {
       return null;
     }
   }
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    try {
+      const response = await this._auth.management.user.search({
+        emails: [email],
+        tenantIds: [this._tenant.domain]
+      });
+
+      if (!response.data) {
+        return null;
+      }
+
+      const user = response.data[0];
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      return {
+        id: user.userId,
+        email: user.email || '',
+        name: user.name || '',
+        picture: user.picture,
+        roles: user.userTenants?.find(t => t.tenantId === this._tenant.domain)?.roleNames || [],
+        status: user.status === 'enabled' ? 'active' as const : 'inactive' as const,
+        createdAt: new Date(user.createTime),
+        updatedAt: new Date(),
+      }
+    } catch (error) {
+      return null;
+    }
+  }
 }

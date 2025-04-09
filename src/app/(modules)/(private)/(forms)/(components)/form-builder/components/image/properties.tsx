@@ -5,9 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PropertiesProps } from '../../types';
 import { imageConfigSchema } from './schema';
 import { Separator } from '@/components/ui/separator';
+import { PropertiesProps } from '../../schemas';
 
 export function ImageProperties({
   config,
@@ -54,6 +54,15 @@ export function ImageProperties({
 
   return (
     <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Property Name</Label>
+        <Input
+          value={config.propertyName}
+          onChange={(e) => handleChange('propertyName')(e.target.value)}
+          placeholder="Enter property name"
+        />
+      </div>
+
       <div className="space-y-2">
         <Label>Label</Label>
         <Input

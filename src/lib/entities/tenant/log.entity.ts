@@ -1,7 +1,12 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
-export type LogLevel = 'info' | 'warning' | 'error' | 'debug';
-export type LogCategory = 'system' | 'workflow' | 'user' | 'form' | 'security' | 'integration';
+import { z } from 'zod';
+
+export const LogLevelSchema = z.enum(['info', 'warning', 'error', 'debug']);
+export type LogLevel = z.infer<typeof LogLevelSchema>;
+
+export const LogCategorySchema = z.enum(['system', 'workflow', 'user', 'form', 'security', 'integration', 'review', 'database']);
+export type LogCategory = z.infer<typeof LogCategorySchema>;
 
 @Entity('sys_logs')
 export class Log {
@@ -22,8 +27,7 @@ export class Log {
   level!: LogLevel;
 
   @Column({
-    type: 'enum',
-    enum: ['system', 'workflow', 'user', 'form', 'security', 'integration'],
+    type: 'text',
     default: 'system'
   })
   category!: LogCategory;

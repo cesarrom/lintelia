@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { load, save } from '../../../(actions)';
+import { load, save } from '../../../(actions)/actions';
 import { useParams } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';

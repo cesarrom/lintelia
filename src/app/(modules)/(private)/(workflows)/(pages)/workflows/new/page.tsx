@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { save } from '../../../(actions)';
+import { save } from '../../../(actions)/actions';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 

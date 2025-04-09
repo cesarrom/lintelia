@@ -8,15 +8,19 @@ import { Review } from '@/lib/entities/tenant/review.entity';
 // Get all reviews with optional filtering
 export const getReviews = inject(
   [ReviewsService],
-  async (_, [reviewsService], filter?: {
-    status?: 'pending' | 'in_progress' | 'approved' | 'rejected' | 'additional_data_requested';
+  async ({ }, [reviewsService], filter?: {
+    status?: string;
     assignedTo?: string;
-    fromDate?: Date;
-    toDate?: Date;
+    fromDate?: string;
+    toDate?: string;
   }) => {
-    const reviews = await reviewsService.list(filter);
-    revalidatePath('/reviews');
-    return reviews;
+    const reviews = await reviewsService.list({
+      status: filter?.status as any,
+      assignedTo: filter?.assignedTo,
+      fromDate: filter?.fromDate ? new Date(filter.fromDate) : undefined,
+      toDate: filter?.toDate ? new Date(filter.toDate) : undefined,
+    });
+    return reviews.map(review => ({ ...review }));
   }
 );
 
@@ -26,15 +30,16 @@ export const getAssignedReviews = inject(
   async (_, [reviewsService], userId: string) => {
     const reviews = await reviewsService.listByAssignee(userId);
     revalidatePath('/my-reviews');
-    return reviews;
+    return reviews.map(review => ({ ...review }));
   }
 );
 
 // Get a single review by ID
 export const getReview = inject(
   [ReviewsService],
-  async (_, [reviewsService], id: string) => {
-    return reviewsService.getById(id);
+  async ({ }, [reviewsService], id: string) => {
+    const review = await reviewsService.getById(id);
+    return review ? { ...review } : null;
   }
 );
 
@@ -49,12 +54,12 @@ export const getReviewByNodeExecution = inject(
 // Assign a review to a user
 export const assignReview = inject(
   [ReviewsService],
-  async (_, [reviewsService], id: string, userId: string) => {
-    const review = await reviewsService.assignReview(id, userId);
+  async ({ user }, [reviewsService], id: string) => {
+    if (!user) throw new Error('User not authenticated');
+    const review = await reviewsService.assignReview(id, user.userId);
     revalidatePath('/reviews');
-    revalidatePath('/my-reviews');
     revalidatePath(`/reviews/${id}`);
-    return review;
+    return { ...review };
   }
 );
 
@@ -82,41 +87,41 @@ export const updateReview = inject(
     revalidatePath('/reviews');
     revalidatePath('/my-reviews');
     revalidatePath(`/reviews/${id}`);
-    return review;
+    return { ...review };
   }
 );
 
 // Approve a review
 export const approveReview = inject(
   [ReviewsService],
-  async (_, [reviewsService], id: string, data: {
+  async ({ user }, [reviewsService], id: string, data: {
     comments?: string;
-    reviewItems?: Array<{
+    reviewItems: Array<{
       answer_id: string;
       status: 'approved' | 'rejected';
       comments?: string;
     }>;
-  }, userId?: string) => {
+  }) => {
+    if (!user) throw new Error('User not authenticated');
     const review = await reviewsService.update(id, {
       status: 'approved',
       comments: data.comments,
-      reviewItems: data.reviewItems
-    }, userId);
-    
+      reviewItems: data.reviewItems,
+    }, user.userId);
     revalidatePath('/reviews');
     revalidatePath('/my-reviews');
     revalidatePath(`/reviews/${id}`);
-    return review;
+    return { ...review };
   }
 );
 
 // Reject a review
 export const rejectReview = inject(
   [ReviewsService],
-  async (_, [reviewsService], id: string, data: {
+  async ({ user }, [reviewsService], id: string, data: {
     rejectionReason: string;
     comments?: string;
-    reviewItems?: Array<{
+    reviewItems: Array<{
       answer_id: string;
       status: 'approved' | 'rejected';
       comments?: string;
@@ -127,39 +132,39 @@ export const rejectReview = inject(
       name: string;
       description?: string;
     }>;
-  }, userId?: string) => {
+  }) => {
+    if (!user) throw new Error('User not authenticated');
     const review = await reviewsService.update(id, {
       status: 'rejected',
       rejectionReason: data.rejectionReason,
       comments: data.comments,
       reviewItems: data.reviewItems,
-      evidence: data.evidence
-    }, userId);
-    
+      evidence: data.evidence,
+    }, user.userId);
     revalidatePath('/reviews');
     revalidatePath('/my-reviews');
     revalidatePath(`/reviews/${id}`);
-    return review;
+    return { ...review };
   }
 );
 
 // Request additional data for a review
 export const requestAdditionalData = inject(
   [ReviewsService],
-  async (_, [reviewsService], id: string, data: {
+  async ({ user }, [reviewsService], id: string, data: {
     additionalDataRequest: string;
     comments?: string;
-  }, userId?: string) => {
+  }) => {
+    if (!user) throw new Error('User not authenticated');
     const review = await reviewsService.update(id, {
       status: 'additional_data_requested',
       additionalDataRequest: data.additionalDataRequest,
-      comments: data.comments
-    }, userId);
-    
+      comments: data.comments,
+    }, user.userId);
     revalidatePath('/reviews');
     revalidatePath('/my-reviews');
     revalidatePath(`/reviews/${id}`);
-    return review;
+    return { ...review };
   }
 );
 

@@ -9,7 +9,10 @@ import { DatabaseService } from "../services/database.service";
 import { EventsService } from "../services/events.service";
 import assert from "assert";
 import { getUser } from "./action";
+import { User } from "@/types/auth";
+import { KeyValueService } from "../services/key-value.service";
 
+const defaultKey = '__default__';
 const injectors: Record<string, DependencyContainer> = {};
 
 const getEnvironmentInjector = () => {
@@ -59,8 +62,7 @@ async function createTenantsInjector() {
   return childContainer;
 }
 
-const defaultKey = '__default__';
-export async function getInjector(domain?: string) {
+export async function getInjector(domain?: string, userRef?: User) {
   if (!domain) {
     if (injectors[defaultKey]) {
       return injectors[defaultKey];
@@ -82,7 +84,7 @@ export async function getInjector(domain?: string) {
   const tenant = await tenantsService.getByDomain(domain);
   const tenantsDb = await tenantsService.getPlatformDBClient(domain);
 
-  const user = await getUser().catch(() => null);
+  const user = userRef || await getUser().catch(() => null);
 
   childContainer.register(USER_TOKEN, { useValue: user });
   childContainer.register(TENANT_TOKEN, { useValue: tenant });
@@ -99,6 +101,7 @@ export async function getInjector(domain?: string) {
   childContainer.register(EventsService, EventsService);
   childContainer.register(UsersService, UsersService);
   childContainer.register(SystemVariablesService, SystemVariablesService);
+  childContainer.register(KeyValueService, KeyValueService);
 
   injectors[domain] = childContainer;
   return injectors[domain];

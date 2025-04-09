@@ -13,9 +13,8 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 
 import { Button } from '@/components/ui/button';
-import { Save, Zap, FileEdit, Play } from 'lucide-react';
+import { Save, FileEdit, Play } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { TriggersSidebar } from "./triggers/TriggersSidebar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,23 +23,25 @@ import { WorkflowProvider, useWorkflow } from './WorkflowContext';
 import { RunWorkflowDialog } from './RunWorkflowDialog';
 import { YamlActions } from './yaml/YamlActions';
 import { yamlToWorkflow } from './yaml/converter';
-import { databaseNode } from '../../(database)/(node)';
-import { decisionTableNode } from '../../(decision-table)/(node)';
-import { formNode } from '../../(forms)/(node)';
-import { emailNode } from '../../(emails)/(node)';
-import { workflowNode } from '../(node)';
-import { conditionalNode } from '../../(conditional)/(node)';
-import { documentExtractorNode } from '../../(document-extractor)/(node)';
-import { identityValidationNode } from '../../(identity-validation)/(node)';
-import { iteratorNode } from '../../(iterator)/(node)';
-import { mapperNode } from '../../(mapper)/(node)';
-import { proofOfLifeNode } from '../../(proof-of-life)/(node)';
-import { schedulerNode } from '../../(scheduler)/(node)';
+import { databaseNode } from './nodes/(database)/(node)';
+import { decisionTableNode } from './nodes/(decision-table)/(node)';
+import { formNode } from './nodes/(form)/(node)';
+import { emailNode } from './nodes/(email)/(node)';
+import { workflowNode } from './nodes/(workflows)/(node)';
+import { conditionalNode } from './nodes/(conditional)/(node)';
+import { documentExtractorNode } from './nodes/(document-extractor)/(node)';
+import { identityValidationNode } from './nodes/(identity-validation)/(node)';
+import { iteratorNode } from './nodes/(iterator)/(node)';
+import { mapperNode } from './nodes/(mapper)/(node)';
+import { proofOfLifeNode } from './nodes/(proof-of-life)/(node)';
+import { schedulerNode } from './nodes/(scheduler)/(node)';
 import { NodeData } from './yaml/types';
-import { wizardNode } from '../../(wizard)/(node)';
-import { startNode } from '../../(shared)/(nodes)/start';
-import { reviewNode } from '../../(reviews)/(node)';
-import { endNode } from '../../(shared)/(nodes)/end';
+import { wizardNode } from './nodes/(wizard)/(node)';
+import { startNode } from './nodes/(start)/(node)';
+import { reviewNode } from './nodes/(reviews)/(node)';
+import { endNode } from './nodes/(end)/(node)';
+import { TriggerSidebarButton } from './nodes/TriggersSidebar';
+import { fetchUserNode } from './nodes/(fetch-user)/(node)';
 
 // Available node types and their definitions
 const nodeDefinitions = {
@@ -60,6 +61,7 @@ const nodeDefinitions = {
   scheduler: schedulerNode,
   review: reviewNode,
   end: endNode,
+  fetchUser: fetchUserNode,
 } as const;
 
 // Map node types to their React components for ReactFlow
@@ -88,7 +90,6 @@ function WorkflowEditorContent() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const { theme } = useTheme();
-  const [triggersSidebarOpen, setTriggersSidebarOpen] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [tempDescription, setTempDescription] = useState('');
   const [isRunDialogOpen, setIsRunDialogOpen] = useState(false);
@@ -241,14 +242,10 @@ function WorkflowEditorContent() {
                 </div>
                 <div className="flex items-center gap-2">
                   <YamlActions />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setTriggersSidebarOpen(true)}
-                    title="Manage Triggers"
-                  >
-                    <Zap className="h-4 w-4" />
-                  </Button>
+                  <TriggerSidebarButton
+                    triggers={triggers}
+                    updateTriggers={updateTriggers}
+                  />
                   <Button
                     variant="outline"
                     size="icon"
@@ -275,7 +272,7 @@ function WorkflowEditorContent() {
             <Panel position="top-left" className="flex gap-2">
               <div className="flex flex-col gap-2 bg-background/95 p-4 rounded-lg shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
                 {Object.entries(nodeDefinitions)
-                  .filter(([type]) => !['start', 'end'].includes(type))
+                  .filter(([type]) => !['start'].includes(type))
                   .map(([type, def]) => {
                     const Button = def.toolbar;
                     return (
@@ -320,13 +317,6 @@ function WorkflowEditorContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <TriggersSidebar
-        open={triggersSidebarOpen}
-        onOpenChange={setTriggersSidebarOpen}
-        triggers={triggers}
-        onTriggersChange={updateTriggers}
-      />
 
       {/* Run Workflow Dialog */}
       {workflow.id && yaml && <RunWorkflowDialog

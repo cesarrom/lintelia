@@ -25,6 +25,34 @@ export class FilesService {
     return this._s3;
   }
 
+async putFile(file: Buffer, path: string) {
+  return this.s3.putObject({
+    Bucket: this._env.BUCKET_NAME,
+    Key: path,
+    Body: file,
+    ContentType: this.getContentType(path)
+  }).promise();
+}
+
+private getContentType(filename: string): string {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  const mimeTypes: Record<string, string> = {
+    'pdf': 'application/pdf',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'txt': 'text/plain',
+    'csv': 'text/csv',
+    'json': 'application/json',
+    'xml': 'application/xml',
+    'doc': 'application/msword',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  };
+  
+  return ext && mimeTypes[ext] ? mimeTypes[ext] : 'application/octet-stream';
+}
+
+
   async uploadFile(file: Buffer, name: string) {
     return this.s3.upload({
       Bucket: this._env.BUCKET_NAME,

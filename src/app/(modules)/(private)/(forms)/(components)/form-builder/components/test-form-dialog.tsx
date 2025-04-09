@@ -15,15 +15,24 @@ import { JsonEditor } from '@/components/ui/json-editor';
 import { createTestFormInstance } from '../../../(actions)/actions';
 import { toast } from 'sonner';
 import { FormConfig } from '../schemas';
+import { useRouter } from 'next/navigation';
 
 interface TestFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   formId: string;
   formConfig: FormConfig;
+  mode?: 'test' | 'create';
 }
 
-export function TestFormDialog({ open, onOpenChange, formId, formConfig }: TestFormDialogProps) {
+export function TestFormDialog({ 
+  open, 
+  onOpenChange, 
+  formId, 
+  formConfig,
+  mode = 'test' 
+}: TestFormDialogProps) {
+  const router = useRouter();
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -75,7 +84,7 @@ export function TestFormDialog({ open, onOpenChange, formId, formConfig }: TestF
     }
   };
 
-  const handleTest = async () => {
+  const handleSubmit = async () => {
     try {
       setIsLoading(true);
 
@@ -115,14 +124,19 @@ export function TestFormDialog({ open, onOpenChange, formId, formConfig }: TestF
 
       const instance = await createTestFormInstance(formId, parsedValues);
 
-      // Open the form in a new tab
-      const url = `${window.location.origin}/forms/${formId}/instances/${instance.id}?promiseId=${instance.id}&key=${instance.id}`;
-      console.log({ formInstanceUrl: url });
-      window.open(url, '_blank');
+      if (mode === 'test') {
+        // Open the form in a new tab for test mode
+        const url = `${window.location.origin}/forms/${formId}/instances/${instance.id}/answers/new`;
+        window.open(url, '_blank');
+      } else {
+        // Just show success message for create mode
+        toast.success('Form instance created successfully');
+      }
 
+      router.refresh();
       onOpenChange(false);
     } catch (error: any) {
-      toast.error('Failed to create test form: ' + error.message);
+      toast.error('Failed to create form instance: ' + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -132,7 +146,7 @@ export function TestFormDialog({ open, onOpenChange, formId, formConfig }: TestF
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Test Form</DialogTitle>
+          <DialogTitle>{mode === 'test' ? 'Test Form' : 'Create Form Instance'}</DialogTitle>
         </DialogHeader>
 
         {hasVariables ? (
@@ -177,8 +191,8 @@ export function TestFormDialog({ open, onOpenChange, formId, formConfig }: TestF
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleTest} disabled={isLoading}>
-            {isLoading ? 'Creating...' : 'Test Form'}
+          <Button onClick={handleSubmit} disabled={isLoading}>
+            {isLoading ? 'Creating...' : mode === 'test' ? 'Test Form' : 'Create Instance'}
           </Button>
         </DialogFooter>
       </DialogContent>

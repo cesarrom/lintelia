@@ -24,9 +24,9 @@ export function ImageEditor({
         <Image className="h-4 w-4" />
       </div>
       <div className="mb-2 pl-6">
-        <Label>{config.label}</Label>
-        {config.description && (
-          <p className="text-sm text-muted-foreground">{config.description}</p>
+        <Label>{config?.label}</Label>
+        {config?.description && (
+          <p className="text-sm text-muted-foreground">{config?.description}</p>
         )}
       </div>
       <div className="flex items-center justify-center rounded-lg border-2 border-dashed p-4">

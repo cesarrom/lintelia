@@ -1,15 +1,28 @@
 'use client';
 
 import { Image } from 'lucide-react';
-import { ToolbarProps } from '../../types';
 import { Button } from '@/components/ui/button';
 import { useDraggable } from '@dnd-kit/core';
+import { imageConfigSchema } from './schema';
+import { ToolbarProps } from '../../schemas';
 
 export function ImageToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: 'image',
     data: {
       type: 'image',
+      config: {
+        propertyName: 'image',
+        label: 'Image Field',
+        placeholder: '',
+        description: '',
+        required: false,
+        defaultValue: undefined,
+        validation: {
+          min: undefined,
+          max: undefined,
+        },
+      },
     },
   });
 

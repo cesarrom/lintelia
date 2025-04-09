@@ -32,6 +32,7 @@ export class FormsService {
     form.description = data.description || '';
     form.config = data.config;
     form.createdBy = data.createdBy;
+    form.variables = (data.config?.variables || {}) as any;
 
     await this.logs.info('Creating new form', {
       category: 'form',
@@ -85,6 +86,7 @@ export class FormsService {
     if (data.name !== undefined) form.name = data.name;
     if (data.description !== undefined) form.description = data.description;
     if (data.config !== undefined) form.config = data.config;
+    if (data.config?.variables !== undefined) form.variables = data.config!.variables as any;
 
     await this.logs.info('Updating form', {
       category: 'form',
@@ -151,7 +153,6 @@ export class FormsService {
   async getById(id: string): Promise<Form | null> {
     return await this.formRepository.findOne({
       where: { id },
-      relations: ['creator']
     });
   }
 
@@ -239,14 +240,12 @@ export class FormsService {
   async getInstance(id: string): Promise<FormInstance | null> {
     return await this.formInstanceRepository.findOne({
       where: { id },
-      relations: ['form']
     });
   }
 
   async updateInstance(id: string, data: UpdateFormInstanceInput): Promise<FormInstance> {
     const instance = await this.formInstanceRepository.findOne({
       where: { id },
-      relations: ['form']
     });
 
     if (!instance) {
@@ -279,7 +278,6 @@ export class FormsService {
     try {
       const instances = await this.formInstanceRepository.find({
         where: { formId },
-        relations: ['form'],
         order: { createdAt: 'DESC' }
       });
 

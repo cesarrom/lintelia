@@ -1,405 +1,234 @@
 import { inject, injectable } from 'tsyringe';
-import { TENANT_DB_TOKEN } from '../injector/tokens';
-import { DataSource, In, Repository } from 'typeorm';
-import { WorkflowExecution } from '../entities/tenant/workflow-execution.entity';
-import { WorkflowNodeExecution } from '../entities/tenant/workflow-node-execution.entity';
-import { WorkflowNodeExecutionEdge } from '../entities/tenant/workflow-node-execution-edge.entity';
-import { WorkflowExecutionListener } from '../entities/tenant/workflow-execution-listener.entity';
-import { WorkflowsService } from './workflows.service';
-import { LogsService } from './logs.service';
-import { v4 as uuid } from 'uuid';
-import hbs from 'handlebars/runtime';
-import assert from 'assert';
-import { groupBy } from 'lodash';
+import { RESTATE_CONTEXT_TOKEN, USER_TOKEN } from '../injector/tokens';
+import { KeyValueService } from './key-value.service';
+
+import { yamlToWorkflow } from "@/app/(modules)/(private)/(workflows)/(components)/yaml/converter";
+import { NodeData } from "@/app/(modules)/(private)/(workflows)/(components)/yaml/types";
+import { ExecutableNode, ExecuteNodeFunctionProps } from "@/app/(modules)/(private)/(workflows)/types";
+import * as restate from "@restatedev/restate-sdk/fetch";
+import { set } from "lodash";
+import Mustache from 'mustache';
+import { SystemTriggersService } from './system-triggers.service';
+import { TriggerBuilder, TriggerDefinition } from '../triggers-utils';
+import { SystemTrigger } from '../entities/tenant';
+import { User } from '@/types/auth';
+
+export type NextNodeOrExecutionArgs = StandardNodeArgs & {
+  nextNodes?: NodeData[],
+  executionId: string,
+  localResult: Record<string, unknown>,
+  globalResult: Record<string, unknown>,
+  domain: string,
+  token: string,
+  resumableId?: string,
+  resumableResult?: Record<string, unknown>
+};
+
+export type StandardNodeArgs = {
+  yaml: string;
+  nodeData: NodeData;
+  event: string;
+}
+
+export type ForceNextNodeArgs = {
+  forceExecution: string[];
+}
+
+export type ResumableArgs = NextNodeOrExecutionArgs & { maxCalls: number }
 
 @injectable()
 export class WorkflowExecutionsService {
-  private workflowExecutionRepository: Repository<WorkflowExecution>;
-  private nodeExecutionRepository: Repository<WorkflowNodeExecution>;
-  private nodeExecutionEdgeRepository: Repository<WorkflowNodeExecutionEdge>;
-  private executionListenerRepository: Repository<WorkflowExecutionListener>;
-
+  private readonly KEY_PREFIX = 'workflow-executions';
   constructor(
-    @inject(TENANT_DB_TOKEN) private conn: DataSource,
-    @inject(WorkflowsService) private readonly workflowsService: WorkflowsService,
-    @inject(LogsService) private logs: LogsService
-  ) {
-    this.workflowExecutionRepository = this.conn.getRepository(WorkflowExecution);
-    this.nodeExecutionRepository = this.conn.getRepository(WorkflowNodeExecution);
-    this.nodeExecutionEdgeRepository = this.conn.getRepository(WorkflowNodeExecutionEdge);
-    this.executionListenerRepository = this.conn.getRepository(WorkflowExecutionListener);
-  }
+    @inject(USER_TOKEN) private readonly user: User | null,
+    @inject(RESTATE_CONTEXT_TOKEN) private readonly restateContext: restate.ObjectContext,
+    @inject(KeyValueService) private keyValueService: KeyValueService,
+    @inject(SystemTriggersService) private readonly systemTriggerService: SystemTriggersService,
+  ) { }
 
-  async createExecution(data: CreateExecutionInput): Promise<WorkflowExecution> {
-    const execution = new WorkflowExecution();
-    execution.id = uuid();
-    execution.workflowId = data.workflowId;
-    execution.status = 'pending';
+  protected flattenObject(ob: Record<string, unknown>): Record<string, unknown> {
+    const toReturn: Record<string, unknown> = {};
 
-    const savedExecution = await this.workflowExecutionRepository.save(execution);
+    for (const i in ob) {
+      if (!Object.prototype.hasOwnProperty.call(ob, i)) continue;
 
-    await this.logs.info('Workflow execution created', {
-      category: 'workflow',
-      source: 'WorkflowExecutionsService',
-      userId: data.triggeredBy,
-      metadata: {
-        executionId: savedExecution.id,
-        workflowId: data.workflowId,
-        version: data.executingVersion,
-        inputs: data.inputs
-      }
-    });
+      if (typeof ob[i] === 'object' && ob[i] !== null) {
+        const flatObject = this.flattenObject(ob[i] as Record<string, unknown>);
+        for (const x in flatObject) {
+          if (!Object.prototype.hasOwnProperty.call(flatObject, x)) continue;
 
-    return savedExecution;
-  }
-
-  async updateExecutionStatus(data: UpdateExecutionStatusInput): Promise<WorkflowExecution> {
-    const execution = await this.workflowExecutionRepository.findOne({
-      where: { id: data.id }
-    });
-
-    if (!execution) {
-      await this.logs.warning('Execution status update attempted on non-existent execution', {
-        category: 'workflow',
-        source: 'WorkflowExecutionsService',
-        metadata: { executionId: data.id }
-      });
-      throw new Error('Execution not found');
-    }
-
-    execution.status = data.status;
-    if (data.status === 'running' && !execution.startedAt) {
-      execution.startedAt = new Date();
-    }
-    if (['completed', 'failed'].includes(data.status) && !execution.completedAt) {
-      execution.completedAt = new Date();
-    }
-
-    const savedExecution = await this.workflowExecutionRepository.save(execution);
-
-    await this.logs.info('Workflow execution status updated', {
-      category: 'workflow',
-      source: 'WorkflowExecutionsService',
-      metadata: {
-        executionId: data.id,
-        workflowId: execution.workflowId,
-        newStatus: data.status,
-        startedAt: execution.startedAt,
-        completedAt: execution.completedAt
-      }
-    });
-
-    return savedExecution;
-  }
-
-  async getExecution(executionId: string): Promise<WorkflowExecution | null> {
-    return await this.workflowExecutionRepository.findOne({
-      where: { id: executionId },
-      relations: ['workflow']
-    });
-  }
-
-  async getNodeExecutionById(nodeExecutionId: string): Promise<WorkflowNodeExecution | null> {
-    return await this.nodeExecutionRepository.findOne({
-      where: { id: nodeExecutionId },
-      relations: ['execution', 'executor', 'executorRole']
-    });
-  }
-
-  async createNodeExecution(data: CreateNodeExecutionInput): Promise<WorkflowNodeExecution> {
-    const nodeExecution = new WorkflowNodeExecution();
-    nodeExecution.id = uuid();
-    nodeExecution.executionId = data.executionId;
-    nodeExecution.nodeId = data.nodeId;
-    nodeExecution.status = 'pending';
-    nodeExecution.executedBy = data.executedBy;
-    nodeExecution.executedByRole = data.executedByRole;
-    nodeExecution.config = data.config;
-
-    const savedNodeExecution = await this.nodeExecutionRepository.save(nodeExecution);
-
-    await this.logs.info('Workflow node execution created', {
-      category: 'workflow',
-      source: 'WorkflowExecutionsService',
-      userId: data.executedBy,
-      metadata: {
-        nodeExecutionId: savedNodeExecution.id,
-        executionId: data.executionId,
-        nodeId: data.nodeId,
-        config: data.config
-      }
-    });
-
-    return savedNodeExecution;
-  }
-
-  async updateNodeExecutionStatus(data: UpdateNodeExecutionStatusInput): Promise<WorkflowNodeExecution> {
-    const nodeExecution = await this.nodeExecutionRepository.findOne({
-      where: { id: data.id }
-    });
-
-    if (!nodeExecution) {
-      await this.logs.warning('Node execution status update attempted on non-existent node execution', {
-        category: 'workflow',
-        source: 'WorkflowExecutionsService',
-        metadata: { nodeExecutionId: data.id }
-      });
-      throw new Error('Node execution not found');
-    }
-
-    nodeExecution.status = data.status;
-    if (data.status === 'in_progress' && !nodeExecution.startedAt) {
-      nodeExecution.startedAt = new Date();
-    }
-    if (['completed', 'failed'].includes(data.status) && !nodeExecution.completedAt) {
-      nodeExecution.completedAt = new Date();
-    }
-
-    const savedNodeExecution = await this.nodeExecutionRepository.save(nodeExecution);
-
-    const logLevel = data.status === 'failed' ? 'error' : 'info';
-    await this.logs[logLevel]('Workflow node execution status updated', {
-      category: 'workflow',
-      source: 'WorkflowExecutionsService',
-      metadata: {
-        nodeExecutionId: data.id,
-        executionId: nodeExecution.executionId,
-        nodeId: nodeExecution.nodeId,
-        newStatus: data.status,
-        startedAt: nodeExecution.startedAt,
-        completedAt: nodeExecution.completedAt
-      }
-    });
-
-    return savedNodeExecution;
-  }
-
-  async createNodeExecutionEdge(data: CreateNodeExecutionEdgeInput): Promise<WorkflowNodeExecutionEdge> {
-    const edge = new WorkflowNodeExecutionEdge();
-    edge.executionId = data.executionId;
-    edge.nodeExecutionId = data.nodeExecutionId;
-    edge.eventName = data.eventName;
-    edge.result = data.result;
-    edge.error = data.error || undefined;
-
-    const savedEdge = await this.nodeExecutionEdgeRepository.save(edge);
-
-    if (data.error) {
-      await this.logs.error('Workflow node execution edge created with error', {
-        category: 'workflow',
-        source: 'WorkflowExecutionsService',
-        metadata: {
-          executionId: data.executionId,
-          nodeExecutionId: data.nodeExecutionId,
-          eventName: data.eventName,
-          error: data.error
+          toReturn[`${i}.${x}`] = flatObject[x];
         }
-      });
-    } else {
-      await this.logs.info('Workflow node execution edge created', {
-        category: 'workflow',
-        source: 'WorkflowExecutionsService',
-        metadata: {
-          executionId: data.executionId,
-          nodeExecutionId: data.nodeExecutionId,
-          eventName: data.eventName
-        }
-      });
-    }
-
-    return savedEdge;
-  }
-
-  async getNodeExecutionEdge(nodeExecutionId: string, eventName: string): Promise<WorkflowNodeExecutionEdge | null> {
-    return await this.nodeExecutionEdgeRepository.findOne({
-      where: { nodeExecutionId, eventName },
-      relations: ['nodeExecution']
-    });
-  }
-
-  async createExecutionListener(data: CreateExecutionListenerInput): Promise<WorkflowExecutionListener> {
-    const listener = new WorkflowExecutionListener();
-    listener.id = uuid();
-    listener.executionId = data.executionId;
-    listener.listenerId = data.listenerNodeId;
-    listener.event = data.event;
-    listener.sourceId = data.sourceId || '';
-    listener.sourceType = data.sourceType;
-    listener.status = 'waiting';
-
-    return await this.executionListenerRepository.save(listener);
-  }
-
-  async getExecutionListener(listenerId: string): Promise<WorkflowExecutionListener | null> {
-    return await this.executionListenerRepository.findOne({
-      where: { id: listenerId },
-      relations: ['execution']
-    });
-  }
-
-  async updateExecutionListenerStatus(data: UpdateListenerStatusInput): Promise<WorkflowExecutionListener> {
-    const listener = await this.executionListenerRepository.findOne({
-      where: { id: data.id }
-    });
-
-    if (!listener) {
-      throw new Error('Listener not found');
-    }
-
-    listener.status = data.status;
-    return await this.executionListenerRepository.save(listener);
-  }
-
-  async getExecutionListeners(executionId: string): Promise<WorkflowExecutionListener[]> {
-    return await this.executionListenerRepository.find({
-      where: { executionId },
-      relations: ['execution']
-    });
-  }
-
-  async getNodeExecutionContext(workflowId: string, nodeExecutionId: string): Promise<Record<string, unknown>> {
-
-    const nodes = await this.workflowsService.getWorkflowNodes(workflowId);
-
-    const nodesById = new Map(nodes.map(node => [node.id, node]));
-
-    // First get all node executions in the chain with a recursive CTE
-    const nodeExecutionsQuery = `
-      WITH RECURSIVE execution_chain AS (
-        SELECT id, node_id, previous_node_execution_id
-        FROM workflow_node_executions 
-        WHERE id = ?
-        
-        UNION ALL
-        
-        SELECT wne.id, wne.node_id, wne.previous_node_execution_id
-        FROM workflow_node_executions wne
-        JOIN execution_chain ec ON wne.id = ec.previous_node_execution_id
-      )
-      SELECT id FROM execution_chain
-    `;
-
-    const nodeExecutionIds = await this.nodeExecutionRepository.query(nodeExecutionsQuery, [nodeExecutionId]) as { id: string }[];
-
-    if (nodeExecutionIds.length === 0) {
-      throw new Error('Node execution not found');
-    }
-
-    // Get all node executions and their edges in a single query
-    const nodeExecutions = await this.nodeExecutionRepository.find({
-      where: { id: In(nodeExecutionIds.map(n => n.id)) },
-    });
-
-    const nodeExecutionEdges = await this.nodeExecutionEdgeRepository.find({
-      where: { nodeExecutionId: In(nodeExecutionIds.map(n => n.id)) },
-    });
-
-    const edgesByNodeExecutionId = groupBy(nodeExecutionEdges, 'nodeExecutionId');
-
-    // Build the context object
-    const context: Record<string, {
-      outputs: Record<string, unknown>;
-    }> = {};
-
-    for (const row of nodeExecutions) {
-      const nodeId = row.nodeId;
-      const node = nodesById.get(nodeId);
-
-      if (!node) {
-        continue;
-      }
-
-      const nodeName = node.name;
-
-      if (!context[nodeName]) {
-        context[nodeName] = {
-          outputs: {}
-        };
-      }
-
-      const edges = edgesByNodeExecutionId[row.id] || [];
-
-      if (edges.length > 0) {
-        for (const edge of edges) {
-          context[nodeName].outputs[edge.eventName] = edge.result;
-        }
+      } else {
+        toReturn[i] = ob[i];
       }
     }
-
-    return context;
+    return toReturn;
   }
 
-  async resolveConfiguredNode(nodeId: string, context: Record<string, unknown>) {
-    // Get the workflow execution
-    const execution = await this.getExecution(context.executionId as string);
+  getConfiguration(config: Record<string, unknown>, result: Record<string, unknown> = {}): Record<string, unknown> {
+    const configString = JSON.stringify(config);
+    const renderedString = Mustache.render(configString, result);
+    const object = JSON.parse(renderedString);
+    const flattened = this.flattenObject(object);
+    const resolved = {};
 
-    assert(execution, 'Execution not found');
-    
-    // Get the workflow and parse its YAML
-    const nodes = await this.workflowsService.getWorkflowNodes(execution.workflowId);
+    Object.entries(flattened).forEach(([key, value]) => {
+      let parsedValue;
+      try {
+        parsedValue = JSON.parse(value as string);
+      } catch {
+        parsedValue = value;
+      }
+      return set(resolved, key, parsedValue);
+    });
 
-    // Find the node in the workflow
-    const node = nodes.find(n => n.id === nodeId);
-    if (!node) {
-      throw new Error('Node not found');
+    return resolved;
+  }
+
+  protected mergeResult(ctx: Record<string, unknown>, newResult: Record<string, unknown>, nodeName: string, eventName: string) {
+    return set(ctx, [nodeName, eventName], newResult);
+  }
+
+  getNextNodes({ nodeData, event, yaml }: StandardNodeArgs, opts?: ForceNextNodeArgs): NodeData[] {
+    const { nodes, edges } = yamlToWorkflow(yaml);
+
+    const nodesById = nodes.reduce((acc, node) => {
+      acc[node.id] = node;
+      return acc;
+    }, {} as Record<string, typeof nodes[number]>);
+    const eventSourceHandleByType = `${nodeData.type}-${event}`;
+    const eventSourceHandleByName = `${nodeData.name}-${event}`;
+    const eventSourceHandleById = `${nodeData.id}-${event}`;
+    const eventSources = [eventSourceHandleByType, eventSourceHandleByName, eventSourceHandleById];
+    const nextNodes = edges.filter((edge) => edge.source === nodeData.id && eventSources.includes(edge.sourceHandle || '')).flatMap((edge) => nodesById[edge.target] ? [nodesById[edge.target]] : []);
+
+    if (opts?.forceExecution) {
+      nextNodes.push(...opts.forceExecution.map(id => nodesById[id]));
     }
 
-    // Parse the node config with handlebars
-    const configStr = JSON.stringify(node.config || {});
-    const template = hbs.compile(configStr);
-    const config = JSON.parse(template(context));
-
-    return {
-      ...node,
-        config
-    };
+    return nextNodes.map(n => n.data)
   }
-}
 
-interface CreateExecutionInput {
-  workflowId: string;
-  executionNodeId?: string;
-  triggeredBy: string;
-  triggeredByRole: string;
-  executingVersion: number;
-  inputs: Record<string, unknown>;
-}
+  async nextOrEndExecution(args: NextNodeOrExecutionArgs) {
+    const { executionId, nodeData, yaml, domain, token, globalResult, localResult, event, nextNodes = this.getNextNodes({ nodeData, event, yaml }), resumableId, resumableResult } = args;
+    const result = this.mergeResult(globalResult, localResult, nodeData.name, event);
+    await this.updateExecution(executionId, args);
 
-interface UpdateExecutionStatusInput {
-  id: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-}
+    // we evaluate if this node exports this particular event
+    const exporting = nodeData.exports?.find(e => e.event === event);
 
-interface CreateNodeExecutionInput {
-  executionId: string;
-  nodeId: string;
-  executedBy?: string;
-  executedByRole?: string;
-  config: Record<string, unknown>;
-}
+    if (exporting) {
+      const { outputs } = exporting;
 
-interface UpdateNodeExecutionStatusInput {
-  id: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'failed';
-}
+      return { [event]: this.getConfiguration(Object.fromEntries(outputs.map(o => [o.name, o.value] as const)), result) };
+    }
 
-interface CreateNodeExecutionEdgeInput {
-  executionId: string;
-  nodeExecutionId: string;
-  eventName: string;
-  result: Record<string, unknown> | null;
-  error: string | null;
-}
+    const outputs = {} as Record<string, unknown>;
 
-interface CreateExecutionListenerInput {
-  executionId: string;
-  listenerNodeId: string;
-  event: string;
-  sourceId?: string;
-  sourceType: 'node' | 'node_execution';
-}
+    for (const data of nextNodes) {
+      const { type } = data;
 
-interface UpdateListenerStatusInput {
-  id: string;
-  status: 'waiting' | 'emitted' | 'failed';
+      const client = this.restateContext.objectClient<ExecutableNode>({ name: type }, this.restateContext.key) as { executeNode: (p: ExecuteNodeFunctionProps) => Promise<Record<string, unknown>> };
+
+      const r = await client.executeNode({ executionId, nodeData: data, yaml, domain, token, result, sourceEvent: event, resumableId, resumableResult }) || {};
+
+      Object.assign(outputs, r);
+    }
+
+    return outputs;
+
+  }
+  /**
+   * Call this function instead of `nextOrEndExecution` when you want to create a resumable
+   * this method was created to replace `restate.awakeable()` because to our understanding, it is not possible to call one awakeable many times, it is sequential, you call it once, and that is it
+   * meanwhile, this method allows you to create a resumable that can be called multiple times
+   * @param args
+   * @returns 
+   */
+  async createResumable(args: Omit<ResumableArgs, 'maxCalls'> & { maxCalls?: number }, triggerRef?: TriggerBuilder): Promise<string> {
+    args.maxCalls = args.maxCalls || -1;
+    const resumableId = this.restateContext.rand.uuidv4();
+    const { executionId } = args;
+    const { workflow } = yamlToWorkflow(args.yaml);
+
+    // if you do not pass a trigger, we will create one, but this trigger we create is not triggered by any log in the system
+    // so you will have to grab the ID to resume the execution manually later on potentially.
+    const trigger = (
+      triggerRef || new TriggerBuilder(resumableId)
+        .matchMessage(`resume::${executionId}::${resumableId}`)
+        .resumeWorkflow(workflow.id, args.nodeData.id, args)
+    )
+      .build();
+
+    trigger.id = resumableId;
+
+    await this.systemTriggerService.createTrigger(SystemTrigger.fromTriggerDefinition(trigger, {
+      createdBy: this.user?.email || 'system',
+      workflowId: workflow.id,
+      active: true
+    }));
+
+    return resumableId;
+  }
+
+  /**
+   * This will take a resumable at any point of time, and call `nextOrEndExecution` with the same arguments
+   * @param resumableId 
+   */
+  async resumeExecution({ resumableId, result, domain, token }: { resumableId: string, result: object, domain: string, token: string }) {
+    const trigger = await this.systemTriggerService.findTriggerById(resumableId);
+
+    if (!trigger) {
+      throw new Error(`Trigger ${resumableId} not found`);
+    }
+
+    const args = trigger.action.inputs as ResumableArgs;
+
+    if (args.maxCalls !== -1) {
+      args.maxCalls -= 1;
+      trigger.action.inputs = args;
+      if (args.maxCalls === 0) {
+        await this.systemTriggerService.deleteTriggerById(resumableId);
+      } else {
+        await this.systemTriggerService.replaceTrigger(resumableId, trigger);
+      }
+    }
+
+    return await this.nextOrEndExecution({
+      executionId: args.executionId,
+      nodeData: args.nodeData,
+      localResult: args.localResult,
+      globalResult: args.globalResult,
+      yaml: args.yaml,
+      domain: domain,
+      token: token,
+      nextNodes: args.nextNodes,
+      event: args.event,
+      resumableId,
+      resumableResult: result as any,
+    });
+  }
+
+  async deleteResumable(resumableId: string): Promise<void> {
+    await this.systemTriggerService.deleteTriggerById(resumableId);
+  }
+
+  async getExecution(executionId: string) {
+    const exec = await this.keyValueService.findByKey(`${this.KEY_PREFIX}::${executionId}`);
+    if (!exec) {
+      throw new Error(`Execution ${executionId} not found`);
+    }
+    return JSON.parse(exec.value) as NextNodeOrExecutionArgs;
+  }
+
+  async updateExecution(executionId: string, props: NextNodeOrExecutionArgs) {
+    const exec = await this.keyValueService.findByKey(`${this.KEY_PREFIX}::${executionId}`);
+    if (!exec) {
+      throw new Error(`Execution ${executionId} not found`);
+    }
+    await this.keyValueService.update(exec.id, {
+      value: JSON.stringify(props),
+    })
+  }
 }

@@ -8,11 +8,12 @@ import { CNAMERecord, type CreateTenant, DomainsService, InvitationsService, Ten
 import { auth } from '@/lib/clients/auth.client';
 import { SdkResponse } from '@descope/node-sdk';
 import { omit } from 'lodash';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { ENVIRONMENT_TOKEN } from '@/lib/injector/tokens';
 import { getInjector } from '@/lib/injector';
 import { env } from '@/lib/constants';
+import { SystemVariable } from '@/lib/entities/tenant/system-variable.entity';
 
 // Tenant Settings Actions
 export const updateTenantSettings = inject(
@@ -44,35 +45,47 @@ export const updateTenantSettings = inject(
 // System Variables Actions
 export const getSystemVariables = inject(
   [SystemVariablesService],
-  async (context, [systemVariablesService]) => {
+  async (context, [systemVariablesService]): Promise<SystemVariable[]> => {
     const variables = await systemVariablesService.list();
     revalidatePath('/settings');
-    return variables;
+    return JSON.parse(JSON.stringify(variables));
+  }
+);
+
+export const getSystemVariableNames = inject(
+  [SystemVariablesService],
+  async (context, [systemVariablesService]): Promise<(Omit<SystemVariable, 'value'>)[]> => {
+    const variables = await systemVariablesService.list();
+    revalidatePath('/settings');
+    return JSON.parse(JSON.stringify(variables.map(v => ({
+      ...v,
+      'value': undefined
+    }))));
   }
 );
 
 export const getSystemVariable = inject(
   [SystemVariablesService],
-  async (context, [systemVariablesService], id: string) => {
-    return await systemVariablesService.getById(id);
+  async (context, [systemVariablesService], id: string): Promise<SystemVariable> => {
+    return JSON.parse(JSON.stringify(await systemVariablesService.getById(id)));
   }
 );
 
 export const createSystemVariable = inject(
   [SystemVariablesService],
-  async (context, [systemVariablesService], data: CreateSystemVariableInput) => {
+  async (context, [systemVariablesService], data: CreateSystemVariableInput): Promise<SystemVariable> => {
     const variable = await systemVariablesService.create(data);
     revalidatePath('/settings');
-    return variable;
+    return JSON.parse(JSON.stringify(variable));
   }
 );
 
 export const updateSystemVariable = inject(
   [SystemVariablesService],
-  async (context, [systemVariablesService], id: string, data: UpdateSystemVariableInput) => {
+  async (context, [systemVariablesService], id: string, data: UpdateSystemVariableInput): Promise<SystemVariable> => {
     const variable = await systemVariablesService.update(id, data);
     revalidatePath('/settings');
-    return variable;
+    return JSON.parse(JSON.stringify(variable));
   }
 );
 
@@ -223,6 +236,7 @@ export type CreatedTenant = Awaited<ReturnType<typeof createTenant>>;
 
 export const getTenant = async (domainRef?: string) => {
   const headersList = await headers();
+  const cookiesList = await cookies();
   const headerUrl = 'https://' + headersList.get('x-forwarded-host') || "";
   
   const url = new URL(headerUrl);
@@ -231,7 +245,7 @@ export const getTenant = async (domainRef?: string) => {
   // domain = galicia.fintivio.org
   
   const tenant = url.hostname.split(".")[0];
-  const domain = domainRef || url.hostname;
+  const domain = domainRef || cookiesList.get('fintivio-domain')?.value || url.hostname;
   
   const injector = await getInjector();
   

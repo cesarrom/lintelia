@@ -6,14 +6,18 @@ import Cookie from 'js-cookie';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { afterLogin } from '@/app/(modules)/(public)/(auth)/(actions)/actions';
+import { useTheme } from 'next-themes';
+import { wait } from '@/lib/utils';
 
 export function SignOn({ domain }: { domain?: string }) {
   const [, startTransition] = React.useTransition();
   const [activeTab, setActiveTab] = useState('users')
+  const { theme } = useTheme();
 
   const Login = <Descope
+    theme={theme === 'dark' ? 'dark' : 'light'}
     flowId="passwords-with-explicit-sign-up"
-    onSuccess={data => {
+    onSuccess={(data: any) => {
       startTransition(async () => {
         const isLocal = window.location.hostname.includes('local.fintivio.org');
 
@@ -24,6 +28,7 @@ export function SignOn({ domain }: { domain?: string }) {
 
         try {
           const firstSeen = !!data.detail.firstSeen;
+          await wait(1000);
           await afterLogin(firstSeen);
         } catch (e) {
           console.error(e);
@@ -33,25 +38,35 @@ export function SignOn({ domain }: { domain?: string }) {
   />
 
   if (!domain) {
-    return Login;
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="max-w-[750px] w-full">
+          {Login}
+        </div>
+      </div>
+    );
   }
 
   return (
-    <Card className="w-full max-w-3xl">
-      <CardContent className="p-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="users">Clients</TabsTrigger>
-            <TabsTrigger value="admins">Personnel</TabsTrigger>
-          </TabsList>
-          <TabsContent value="users">
-            {Login}
-          </TabsContent>
-          <TabsContent value="admins">
-            {Login}
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+    <div className="flex justify-center items-center h-screen">
+      <div className="max-w-[750px] w-full">
+        <Card className="w-full">
+          <CardContent className="p-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="users">Clients</TabsTrigger>
+                <TabsTrigger value="admins">Personnel</TabsTrigger>
+              </TabsList>
+              <TabsContent value="users">
+                {Login}
+              </TabsContent>
+              <TabsContent value="admins">
+                {Login}
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }

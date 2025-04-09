@@ -1,3 +1,4 @@
+import { TriggerDefinitionSchema } from '@/lib/triggers-utils';
 import { z } from 'zod';
 
 // Basic value types that can be used in the workflow
@@ -14,21 +15,24 @@ export const ValueTypeSchema = z.enum([
 
 export type ValueType = z.infer<typeof ValueTypeSchema>;
 
+export type TypeDefinition = 
+  | z.infer<typeof ValueTypeSchema>
+  | { type: 'object'; properties: Record<string, TypeDefinition> }
+  | { type: 'array'; items: TypeDefinition };
 
 // Schema for type definitions
-export const TypeDefinitionSchema = z.union([
+export const TypeDefinitionSchema: z.ZodType<TypeDefinition> = z.lazy(() => z.union([
   ValueTypeSchema,
   z.object({
     type: z.literal('object'),
-    properties: z.record(z.string(), z.lazy(() => TypeDefinitionSchema)),
+    properties: z.record(z.string(), TypeDefinitionSchema),
   }),
   z.object({
     type: z.literal('array'),
-    items: z.lazy(() => TypeDefinitionSchema),
+    items: TypeDefinitionSchema,
   })
-]);
+]));
 
-export type TypeDefinition = z.infer<typeof TypeDefinitionSchema>;
 
 // Value can be either a raw value or an interpolation expression
 export const ValueSchema = z.any();
@@ -67,14 +71,7 @@ export const WorkflowYamlSchema = z.object({
 
 export type WorkflowYaml = z.infer<typeof WorkflowYamlSchema>;
 
-export const TriggerYamlSchema = z.object({
-  id: z.string(),
-  type: z.string(),
-  name: z.string(),
-  description: z.string().optional(),
-  config: z.record(z.unknown()),
-  eventName: z.string()
-});
+export const TriggerYamlSchema = TriggerDefinitionSchema
 
 export type TriggerYaml = z.infer<typeof TriggerYamlSchema>;
 

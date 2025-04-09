@@ -1,9 +1,9 @@
 import * as React from "react"
 import BaseLink from "next/link"
 import { cva, type VariantProps } from "class-variance-authority"
-import { cn, useGroupLock, useGroupLocker } from "@/lib/utils"
+import { useGroupLock, useGroupLocker } from "@/lib/hooks/use-group-lock"
 import { useRouter } from "next/navigation"
-
+import { cn } from "@/lib/utils"
 const linkVariants = cva(
   "inline-flex items-center justify-start whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
   {

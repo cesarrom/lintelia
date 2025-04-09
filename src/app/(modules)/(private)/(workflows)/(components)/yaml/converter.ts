@@ -1,6 +1,5 @@
 import type { Node, Edge } from 'reactflow';
-import type { WorkflowTrigger } from '../triggers/TriggersSidebar';
-import type { Workflow, NodeData, WorkflowYaml, StepExportYaml } from './types';
+import type { Workflow, NodeData, WorkflowYaml, StepExportYaml, WorkflowTrigger } from './types';
 import yaml from 'yaml';
 
 // Helper to find all steps that can be reached from a given step
@@ -58,13 +57,7 @@ export function workflowToYaml(workflow: Workflow, nodes: Node<NodeData>[], edge
     inputs: workflow.inputs || [],
 
     // Convert triggers
-    triggers: triggers.map(trigger => ({
-      id: trigger.id,
-      name: trigger.name,
-      type: trigger.type,
-      config: trigger.config || {},
-      eventName: trigger.eventName || trigger.name,
-    })),
+    triggers: triggers,
 
     // Convert nodes to steps
     steps: nodes.map(node => {
@@ -86,6 +79,34 @@ export function workflowToYaml(workflow: Workflow, nodes: Node<NodeData>[], edge
   };
 
   return yaml.stringify(schema);
+}
+
+/**
+ * recursively organize children of a node relative to itself, it will place the children to the right of itself, one children above the other
+ * @param startNode 
+ * @param edges 
+ */
+function autoOrganizeNodes(startNode: Node<NodeData>, nodes: Node<NodeData>[], edges: Edge[], visited: Set<string> = new Set()) {
+  if (visited.has(startNode.id)) return;
+  visited.add(startNode.id);
+  const Offset = 100;
+  const SquareWidth = 300;
+  const SquareHeight = 150;
+  const children = edges.filter(edge => edge.source === startNode.id).map(edge => edge.target);
+  const childrenXCoord = startNode.position.x + SquareWidth + Offset;
+  const startingChildrenYCoord = startNode.position.y;
+
+  children.forEach((childId, index) => {
+    const child = nodes.find(node => node.id === childId);
+    if (!child) return;
+
+    child.position = {
+      x: childrenXCoord,
+      y: startingChildrenYCoord + (index * SquareHeight) + (index === 0 ? 0 : Offset)
+    };
+
+    autoOrganizeNodes(child, nodes, edges, visited);
+  });
 }
 
 export function yamlToWorkflow(yamlContent: string, options: { id?: string } = {}): {
@@ -112,13 +133,7 @@ export function yamlToWorkflow(yamlContent: string, options: { id?: string } = {
   };
 
   // Convert to triggers
-  const triggers: WorkflowTrigger[] = schema.triggers.map(trigger => ({
-    id: trigger.id || '', // This should be generated
-    name: trigger.name,
-    type: trigger.type,
-    config: trigger.config,
-    eventName: trigger.eventName || trigger.name,
-  }));
+  const triggers: WorkflowTrigger[] = schema.triggers;
 
   // Convert steps to nodes and edges
   const nodes: Node<NodeData>[] = schema.steps.map((step, index) => {
@@ -179,6 +194,10 @@ export function yamlToWorkflow(yamlContent: string, options: { id?: string } = {
       }))
     )
   );
+
+  const startNode = nodes.find(node => node.type === 'start');
+
+  autoOrganizeNodes(startNode!, nodes, edges);
 
   return {
     workflow,

@@ -15,4 +15,12 @@ const VariablesContext = createContext<VariablesContextValue>({
 
 export const useVariables = () => useContext(VariablesContext);
 
-export const VariablesProvider = VariablesContext.Provider; 
+export const VariablesProvider = ({
+  variables,
+  definitions,
+  children,
+}: {
+  variables: Record<string, unknown>;
+  definitions: Record<string, FormVariable>;
+  children: React.ReactNode;
+}) => <VariablesContext.Provider value={{ variables, definitions }}>{children}</VariablesContext.Provider>;

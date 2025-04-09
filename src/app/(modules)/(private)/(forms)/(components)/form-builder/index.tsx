@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { FormConfig, FormVariable, FormComponentConfig, formConfigSchema, generateValidationConfig } from './schemas';
 import { FormEngine } from './form-engine';
 import { registry } from './registry';
@@ -45,6 +45,7 @@ import { Loader2, MessageSquarePlus } from 'lucide-react';
 import { generateFormWithAI } from '../../(actions)/actions';
 import { toast } from 'sonner';
 import { FormToolbar } from './form-toolbar';
+import { VariablesProvider } from './context/variables';
 
 // Register components
 registry.register(textComponent);
@@ -102,7 +103,7 @@ export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProp
     const { active } = event;
     const type = active.data.current?.type;
     if (!type) return;
-    
+
     setActiveId(type);
     setActiveComponent({
       type,
@@ -113,7 +114,7 @@ export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProp
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
+
     setActiveId(null);
     setActiveComponent(null);
     document.body.style.cursor = '';
@@ -156,7 +157,7 @@ export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProp
     }
   };
 
-  const selectedComponent = selectedId 
+  const selectedComponent = selectedId
     ? config.components.find(c => c.id === selectedId)
     : null;
 
@@ -169,7 +170,7 @@ export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProp
     try {
       setIsGenerating(true);
       const response = await generateFormWithAI(userPrompt, config);
-      
+
       if (response.error) {
         toast.error(response.error);
         return;
@@ -212,164 +213,176 @@ export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProp
     }));
   };
 
+
+
+  // Create a context value for variables
+  const variablesContext = useMemo(() => {
+    return {
+      variables: {},
+      definitions: config?.variables || {},
+    };
+  }, [config?.variables]);
+
   return (
     <DndContext
       sensors={sensors}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex flex-col h-[calc(95vh-8rem)]">
-        <div className="flex flex-1 gap-4 p-6 overflow-hidden">
-          {/* Components Toolbar */}
-          <div className="w-64 flex-none rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden flex flex-col">
-            <div className="p-4 font-semibold border-b">Components</div>
-            <ScrollArea className="flex-1">
-              <div className="space-y-2 p-4">
-                <FormToolbar />
-              </div>
-            </ScrollArea>
-          </div>
-
-          {/* Form Canvas */}
-          <div className="flex-1 rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden flex flex-col">
-            <div className="flex h-14 items-center justify-between border-b px-4 flex-none">
-              <div className="flex items-center gap-4">
-                <h2 className="text-lg font-semibold">{config.name}</h2>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    setShowSettings(true);
-                    setSelectedId(null);
-                  }}
-                >
-                  <Settings2 className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={onCancel}>
-                  Cancel
-                </Button>
-                <Button onClick={() => onSave?.(generateValidationConfig(config))}>
-                  Save Form
-                </Button>
-              </div>
+      <VariablesProvider {...variablesContext}>
+        <div className="flex flex-col h-[calc(95vh-8rem)]">
+          <div className="flex flex-1 gap-4 p-6 overflow-hidden">
+            {/* Components Toolbar */}
+            <div className="w-64 flex-none rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden flex flex-col">
+              <div className="p-4 font-semibold border-b">Components</div>
+              <ScrollArea className="flex-1">
+                <div className="space-y-2 p-4">
+                  <FormToolbar />
+                </div>
+              </ScrollArea>
             </div>
-            <ScrollArea className="flex-1">
-              <div className="p-4">
-                <FormEngine
-                  mode="editor"
-                  config={config}
-                  onConfigChange={handleConfigChange}
-                  selectedId={selectedId}
-                  onSelectComponent={handleComponentSelect}
-                />
-              </div>
-            </ScrollArea>
-          </div>
 
-          {/* Properties Panel */}
-          <div className="w-80 flex-none rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden flex flex-col">
-            <div className="flex h-14 items-center justify-between border-b px-4 flex-none">
-              <div className="font-semibold">
-                {showSettings ? 'Form Settings' : 'Properties'}
+            {/* Form Canvas */}
+            <div className="flex-1 rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden flex flex-col">
+              <div className="flex h-14 items-center justify-between border-b px-4 flex-none">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-lg font-semibold">{config.name}</h2>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setShowSettings(true);
+                      setSelectedId(null);
+                    }}
+                  >
+                    <Settings2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={onCancel}>
+                    Cancel
+                  </Button>
+                  <Button onClick={() => onSave?.(generateValidationConfig(config))}>
+                    Save Form
+                  </Button>
+                </div>
               </div>
-              {showSettings && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowSettings(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-            <ScrollArea className="flex-1">
-              <div className="p-4">
-                {showSettings ? (
-                  <FormSettings
+              <ScrollArea className="flex-1">
+                <div className="p-4">
+                  <FormEngine
+                    mode="editor"
                     config={config}
-                    onChange={setConfig}
+                    onConfigChange={handleConfigChange}
+                    selectedId={selectedId}
+                    onSelectComponent={handleComponentSelect}
                   />
-                ) : selectedComponent ? (
-                  (() => {
-                    const component = registry.get(selectedComponent.type);
-                    if (!component) return null;
+                </div>
+              </ScrollArea>
+            </div>
 
-                    return (
-                      <component.Properties
-                        config={selectedComponent.config}
-                        onChange={(newConfig) => {
-                          const schema = component.getConfigSchema();
-                          const validationResult = schema.safeParse(newConfig);
-                          if (!validationResult.success) {
-                            toast.error('Invalid configuration');
-                            return;
-                          }
-
-                          setConfig(prev => ({
-                            ...prev,
-                            components: prev.components.map((c: FormComponentConfig) =>
-                              c.id === selectedComponent.id
-                                ? { ...c, config: validationResult.data }
-                                : c
-                            ),
-                          }));
-                        }}
-                      />
-                    );
-                  })()
-                ) : (
-                  <div className="text-sm text-muted-foreground">
-                    Select a component to edit its properties or click the settings icon to edit form settings
-                  </div>
+            {/* Properties Panel */}
+            <div className="w-80 flex-none rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden flex flex-col">
+              <div className="flex h-14 items-center justify-between border-b px-4 flex-none">
+                <div className="font-semibold">
+                  {showSettings ? 'Form Settings' : 'Properties'}
+                </div>
+                {showSettings && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowSettings(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 )}
               </div>
-            </ScrollArea>
+              <ScrollArea className="flex-1">
+                <div className="p-4">
+                  {showSettings ? (
+                    <FormSettings
+                      config={config}
+                      onChange={setConfig}
+                    />
+                  ) : selectedComponent ? (
+                    (() => {
+                      const component = registry.get(selectedComponent.type);
+                      if (!component) return null;
+
+                      return (
+                        <component.Properties
+                          config={selectedComponent.config}
+                          onChange={(newConfig) => {
+                            const schema = component.getConfigSchema();
+                            const validationResult = schema.safeParse(newConfig);
+                            if (!validationResult.success) {
+                              toast.error('Invalid configuration');
+                              return;
+                            }
+
+                            setConfig(prev => ({
+                              ...prev,
+                              components: prev.components.map((c: FormComponentConfig) =>
+                                c.id === selectedComponent.id
+                                  ? { ...c, config: validationResult.data }
+                                  : c
+                              ),
+                            }));
+                          }}
+                        />
+                      );
+                    })()
+                  ) : (
+                    <div className="text-sm text-muted-foreground">
+                      Select a component to edit its properties or click the settings icon to edit form settings
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
+          </div>
+
+          {/* AI Chat Interface */}
+          <div className="border-t p-4 bg-card flex-none">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (prompt.trim()) {
+                  handleAIGenerate(prompt);
+                }
+              }}
+              className="flex items-center gap-2"
+            >
+              <Input
+                placeholder="Describe what changes you want to make to the form..."
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                disabled={isGenerating}
+                className="flex-1"
+              />
+              <Button
+                type="submit"
+                disabled={isGenerating || !prompt.trim()}
+                variant="secondary"
+              >
+                {isGenerating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <MessageSquarePlus className="h-4 w-4" />
+                )}
+                <span className="ml-2">Ask AI</span>
+              </Button>
+            </form>
           </div>
         </div>
-        
-        {/* AI Chat Interface */}
-        <div className="border-t p-4 bg-card flex-none">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (prompt.trim()) {
-                handleAIGenerate(prompt);
-              }
-            }}
-            className="flex items-center gap-2"
-          >
-            <Input
-              placeholder="Describe what changes you want to make to the form..."
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              disabled={isGenerating}
-              className="flex-1"
-            />
-            <Button
-              type="submit"
-              disabled={isGenerating || !prompt.trim()}
-              variant="secondary"
-            >
-              {isGenerating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <MessageSquarePlus className="h-4 w-4" />
-              )}
-              <span className="ml-2">Ask AI</span>
-            </Button>
-          </form>
-        </div>
-      </div>
 
-      <DragOverlay>
-        {activeComponent && (() => {
-          const component = registry.get(activeComponent.type);
-          if (!component) return null;
-          return <component.Toolbar />;
-        })()}
-      </DragOverlay>
+        <DragOverlay>
+          {activeComponent && (() => {
+            const component = registry.get(activeComponent.type);
+            if (!component) return null;
+            return <component.Toolbar />;
+          })()}
+        </DragOverlay>
+      </VariablesProvider>
     </DndContext>
   );
 }

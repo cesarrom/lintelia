@@ -3,6 +3,7 @@ import { DataSource, Repository, Between, FindOptionsWhere, MoreThanOrEqual, Les
 import { TENANT_DB_TOKEN, USER_TOKEN } from "../injector/tokens";
 import { Log, LogLevel, LogCategory } from "../entities/tenant/log.entity";
 import { User } from "@/types/auth";
+import { SystemTriggersService } from "./system-triggers.service";
 
 export interface CreateLogInput {
   message: string;
@@ -46,6 +47,7 @@ export class LogsService {
 
   constructor(
     @inject(TENANT_DB_TOKEN) private conn: DataSource,
+    @inject(SystemTriggersService) private systemTriggersService: SystemTriggersService,
     @inject(USER_TOKEN) private user: User | null
   ) {
     this.repository = this.conn.getRepository(Log);
@@ -59,7 +61,11 @@ export class LogsService {
     };
     
     const log = this.repository.create(logData);
-    return await this.repository.save(log);
+    const savedLog = await this.repository.save(log);
+
+    setImmediate(() => this.systemTriggersService.processLog(savedLog));
+
+    return savedLog;
   }
 
   async list(filter?: LogsFilter): Promise<Log[]> {
@@ -153,7 +159,9 @@ export class LogsService {
       user: 0,
       form: 0,
       security: 0,
-      integration: 0
+      integration: 0,
+      review: 0,
+      database: 0
     };
     
     const bySource: Record<string, number> = {};

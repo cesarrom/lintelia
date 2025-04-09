@@ -9,8 +9,8 @@ export default function SignOutPage() {
   const descope = useDescope();
 
   useEffect(() => {
-    navigate.replace('/sign-on');
     descope.logout();
+    navigate.replace('/sign-on');
   }, [descope, navigate]);
 
   return null;

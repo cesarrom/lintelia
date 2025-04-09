@@ -26,7 +26,7 @@ interface FormDialogProps {
 export function FormDialog({ form, open, onOpenChange }: FormDialogProps) {
   const [name, setName] = useState(form?.name || '');
   const [description, setDescription] = useState(form?.description || '');
-  const [config, setConfig] = useState<FormConfig>(form?.config || { fields: [] });
+  const [config, setConfig] = useState<FormConfig>(form?.config || { components: [] });
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {

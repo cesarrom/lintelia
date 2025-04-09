@@ -1,8 +1,9 @@
 import { createContext, useContext, useState, useCallback, ReactNode, useRef, useMemo } from 'react';
-import { Node, Edge, useNodesState, useEdgesState, useNodeId } from 'reactflow';
-import { WorkflowTrigger } from './triggers/TriggersSidebar';
+import { Node, Edge, useNodesState, useEdgesState, useNodeId, NodeProps } from 'reactflow';
 import { workflowToYaml, yamlToWorkflow, validateWorkflowYaml } from './yaml/converter';
-import { NodeData, Workflow } from './yaml/types';
+import { NodeData, Workflow, WorkflowTrigger } from './yaml/types';
+import React from 'react';
+import { NodeDefinition } from './nodes/types';
 
 // Initial start node position
 const INITIAL_START_NODE: Node<NodeData> = {
@@ -41,9 +42,19 @@ export interface WorkflowState {
   nodes: Node<NodeData>[];
   edges: Edge[];
   triggers: WorkflowTrigger[];
+  toolbarComponents: ToolbarComponent[];
+  nodeComponents: NodeComponent[];
+  workflowComponents: Record<string, WorkflowComponentType>;
 }
 
+export type ToolbarComponent = React.ReactElement;
+export type NodeComponent = React.ComponentType<NodeProps<NodeData>>;
+export type WorkflowComponentType = Omit<NodeData, 'execute' | 'config' | 'isTerminal' | 'exports'>
+
 interface WorkflowContextType extends WorkflowState {
+  registerComponent: (component: WorkflowComponentType) => void;
+  registerToolbar: (component: ToolbarComponent) => void;
+  registerNode: (component: NodeComponent) => void;
   // Node and edge methods (internal)
   onNodesChange: ReturnType<typeof useNodesState>[2];
   onEdgesChange: ReturnType<typeof useEdgesState>[2];
@@ -105,7 +116,22 @@ export function WorkflowProvider({
     isDirty: false,
     isSaving: false,
     isLoading: false,
+    toolbarComponents: [] as ToolbarComponent[],
+    nodeComponents: [] as NodeComponent[],
+    workflowComponents: {} as Record<string, WorkflowComponentType>,
   });
+
+  const registerToolbar = (component: ToolbarComponent) => {
+    setState(prev => ({ ...prev, toolbarComponents: [...prev.toolbarComponents, component] }));
+  };
+
+  const registerNode = (component: NodeComponent) => {
+    setState(prev => ({ ...prev, nodeComponents: [...prev.nodeComponents, component] }));
+  };
+
+  const registerComponent = (component: WorkflowComponentType) => {
+    setState(prev => ({ ...prev, workflowComponents: { ...prev.workflowComponents, [component.id]: component } }));
+  };
 
   const beforeSaveCallbacks = useRef<(() => Promise<void> | void)[]>([]);
   const afterSaveCallbacks = useRef<(() => Promise<void> | void)[]>([]);
@@ -121,24 +147,24 @@ export function WorkflowProvider({
     }
 
     const { nodes: newNodes, edges: newEdges, triggers: newTriggers, workflow: newWorkflow } = yamlToWorkflow(yaml);
-    
+
     // Ensure start node exists when loading new YAML
     const nodesWithStart = ensureStartNode(newNodes);
-    
+
     setNodes(nodesWithStart);
     setEdges(newEdges);
     setState(prev => {
       // If we added a start node, we need to regenerate the YAML
-      const finalYaml = nodesWithStart.length !== newNodes.length 
+      const finalYaml = nodesWithStart.length !== newNodes.length
         ? workflowToYaml(newWorkflow, nodesWithStart, newEdges, newTriggers)
         : yaml;
-        
-      const newState = { 
-        ...prev, 
-        yaml: finalYaml, 
+
+      const newState = {
+        ...prev,
+        yaml: finalYaml,
         workflow: newWorkflow,
-        triggers: newTriggers, 
-        isDirty: true 
+        triggers: newTriggers,
+        isDirty: true
       };
       notifyChange(finalYaml);
       return newState;
@@ -252,10 +278,14 @@ export function WorkflowProvider({
     return validateWorkflowYaml(yaml);
   }, []);
 
+
   const value: WorkflowContextType = {
     ...state,
     nodes,
     edges,
+    registerComponent,
+    registerToolbar,
+    registerNode,
     updateWorkflow,
     onNodesChange,
     onEdgesChange,
@@ -321,9 +351,9 @@ export function useNodeData<T extends NodeData>() {
         }
       };
     })
-}, [setNode]);
+  }, [setNode]);
 
-return [node?.data as T | undefined, setData] as const;
+  return [node?.data as T | undefined, setData] as const;
 }
 
 export function useNodeConfig<T>(initialConfig?: T | (() => T)) {
@@ -350,3 +380,68 @@ export function useNodeConfig<T>(initialConfig?: T | (() => T)) {
   ] as const;
 }
 
+export const useToolbarComponents = () => {
+  const context = useWorkflow();
+  return context.toolbarComponents;
+};
+
+export const useNodeComponents = () => {
+  const context = useWorkflow();
+  return context.nodeComponents;
+};
+
+export const useWorkflowComponents = () => {
+  const context = useWorkflow();
+  return context.workflowComponents;
+};
+
+type WorkflowComponentContextType = WorkflowComponentType;
+
+const WorkflowComponentContext = createContext<WorkflowComponentContextType | null>(null);
+
+export const WorkflowComponent: React.FC<React.PropsWithChildren<WorkflowComponentContextType>> = ({ children, ...props }) => {
+  const context = useWorkflow();
+  const { id, type, name, description, events } = props;
+
+  React.useEffect(() => {
+    if (context) {
+      context.registerComponent(props);
+    }
+  }, [context, id, type, name, description, events]);
+
+  return <WorkflowComponentContext.Provider value={props}>
+    {children}
+  </WorkflowComponentContext.Provider>;
+};
+
+export const useWorkflowComponent = () => {
+  const context = useContext(WorkflowComponentContext);
+  if (context === null) {
+    throw new Error('useWorkflowComponent must be used within a WorkflowComponent');
+  }
+  return context;
+}
+
+export const WorkflowToolbar: React.FC<React.PropsWithChildren> = ({ children }) => {
+  const context = useWorkflow();
+
+  React.useEffect(() => {
+    if (context) {
+      context.registerToolbar(<>{children}</>);
+    }
+  }, [context, children]);
+
+  return null;
+};
+
+export const WorkflowNode: React.FC<{ render: React.ComponentType<NodeProps<NodeData>> }> = ({ render }) => {
+  const context = useWorkflow();
+
+  React.useEffect(() => {
+    if (context) {
+      context.registerNode(render);
+    }
+  }, [context, render]);
+
+  return null;
+};

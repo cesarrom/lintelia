@@ -4,7 +4,6 @@ import Mailgun from 'mailgun.js';
 import { env } from '../constants';
 import { type IMailgunClient } from 'mailgun.js/Interfaces';
 import { EmailTemplatesService } from './email-templates.service';
-import { type EmailTemplate } from '../entities/tenant/email-template.entity';
 import { TENANT_TOKEN } from '../injector/tokens';
 import { Tenant } from '../entities/global/tenant.entity';
 import { LogsService } from './logs.service';

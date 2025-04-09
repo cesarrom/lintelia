@@ -12,3 +12,5 @@ export * from './form-answer.entity';
 export * from './system-variable.entity';
 export * from './log.entity';
 export * from './review.entity';
+export * from './system-trigger.entity';
+export * from './key-value.entity';

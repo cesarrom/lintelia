@@ -44,4 +44,14 @@ export const uploadFile = async (base64Ref: string, name: string) => {
   return Key;
 }
 
+export const putFile = async (fileKey: string, base64Ref: string) => {
+  const base64 = cleanBase64(base64Ref);
+  const { injector } = await getContextualInjector();
+  const filesService = injector.resolve(FilesService);
+  await filesService.putFile(Buffer.from(base64, 'base64'), fileKey);
+  
+  return filesService.getSignedUrl(fileKey);
+}
+
+
 export type AWSFile = Awaited<ReturnType<typeof downloadFile>>;

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { LucideIcon } from 'lucide-react';
 import { BaseComponentSchema } from './components/base-schema';
 import { DragStartEvent, DragEndEvent } from '@dnd-kit/core';
+import { FormState, UseFormRegister } from 'react-hook-form';
 
 // Component Category
 export type ComponentCategory = 'input' | 'layout' | 'container';
@@ -25,8 +26,8 @@ export interface ViewerProps<TConfig, TValue> {
   onBlur?: () => void;
   error?: string;
   formValues?: Record<string, unknown>;
-  register?: any; // For react-hook-form register function
-  formState?: any; // For react-hook-form formState
+  register?: UseFormRegister<any>; // For react-hook-form register function
+  formState?: FormState<any>; // For react-hook-form formState
   control?: any; // For react-hook-form control
 }
 

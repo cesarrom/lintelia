@@ -8,6 +8,8 @@ import { systemPrompt } from "./prompt";
 import { FormConfig } from "../(components)/form-builder/schemas";
 import { revalidatePath } from "next/cache";
 import { FormInstance } from "@/lib/entities/tenant";
+import { ReviewsService } from "@/lib/services/reviews.service";
+import { LogsService } from "@/lib/services/logs.service";
 
 export const generateFormWithAI = inject(
   [],
@@ -113,21 +115,56 @@ export const createTestFormInstance = inject(
   }
 );
 
-export const submitFormAnswers = async (key: string, promiseId: string, answers: Record<string, unknown>) => {
-  const response = await fetch(`${env.RESTATE_ENDPOINT}/resolvable/${key}/resolve`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      promiseId,
-      data: answers,
-    }),
-  });
+export const submitFormAnswers = inject(
+  [FormsService, LogsService],
+  async (context, [formsService, logsService], instanceId: string, answers: Record<string, unknown>) => {
+    // Create form answers
+    const formAnswer = await formsService.createAnswers({
+      formId: instanceId, // Using instanceId as formId since we're saving to the instance
+      instanceId,
+      answers,
+    });
 
-  if (!response.ok) {
-    throw new Error('Failed to submit form answers');
+    // Update instance status to submitted
+    await formsService.updateInstance(instanceId, {
+      answers,
+      status: 'submitted'
+    });
+
+    // Log the activity
+    await logsService.create({
+      message: 'Form answers submitted',
+      category: 'form',
+      level: 'info',
+      metadata: {
+        instanceId,
+        answerId: formAnswer.id,
+        submittedBy: context.user?.userId || 'system'
+      }
+    });
+
+    revalidatePath(`/forms/${instanceId}`);
+    return formAnswer;
   }
+);
 
-  return response.json();
-}; 
+export const createReview = inject(
+  [ReviewsService],
+  async ({ user }, [reviewsService], data: {
+    title: string;
+    description?: string;
+    reviewItems: Array<{ answer_id: string }>;
+    nodeExecutionId: string;
+  }) => {
+    if (!user) throw new Error('User not authenticated');
+
+    const review = await reviewsService.create({
+      ...data,
+      assignToUser: user.userId, // Auto-assign to creator
+    });
+
+    revalidatePath('/reviews');
+    revalidatePath('/my-reviews');
+    return { ...review };
+  }
+); 

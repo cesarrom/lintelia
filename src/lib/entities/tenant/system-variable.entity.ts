@@ -1,7 +1,7 @@
+import { TypeDefinition } from '@/app/(modules)/(private)/(workflows)/(components)/yaml/types';
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
-export type SystemVariableType = 'string' | 'number' | 'boolean' | 'json' | 'array';
-
+export type SystemVariableType = TypeDefinition;
 @Entity('sys_system_variables')
 export class SystemVariable {
   @PrimaryGeneratedColumn('uuid')

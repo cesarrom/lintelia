@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/table";
 import { useQuery } from "@tanstack/react-query";
 import { MoreHorizontal, Plus } from "lucide-react";
-import { list, setStatus, load, run } from "../../(actions)";
+import { list, setStatus, load, run } from "../../(actions)/actions";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
