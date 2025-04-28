@@ -4,14 +4,14 @@ import * as restate from "@restatedev/restate-sdk/fetch";
 import { addMinutes, addHours, addDays, addWeeks, addMonths, addYears, differenceInSeconds } from "date-fns";
 import { ExecuteNodeFunctionProps } from "@/app/(modules)/(private)/(workflows)/types";
 import { workflowInject } from "@/lib/injector/utils";
-import { WorkflowExecutionsService } from "@/lib/services";
+import { WorkflowExecutionsService } from "@/lib/services/workflow-executions.service";
 
 export const schedulerService = restate.object({
   name: "scheduler",
   handlers: {
     executeNode: workflowInject(
       [WorkflowExecutionsService],
-      async ({}, [workflowExecutionsService], c: restate.ObjectContext, { executionId, nodeData, yaml, domain, token, result: r }: ExecuteNodeFunctionProps) => {
+      async ({}, [workflowExecutionsService], c: restate.ObjectContext, { executionId, nodeData, workflowId, domain, token, result: r }: ExecuteNodeFunctionProps) => {
         const config = await c.run('validate-config', async () => {
           return SchedulerNodeDataSchema.parse(nodeData.config || {});
         });
@@ -57,7 +57,7 @@ export const schedulerService = restate.object({
           await c.sleep(sleepSeconds);
         }
 
-        return workflowExecutionsService.nextOrEndExecution({ nodeData, event: events.done, executionId, globalResult: r, localResult: {}, yaml, domain, token });
+        return workflowExecutionsService.nextOrEndExecution({ nodeData, event: events.done, executionId, globalResult: r, localResult: {}, workflowId, domain, token });
       }
     ),
   },

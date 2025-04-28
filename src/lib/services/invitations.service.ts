@@ -2,27 +2,43 @@ import { injectable, inject } from 'tsyringe';
 import { EmailsService } from './emails.service';
 import { Resource } from 'sst';
 import { TenantsService } from './tenants.service';
-import { DataSource, Repository } from 'typeorm';
-import { TENANT_DB_TOKEN } from '../injector/tokens';
-import { Invitation } from '../entities/tenant/invitation.entity';
+import { Repository } from 'typeorm';
+import { Invitation } from '../entities';
 import { LogsService } from './logs.service';
 import { v4 as uuid } from 'uuid';
 import assert from 'assert';
+import { Service } from './service';
 
 @injectable()
-export class InvitationsService {
-  private invitationRepository: Repository<Invitation>;
+export class InvitationsService extends Service {
+  private invitationRepository: Repository<Invitation> | null = null;
+
+  static dependencies() {
+    return [
+      EmailsService,
+      TenantsService,
+      LogsService
+    ]
+  }
 
   constructor(
     @inject(EmailsService) private emailsService: EmailsService,
-    @inject(TENANT_DB_TOKEN) private conn: DataSource,
     @inject(TenantsService) private tenantsService: TenantsService,
     @inject(LogsService) private logs: LogsService
   ) {
-    this.invitationRepository = this.conn.getRepository(Invitation);
+    super();
+  }
+
+  async getRepository() {
+    if (this.invitationRepository) return this.invitationRepository;
+    const conn = await this.tenantsService.getContextualPlatformDBClient();
+    this.invitationRepository = conn.getRepository(Invitation);
+    return this.invitationRepository;
   }
 
   async createInvitation(email: string, role: string, domain: string): Promise<Invitation> {
+    const invitationRepository = await this.getRepository();
+    assert(invitationRepository, 'Invitation repository not found');
     try {
       const tenant = await this.tenantsService.getByDomain(domain);
       assert(tenant, 'Tenant not found');
@@ -32,7 +48,7 @@ export class InvitationsService {
       invitation.email = email;
       invitation.roleId = role;
 
-      const savedInvitation = await this.invitationRepository.save(invitation);
+      const savedInvitation = await invitationRepository.save(invitation);
 
       const htmlMessage = `
         <html>
@@ -85,6 +101,8 @@ export class InvitationsService {
   }
 
   async inviteApplicant(email: string, formName: string, applicationId: number, domain: string): Promise<Invitation> {
+    const invitationRepository = await this.getRepository();
+    assert(invitationRepository, 'Invitation repository not found');
     try {
       const tenant = await this.tenantsService.getByDomain(domain);
       assert(tenant, 'Tenant not found');
@@ -94,7 +112,7 @@ export class InvitationsService {
       invitation.email = email;
       invitation.roleId = formName;
 
-      const savedInvitation = await this.invitationRepository.save(invitation);
+      const savedInvitation = await invitationRepository.save(invitation);
 
       const htmlMessage = `
         <html>
@@ -149,7 +167,9 @@ export class InvitationsService {
   }
 
   async getInvitationByEmail(email: string): Promise<Invitation | null> {
-    const invitation = await this.invitationRepository.findOne({
+    const invitationRepository = await this.getRepository();
+    assert(invitationRepository, 'Invitation repository not found');
+    const invitation = await invitationRepository.findOne({
       where: { email },
     });
 

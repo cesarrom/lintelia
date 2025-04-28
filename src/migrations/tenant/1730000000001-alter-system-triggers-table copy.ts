@@ -1,13 +1,19 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import { MigrationFn } from 'umzug';
+import { AbstractQueryInterface } from '@sequelize/core';
 
-export class AlterSystemTriggersTable1730000000001 implements MigrationInterface {
-    name = 'AlterSystemTriggersTable1730000000001'
+export const name = 'AlterSystemTriggersTable1730000000001';
 
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "public"."sys_system_triggers" ADD CONSTRAINT "sys_system_triggers_pkey" PRIMARY KEY ("id")`);
-    }
+export const up: MigrationFn<AbstractQueryInterface> = async ({ context: queryInterface }) => {
+    // Warning: The table 'sys_system_triggers' might already have a primary key
+    // defined in the migration '1720000000001-create-system-triggers-table.ts'.
+    // Running this might cause an error if the constraint already exists.
+    await queryInterface.sequelize.query(`
+        ALTER TABLE "sys_system_triggers" ADD CONSTRAINT "sys_system_triggers_pkey" PRIMARY KEY ("id")
+    `);
+};
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE "public"."sys_system_triggers" DROP CONSTRAINT "sys_system_triggers_pkey"`);
-    }
-} 
+export const down: MigrationFn<AbstractQueryInterface> = async ({ context: queryInterface }) => {
+    await queryInterface.sequelize.query(`
+        ALTER TABLE "sys_system_triggers" DROP CONSTRAINT IF EXISTS "sys_system_triggers_pkey"
+    `);
+};

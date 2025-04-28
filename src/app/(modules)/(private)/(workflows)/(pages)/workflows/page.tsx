@@ -29,7 +29,7 @@ import { list, setStatus, load, run } from "../../(actions)/actions";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
-import { type Workflow } from "@/lib/entities/tenant";
+import type { Workflow } from "@/lib/entities";
 import { useEffect, useState, useTransition } from "react";
 import { RunWorkflowDialog } from "../../(components)/RunWorkflowDialog";
 import { ConfirmDialog } from "../../(components)/ConfirmDialog";

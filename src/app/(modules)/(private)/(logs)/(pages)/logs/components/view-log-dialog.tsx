@@ -1,6 +1,6 @@
 'use client';
 
-import { Log } from '@/lib/entities/tenant/log.entity';
+import type { Log } from '@/lib/entities';
 import { 
   Dialog, 
   DialogContent, 

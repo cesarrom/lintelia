@@ -1,23 +1,31 @@
-import { ENVIRONMENT_TOKEN } from "../injector/tokens";
 import { injectable, inject } from "tsyringe";
-import { env } from "../constants";
 import { S3 } from "aws-sdk";
+import { EnvironmentsService } from "./environments.service";
+import { Service } from "./service";
 
 @injectable()
-export class FilesService {
+export class FilesService extends Service {
   private _s3?: S3;
 
+  static dependencies() {
+    return [
+      EnvironmentsService
+    ]
+  }
+
   constructor(
-    @inject(ENVIRONMENT_TOKEN) private _env: typeof env
-  ) {}
+    @inject(EnvironmentsService) private environmentsService: EnvironmentsService
+  ) {
+    super();
+  }
 
   private get s3() {
     if (!this._s3) {
       this._s3 = new S3({
-        region: this._env.AWS_REGION,
+        region: this.environmentsService.env.AWS_REGION,
         credentials: {
-          accessKeyId: this._env.AWS_KEY,
-          secretAccessKey: this._env.AWS_SECRET,
+          accessKeyId: this.environmentsService.env.AWS_KEY,
+          secretAccessKey: this.environmentsService.env.AWS_SECRET,
         },
       });
     }
@@ -27,7 +35,7 @@ export class FilesService {
 
 async putFile(file: Buffer, path: string) {
   return this.s3.putObject({
-    Bucket: this._env.BUCKET_NAME,
+    Bucket: this.environmentsService.env.BUCKET_NAME,
     Key: path,
     Body: file,
     ContentType: this.getContentType(path)
@@ -55,7 +63,7 @@ private getContentType(filename: string): string {
 
   async uploadFile(file: Buffer, name: string) {
     return this.s3.upload({
-      Bucket: this._env.BUCKET_NAME,
+      Bucket: this.environmentsService.env.BUCKET_NAME,
       Key: name,
       Body: file,
     }).promise()
@@ -64,7 +72,7 @@ private getContentType(filename: string): string {
   async downloadFile(path: string) {
     console.log(path);
     const object = await this.s3.getObject({
-      Bucket: this._env.BUCKET_NAME,
+      Bucket: this.environmentsService.env.BUCKET_NAME,
       'Key': path,
     }).promise();
     console.log('downloaded successfully');
@@ -74,7 +82,7 @@ private getContentType(filename: string): string {
 
   async getSignedUrl(path: string) {
     return this.s3.getSignedUrlPromise('getObject', {
-      Bucket: this._env.BUCKET_NAME,
+      Bucket: this.environmentsService.env.BUCKET_NAME,
       Key: path,
       Expires: 3600, // URL expires in 1 hour
     });
@@ -84,7 +92,7 @@ private getContentType(filename: string): string {
   async downloadWithMetadataFile(path: string) {
     console.log(path);
     const object = await this.s3.getObject({
-      Bucket: this._env.BUCKET_NAME,
+      Bucket: this.environmentsService.env.BUCKET_NAME,
       'Key': path,
     }).promise();
     console.log('downloaded successfully');

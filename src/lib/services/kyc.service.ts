@@ -1,24 +1,32 @@
 import axios, { Axios } from "axios";
-import { env } from "../constants";
+import { EnvironmentsService } from "./environments.service";
 import { inject, injectable } from "tsyringe";
 import FormData from "form-data";
-import { ENVIRONMENT_TOKEN } from "../injector/tokens";
+import { Service } from "./service";
 
 @injectable()
-export class KYCService {
+export class KYCService extends Service {
   private static BASE_URL = 'https://api.kycaid.com';
   private _api?: Axios;
 
+  static dependencies() {
+    return [
+      EnvironmentsService
+    ]
+  }
+
   constructor(
-    @inject(ENVIRONMENT_TOKEN) private _env: typeof env
-  ) {}
+    @inject(EnvironmentsService) private environmentsService: EnvironmentsService
+  ) {
+    super();
+  }
 
   private get api() {
     if (!this._api) {
       this._api = axios.create({
         baseURL: KYCService.BASE_URL,
         headers: {
-          'Authorization': `Token ${this._env.KYC_TOKEN}`,
+          'Authorization': `Token ${this.environmentsService.env.KYC_TOKEN}`,
         },
       });
     }

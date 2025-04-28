@@ -4,14 +4,14 @@ import { ExecuteNodeFunctionProps } from "@/app/(modules)/(private)/(workflows)/
 import { workflowInject } from "@/lib/injector/utils";
 import { ReviewsService } from "@/lib/services/reviews.service";
 import { LogsService } from "@/lib/services/logs.service";
-import { WorkflowExecutionsService } from "@/lib/services";
+import { WorkflowExecutionsService } from "@/lib/services/workflow-executions.service";
 
 export const reviewService = restate.object({
   name: "review",
   handlers: {
     executeNode: workflowInject(
       [ReviewsService, LogsService, WorkflowExecutionsService],
-      async ({ }, [reviewsService, logsService, workflowExecutionsService], c: restate.ObjectContext, { executionId, nodeData, yaml, domain, token, result: r, resumableId, resumableResult }: ExecuteNodeFunctionProps) => {
+      async ({ }, [reviewsService, logsService, workflowExecutionsService], c: restate.ObjectContext, { executionId, nodeData, yaml, workflowId, domain, token, result: r, resumableId, resumableResult }: ExecuteNodeFunctionProps) => {
         // Validate and parse the node configuration
         const config = await c.run('validate-config', async () => {
           return ReviewNodeDataSchema.parse(nodeData.config || {});
@@ -54,7 +54,7 @@ export const reviewService = restate.object({
               executionId,
               localResult: existingReview as unknown as Record<string, unknown>,
               globalResult: r,
-              yaml,
+              workflowId,
               domain,
               token
             });
@@ -65,7 +65,7 @@ export const reviewService = restate.object({
               executionId,
               localResult: existingReview as unknown as Record<string, unknown>,
               globalResult: r,
-              yaml,
+              workflowId,
               domain,
               token
             });
@@ -76,7 +76,7 @@ export const reviewService = restate.object({
               executionId,
               localResult: existingReview as unknown as Record<string, unknown>,
               globalResult: r,
-              yaml,
+              workflowId,
               domain,
               token
             });
@@ -89,7 +89,7 @@ export const reviewService = restate.object({
             executionId,
             localResult: existingReview as unknown as Record<string, unknown>,
             globalResult: r,
-            yaml,
+            workflowId,
             domain,
             token
           });
@@ -135,7 +135,7 @@ export const reviewService = restate.object({
             executionId,
             localResult: review as unknown as Record<string, unknown>,
             globalResult: r,
-            yaml,
+            workflowId,
             domain,
             token,
             nextNodes: [nodeData]
@@ -150,7 +150,7 @@ export const reviewService = restate.object({
           executionId,
           localResult: { review: review as unknown as Record<string, unknown>, resumableId: resumable },
           globalResult: r,
-          yaml,
+          workflowId,
           domain,
           token
         });

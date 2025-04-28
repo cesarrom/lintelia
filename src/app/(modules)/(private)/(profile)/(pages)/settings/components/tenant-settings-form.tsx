@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { HexColorPicker } from 'react-colorful';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Edit2, Save } from 'lucide-react';
-import { type Tenant } from '@/lib/entities/global/tenant.entity';
+import { type Tenant } from '@/lib/entities';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 

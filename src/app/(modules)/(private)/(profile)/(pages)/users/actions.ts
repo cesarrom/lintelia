@@ -2,8 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { inject } from '@/lib/injector/utils';
-import { UsersService, RolesService } from '@/lib/services';
-import { User } from '@/lib/services/users.service';
+import { UsersService } from '@/lib/services/users.service';
 
 // List users
 export const getUsers = inject(

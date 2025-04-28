@@ -1,27 +1,61 @@
 import { inject, injectable } from "tsyringe";
 import { auth } from "../clients/auth.client";
-import { Tenant } from "../entities/global/tenant.entity";
-import { DataSource, Repository } from "typeorm";
-import { GLOBAL_DB_TOKEN } from "../injector/tokens";
+import { Tenant } from "../entities";
+import { Repository } from "typeorm";
 import { DatabaseService } from "./database.service";
 import { wait } from "../utils";
+import { WebService } from "./web.service";
+import assert from "assert";
+import { Service } from "./service";
 
 @injectable()
-export class TenantsService {
-  private tenantRepository: Repository<Tenant>;
+export class TenantsService extends Service {
+  private tenantRepository: Repository<Tenant> | null = null;
+  private cachedTenant: Tenant | null = null;
+
+  static dependencies() {
+    return [
+      DatabaseService,
+      WebService,
+    ]
+  }
 
   constructor(
-    @inject(GLOBAL_DB_TOKEN) private conn: DataSource,
-    @inject(DatabaseService) private databaseService: DatabaseService
-  ) {
-    this.tenantRepository = this.conn.getRepository(Tenant);
+    @inject(DatabaseService) private databaseService: DatabaseService,
+    @inject(WebService) private webService: WebService,
+  ) { super(); }
+
+  async getRepository() {
+    if (this.tenantRepository) {
+      return this.tenantRepository;
+    }
+
+    const conn = await this.databaseService.getGlobalConnection();
+    this.tenantRepository = conn.getRepository(Tenant);
+    return this.tenantRepository;
+  }
+
+  async getContextualTenant() {
+    const { tenant, domain } = await this.webService.getTenantAndDomain();
+
+    let tenantObject = await this.getByDomain(domain);
+
+    if (!tenantObject && tenant) {
+      tenantObject = await this.getByDomain(tenant);
+    }
+
+    if (!tenantObject && !domain.includes('localhost')) {
+      throw new Error('Tenant for current context not found')
+    }
+
+    return tenantObject
   }
 
   async create(data: CreateTenant) {
     const onError = [] as Array<() => Promise<void>>;
-
+    const repository = await this.getRepository();
     try {
-      const existingTenant = await this.tenantRepository.findOne({
+      const existingTenant = await repository.findOne({
         where: { domain: data.domain }
       });
 
@@ -48,24 +82,24 @@ export class TenantsService {
       });
 
       // Create tenant record
-      const tenant = this.tenantRepository.create({
+      const tenant = repository.create({
         ...data,
         databaseUrl,
         databasePassword,
         databaseId,
       });
 
-      const savedTenant = await this.tenantRepository.save(tenant);
+      const savedTenant = await repository.save(tenant);
 
       onError.push(async () => {
-        await this.tenantRepository.delete({ domain: data.domain });
+        await repository.delete({ domain: data.domain });
       });
 
       // Initialize tenant database with migrations
       try {
         // Wait a bit for the database to be ready
         await wait(5000);
-        
+
         await this.databaseService.getTenantConnection(
           data.domain,
           databaseUrl
@@ -73,7 +107,7 @@ export class TenantsService {
 
         // The migrations will be run automatically in getTenantConnection
         console.log(`Successfully initialized database for tenant ${data.domain}`);
-        
+
         return savedTenant;
       } catch (error) {
         console.error(`Failed to initialize database for tenant ${data.domain}:`, error);
@@ -91,7 +125,8 @@ export class TenantsService {
   }
 
   async getByDomain(domain: string) {
-    return await this.tenantRepository
+    const repository = await this.getRepository();
+    return await repository
       .createQueryBuilder("tenant")
       .where("tenant.domain = :domain", { domain })
       .orWhere("(tenant.allowed_domains IS NOT NULL AND :domain = ANY(tenant.allowed_domains))", { domain })
@@ -99,20 +134,23 @@ export class TenantsService {
   }
 
   async getAllTenants() {
-    return await this.tenantRepository.find();
+    const repository = await this.getRepository();
+    return await repository.find();
   }
 
   async update(domain: string, data: Partial<Tenant>) {
+    const repository = await this.getRepository();
     const tenant = await this.getByDomain(domain);
     if (!tenant) {
       throw new Error("Tenant not found");
     }
 
     Object.assign(tenant, data);
-    return await this.tenantRepository.save(tenant);
+    return await repository.save(tenant);
   }
 
   async delete(domain: string) {
+    const repository = await this.getRepository();
     const tenant = await this.getByDomain(domain);
     if (!tenant) {
       throw new Error("Tenant not found");
@@ -120,7 +158,12 @@ export class TenantsService {
 
     await auth.management.tenant.delete(tenant.domain);
     await this.databaseService.dropTenantDatabase(domain);
-    await this.tenantRepository.delete({ domain });
+    await repository.delete({ domain });
+  }
+
+  async getContextualPlatformDBClient() {
+    const domain = await this.getCachedDomainFromTenant();
+    return this.getPlatformDBClient(domain);
   }
 
   async getPlatformDBClient(domain: string) {
@@ -133,6 +176,20 @@ export class TenantsService {
       domain,
       tenant.databaseUrl,
     );
+  }
+
+  async getCachedTenant() {
+    if (this.cachedTenant) {
+      return this.cachedTenant;
+    }
+    this.cachedTenant = await this.getContextualTenant();
+    return this.cachedTenant;
+  }
+
+  async getCachedDomainFromTenant() {
+    const tenant = await this.getCachedTenant();
+    assert(tenant, 'Tenant not found');
+    return tenant.domain;
   }
 }
 

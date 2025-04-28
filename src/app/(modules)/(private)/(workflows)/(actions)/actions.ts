@@ -2,12 +2,13 @@
 
 import { env } from "@/lib/constants";
 import { inject } from "@/lib/injector/utils";
-import { WorkflowsService, LogsService } from "@/lib/services";
+import { LogsService } from "@/lib/services/logs.service";
 import assert from "assert";
 import { v4 as uuid } from 'uuid';
 import { yamlToWorkflow } from "../(components)/yaml/converter";
 import { SystemTriggersService } from "@/lib/services/system-triggers.service";
-import { SystemTrigger } from "@/lib/entities/tenant";
+import { SystemTrigger } from "@/lib/entities";
+import { WorkflowsService } from "@/lib/services/workflows.service";
 
 export const list = inject(
   [WorkflowsService, LogsService],

@@ -163,6 +163,7 @@ export interface FormEngineProps {
   onConfigChange?: (config: FormConfig) => void;
   selectedId?: string | null;
   onSelectComponent?: (id: string | null) => void;
+  readOnly?: boolean;
 }
 
 // Helper function to generate validation config for saving

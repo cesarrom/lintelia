@@ -4,9 +4,10 @@ import Mailgun from 'mailgun.js';
 import { env } from '../constants';
 import { type IMailgunClient } from 'mailgun.js/Interfaces';
 import { EmailTemplatesService } from './email-templates.service';
-import { TENANT_TOKEN } from '../injector/tokens';
-import { Tenant } from '../entities/global/tenant.entity';
 import { LogsService } from './logs.service';
+import { TenantsService } from './tenants.service';
+import assert from 'assert';
+import { Service } from './service';
 
 export interface SendEmailOptions {
   to: string;
@@ -24,16 +25,25 @@ export interface SendTemplateOptions {
 }
 
 @injectable()
-export class EmailsService {
+export class EmailsService extends Service {
   private mailgun: Mailgun;
   private domain: string;
   private client: IMailgunClient;
 
+  static dependencies() {
+    return [
+      EmailTemplatesService,
+      TenantsService,
+      LogsService
+    ]
+  }
+
   constructor(
     @inject(EmailTemplatesService) private emailTemplatesService: EmailTemplatesService,
-    @inject(TENANT_TOKEN) private tenant: Tenant,
+    @inject(TenantsService) private tenantsService: TenantsService,
     @inject(LogsService) private logs: LogsService
   ) {
+    super();
     this.mailgun = new Mailgun(formData);
     this.client = this.mailgun.client({
       username: env.SMTP_USER,
@@ -51,7 +61,7 @@ export class EmailsService {
           to: options.to,
           subject: options.subject,
           cc: options.cc,
-          tenant: this.tenant.domain
+          tenant: await this.tenantsService.getCachedDomainFromTenant(),
         }
       });
 
@@ -71,7 +81,7 @@ export class EmailsService {
           messageId: response.id,
           to: options.to,
           subject: options.subject,
-          tenant: this.tenant.domain
+          tenant: await this.tenantsService.getCachedDomainFromTenant(),
         }
       });
 
@@ -83,7 +93,7 @@ export class EmailsService {
         metadata: {
           to: options.to,
           subject: options.subject,
-          tenant: this.tenant.domain,
+          tenant: await this.tenantsService.getCachedDomainFromTenant(),
           error: error instanceof Error ? error.message : String(error)
         }
       });
@@ -92,6 +102,8 @@ export class EmailsService {
   }
 
   async sendEmailTemplate(options: SendTemplateOptions) {
+    const tenant = await this.tenantsService.getCachedTenant();
+    assert(tenant, 'Tenant not found');
     try {
       const html = `
         <!DOCTYPE html>
@@ -99,14 +111,14 @@ export class EmailsService {
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Email from ${this.tenant.name}</title>
+            <title>Email from ${tenant.name}</title>
             <style>
               body {
                 font-family: Arial, sans-serif;
                 line-height: 1.6;
                 margin: 0;
                 padding: 0;
-                background-color: ${this.tenant.pallette.secondary};
+                background-color: ${tenant.pallette.secondary};
                 color: #333333;
               }
               .container {
@@ -120,7 +132,7 @@ export class EmailsService {
               .header {
                 text-align: center;
                 padding: 24px 0;
-                background: ${this.tenant.pallette.primary};
+                background: ${tenant.pallette.primary};
                 border-radius: 8px 8px 0 0;
               }
               .header img {
@@ -131,7 +143,7 @@ export class EmailsService {
                 color: #333333;
               }
               main a {
-                color: ${this.tenant.pallette.accent};
+                color: ${tenant.pallette.accent};
                 text-decoration: none;
               }
               main a:hover {
@@ -142,35 +154,35 @@ export class EmailsService {
                 padding: 20px;
                 font-size: 12px;
                 color: #666666;
-                border-top: 1px solid ${this.tenant.pallette.secondary};
+                border-top: 1px solid ${tenant.pallette.secondary};
                 background: #f8f8f8;
                 border-radius: 0 0 8px 8px;
               }
               .button {
                 display: inline-block;
                 padding: 12px 24px;
-                background: ${this.tenant.pallette.accent};
+                background: ${tenant.pallette.accent};
                 color: #ffffff;
                 text-decoration: none;
                 border-radius: 4px;
                 margin: 16px 0;
               }
               .button:hover {
-                background: ${this.tenant.pallette.primary};
+                background: ${tenant.pallette.primary};
               }
             </style>
           </head>
           <body>
             <div class="container">
               <div class="header">
-                <img src="${this.tenant.logoUrl}" alt="${this.tenant.name} Logo">
+                <img src="${tenant.logoUrl}" alt="${tenant.name} Logo">
               </div>
               <main>
                 ${options.template}
               </main>
               <div class="footer">
-                <p>&copy; ${new Date().getFullYear()} ${this.tenant.name}. All rights reserved.</p>
-                <p style="color: ${this.tenant.pallette.primary}">This is an automated message, please do not reply.</p>
+                <p>&copy; ${new Date().getFullYear()} ${tenant.name}. All rights reserved.</p>
+                <p style="color: ${tenant.pallette.primary}">This is an automated message, please do not reply.</p>
               </div>
             </div>
           </body>
@@ -184,7 +196,7 @@ export class EmailsService {
           to: options.to,
           subject: options.subject,
           cc: options.cc,
-          tenant: this.tenant.domain
+          tenant: tenant.domain
         }
       });
 
@@ -203,7 +215,7 @@ export class EmailsService {
           messageId: result.id,
           to: options.to,
           subject: options.subject,
-          tenant: this.tenant.domain
+          tenant: tenant.domain
         }
       });
 
@@ -215,7 +227,7 @@ export class EmailsService {
         metadata: {
           to: options.to,
           subject: options.subject,
-          tenant: this.tenant.domain,
+          tenant: tenant.domain,
           error: error instanceof Error ? error.message : String(error)
         }
       });
@@ -223,30 +235,9 @@ export class EmailsService {
     }
   }
 
-  private formatVariableValue(value: unknown, type?: string): string {
-    if (value === null || value === undefined) {
-      return '';
-    }
-
-    switch (type) {
-      case 'date':
-        return value instanceof Date
-          ? value.toLocaleDateString()
-          : typeof value === 'string'
-            ? new Date(value).toLocaleDateString()
-            : String(value);
-      case 'number':
-        return typeof value === 'number'
-          ? value.toString()
-          : String(value);
-      case 'boolean':
-        return value ? 'Yes' : 'No';
-      default:
-        return String(value);
-    }
-  }
-
   async sendApplicationConfirmation(to: string, applicationId: number) {
+    const tenant = await this.tenantsService.getCachedTenant();
+    assert(tenant, 'Tenant not found');
     try {
       await this.logs.info('Sending application confirmation email', {
         category: 'form',
@@ -254,7 +245,7 @@ export class EmailsService {
         metadata: {
           to,
           applicationId,
-          tenant: this.tenant.domain
+          tenant: tenant.domain
         }
       });
 
@@ -272,7 +263,7 @@ export class EmailsService {
           messageId: result.id,
           to,
           applicationId,
-          tenant: this.tenant.domain
+          tenant: tenant.domain
         }
       });
 
@@ -284,7 +275,7 @@ export class EmailsService {
         metadata: {
           to,
           applicationId,
-          tenant: this.tenant.domain,
+          tenant: tenant.domain,
           error: error instanceof Error ? error.message : String(error)
         }
       });
@@ -293,6 +284,8 @@ export class EmailsService {
   }
 
   async sendVerificationResult(to: string, applicationId: number, status: string) {
+    const tenant = await this.tenantsService.getCachedTenant();
+    assert(tenant, 'Tenant not found');
     try {
       await this.logs.info('Sending verification result email', {
         category: 'form',
@@ -301,7 +294,7 @@ export class EmailsService {
           to,
           applicationId,
           status,
-          tenant: this.tenant.domain
+          tenant: tenant.domain
         }
       });
 
@@ -320,7 +313,7 @@ export class EmailsService {
           to,
           applicationId,
           status,
-          tenant: this.tenant.domain
+          tenant: tenant.domain
         }
       });
 
@@ -333,7 +326,7 @@ export class EmailsService {
           to,
           applicationId,
           status,
-          tenant: this.tenant.domain,
+          tenant: tenant.domain,
           error: error instanceof Error ? error.message : String(error)
         }
       });

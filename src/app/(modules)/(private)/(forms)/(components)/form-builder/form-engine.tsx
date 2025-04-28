@@ -85,6 +85,7 @@ interface FormEngineViewerProps {
   variableDefinitions?: Record<string, FormVariable>;
   onChange?: (values: Record<string, unknown>) => void;
   onSubmit?: (values: Record<string, unknown>) => void;
+  readOnly?: boolean;
 }
 
 // FormEngineEditor component
@@ -188,6 +189,7 @@ function FormEngineViewer({
   variableDefinitions,
   onChange,
   onSubmit,
+  readOnly = false
 }: FormEngineViewerProps) {
   // Create a context value for variables
   const variablesContext = useMemo(() => ({
@@ -213,6 +215,7 @@ function FormEngineViewer({
     resolver: zodResolver(formSchema!),
     defaultValues: (initialValues || {}) as any,
     mode: 'onChange', // Validate on change for immediate feedback
+    disabled: readOnly
   });
 
   // Watch all form values

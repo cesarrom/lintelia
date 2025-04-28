@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Eye, Trash2, Copy, ExternalLink } from 'lucide-react';
-import { FormInstance } from '@/lib/entities/tenant';
+import type { FormInstance } from '@/lib/entities';
 import { useFormInstances } from './use-form-instances';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';

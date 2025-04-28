@@ -1,29 +1,46 @@
 import { injectable, inject } from "tsyringe";
-import { DataSource, Repository } from "typeorm";
-import { TENANT_DB_TOKEN, USER_TOKEN } from "../injector/tokens";
-import { Review } from "../entities/tenant/review.entity";
+import { DataSource, ObjectLiteral, Repository } from "typeorm";
+import { Review } from "../entities";
 import { LogsService } from "./logs.service";
-import { User } from "@/types/auth";
-import { FormInstance, FormAnswer } from "../entities/tenant";
+import { FormAnswer } from "../entities";
 import { v4 as uuid } from 'uuid';
+import { Newable, Service } from "./service";
+import { TenantsService } from "./tenants.service";
+import { UsersService } from "./users.service";
 
 @injectable()
-export class ReviewsService {
-  private repository: Repository<Review>;
-  private formInstanceRepository: Repository<FormInstance>;
-  private formAnswerRepository: Repository<FormAnswer>;
+export class ReviewsService extends Service {
+  private repositories: Map<Newable<any>, Repository<any>> = new Map();
+  private conn: DataSource | null = null;
+
+  static dependencies() {
+    return [
+      TenantsService,
+      UsersService,
+      LogsService
+    ]
+  }
 
   constructor(
-    @inject(TENANT_DB_TOKEN) private conn: DataSource,
-    @inject(USER_TOKEN) private user: User | null,
+    @inject(TenantsService) private tenantsService: TenantsService,
+    @inject(UsersService) private usersService: UsersService,
     @inject(LogsService) private logs: LogsService
   ) {
-    this.repository = this.conn.getRepository(Review);
-    this.formInstanceRepository = this.conn.getRepository(FormInstance);
-    this.formAnswerRepository = this.conn.getRepository(FormAnswer);
+    super();
+  }
+
+  async getRepository<T extends ObjectLiteral>(cls: Newable<T>): Promise<Repository<T>> {
+    if (this.repositories.has(cls)) {
+      return this.repositories.get(cls)!;
+    }
+    const conn = this.conn || (await this.tenantsService.getContextualPlatformDBClient());
+    const repository = conn.getRepository(cls);
+    this.repositories.set(cls, repository);
+    return repository! as any;
   }
 
   async create(data: CreateReviewInput): Promise<Review> {
+    const repository = await this.getRepository(Review);
     const review = new Review();
     review.id = uuid();
     review.nodeExecutionId = data.nodeExecutionId;
@@ -54,7 +71,7 @@ export class ReviewsService {
       }
     });
 
-    const savedReview = await this.repository.save(review);
+    const savedReview = await repository.save(review);
 
     await this.logs.info('Review created', {
       category: 'review',
@@ -69,7 +86,9 @@ export class ReviewsService {
   }
 
   async update(id: string, data: UpdateReviewInput, userId?: string): Promise<Review> {
-    const review = await this.repository.findOne({
+    const user = await this.usersService.getSessionUser();
+    const repository = await this.getRepository(Review);
+    const review = await repository.findOne({
       where: { id }
     });
 
@@ -85,7 +104,7 @@ export class ReviewsService {
     if (data.status) {
       review.status = data.status;
       if (data.status === 'approved' || data.status === 'rejected') {
-        review.completedBy = userId || this.user?.userId;
+        review.completedBy = userId || user?.userId;
         review.completedAt = new Date();
       }
     }
@@ -129,7 +148,7 @@ export class ReviewsService {
       }
     });
 
-    const updatedReview = await this.repository.save(review);
+    const updatedReview = await repository.save(review);
 
     await this.logs.info('Review updated', {
       category: 'review',
@@ -144,7 +163,8 @@ export class ReviewsService {
   }
 
   async assignReview(id: string, userId: string): Promise<Review> {
-    const review = await this.repository.findOne({
+    const repository = await this.getRepository(Review);
+    const review = await repository.findOne({
       where: { id }
     });
 
@@ -170,7 +190,7 @@ export class ReviewsService {
       }
     });
 
-    const updatedReview = await this.repository.save(review);
+    const updatedReview = await repository.save(review);
 
     await this.logs.info('Review assigned', {
       category: 'review',
@@ -185,7 +205,9 @@ export class ReviewsService {
   }
 
   async getById(id: string): Promise<Review | null> {
-    const review = await this.repository.findOne({
+    const repository = await this.getRepository(Review);
+    const formAnswerRepository = await this.getRepository(FormAnswer);
+    const review = await repository.findOne({
       where: { id },
       relations: ['nodeExecution']
     });
@@ -193,7 +215,7 @@ export class ReviewsService {
     if (review) {
       // Fetch form instances and answers for each review item
       const answerIds = review.reviewItems.map(item => item.answer_id);
-      const formAnswers = await this.formAnswerRepository.find({
+      const formAnswers = await formAnswerRepository.find({
         where: { id: { $in: answerIds } as any },
         relations: ['formInstance', 'formInstance.form']
       });
@@ -216,15 +238,17 @@ export class ReviewsService {
   }
 
   async getByNodeExecutionId(nodeExecutionId: string): Promise<Review | null> {
-    return await this.repository.findOne({
+    const repository = await this.getRepository(Review);
+    return await repository.findOne({
       where: { nodeExecutionId },
       relations: ['nodeExecution']
     });
   }
 
   async list(filter?: ReviewsFilter): Promise<Review[]> {
+    const repository = await this.getRepository(Review);
     try {
-      const queryBuilder = this.repository.createQueryBuilder('review')
+      const queryBuilder = repository.createQueryBuilder('review')
         .leftJoinAndSelect('review.nodeExecution', 'nodeExecution')
         .orderBy('review.createdAt', 'DESC');
 
@@ -266,8 +290,9 @@ export class ReviewsService {
   }
 
   async listByAssignee(userId: string): Promise<Review[]> {
+    const repository = await this.getRepository(Review);
     try {
-      const reviews = await this.repository.find({
+      const reviews = await repository.find({
         where: { assignedTo: userId },
         relations: ['nodeExecution'],
         order: { createdAt: 'DESC' }
@@ -289,9 +314,10 @@ export class ReviewsService {
   }
 
   async delete(id: string): Promise<boolean> {
+    const repository = await this.getRepository(Review);
     try {
-      const result = await this.repository.delete(id);
-      
+      const result = await repository.delete(id);
+
       await this.logs.info('Deleted review', {
         category: 'review',
         metadata: { reviewId: id }

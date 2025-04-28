@@ -1,65 +1,83 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import * as core from '@sequelize/core';
+import { Attribute, PrimaryKey, AutoIncrement, NotNull, Table } from '@sequelize/core/decorators-legacy';
 
-@Entity('tenants')
-export class Tenant {
-  @PrimaryGeneratedColumn()
-  id!: number;
+@Table({ tableName: 'tenants' })
+export class Tenant extends core.Model<core.InferAttributes<Tenant>, core.InferCreationAttributes<Tenant>> {
+  @Attribute(core.DataTypes.INTEGER)
+  @PrimaryKey
+  @AutoIncrement
+  declare id: number;
 
-  @Column({ length: 255 })
+  @Attribute(core.DataTypes.STRING(255))
+  @NotNull
   name!: string;
 
-  @Column({ length: 255, unique: true })
+  @Attribute(core.DataTypes.STRING(255))
+  @NotNull
   domain!: string;
 
-  @Column({ name: 'logo_url', length: 255 })
+  @Attribute(core.DataTypes.STRING(255))
+  @NotNull
   logoUrl!: string;
 
-  @Column({ type: 'jsonb' })
+  @Attribute(core.DataTypes.JSON)
+  @NotNull
   pallette!: {
     primary: string;
     secondary: string;
     accent: string;
   };
 
-  @Column({ name: 'allowed_domains', type: 'text', array: true, default: '[]' })
+  @Attribute(core.DataTypes.ARRAY(core.DataTypes.TEXT))
   allowedDomains: string[] = [];
 
-  @Column({ name: 'database_id' })
+  @Attribute(core.DataTypes.STRING)
+  @NotNull
   databaseId!: string;
 
-  @Column({ name: 'database_url' })
+  @Attribute(core.DataTypes.STRING)
+  @NotNull
   databaseUrl!: string;
 
-  @Column({ name: 'database_password' })
+  @Attribute(core.DataTypes.STRING)
+  @NotNull
   databasePassword!: string;
 
-  @Column({ name: 'address_line_1', length: 255 })
+  @Attribute(core.DataTypes.STRING(255))
+  @NotNull
   addressLine1!: string;
 
-  @Column({ name: 'address_line_2', length: 255 })
+  @Attribute(core.DataTypes.STRING(255))
+  @NotNull
   addressLine2!: string;
 
-  @Column({ length: 255 })
+  @Attribute(core.DataTypes.STRING(255))
+  @NotNull
   city!: string;
 
-  @Column({ length: 255 })
+  @Attribute(core.DataTypes.STRING(255))
+  @NotNull
   country!: string;
 
-  @Column({ length: 255 })
+  @Attribute(core.DataTypes.STRING(255))
+  @NotNull
   state!: string;
 
-  @Column({ name: 'zip_code', length: 255 })
+  @Attribute(core.DataTypes.STRING(255))
+  @NotNull
   zipCode!: string;
 
-  @Column({ name: 'start_working_hour', length: 255 })
+  @Attribute(core.DataTypes.STRING(255))
+  @NotNull
   startWorkingHour!: string;
 
-  @Column({ name: 'end_working_hour', length: 255 })
+  @Attribute(core.DataTypes.STRING(255))
+  @NotNull
   endWorkingHour!: string;
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt!: Date;
+  @Attribute(core.DataTypes.DATE)
+  createdAt!: core.CreationOptional<Date>;
 
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt!: Date;
-} 
+  @Attribute(core.DataTypes.DATE)
+  updatedAt!: core.CreationOptional<Date>;
+}

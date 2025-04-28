@@ -1,16 +1,31 @@
 import { injectable, inject } from 'tsyringe';
-import { Environment } from "../entities/global/environment.entity";
+import { Environment } from "../entities";
 import { Repository } from "typeorm";
 import { Resource } from "sst";
 import { DatabaseService } from "./database.service";
+import { env } from '../constants';
+import assert from 'assert';
+import { Service } from './service';
 
 @injectable()
-export class EnvironmentsService {
+export class EnvironmentsService extends Service {
   private static environmentRepository: Repository<Environment>;
+
+  get env() {
+    return env;
+  }
+
+  static dependencies() {
+    return [
+      DatabaseService
+    ]
+  }
 
   constructor(
     @inject(DatabaseService) private databaseService: DatabaseService
-  ) {}
+  ) {
+    super();
+  }
 
   async getEnvironmentRepository(): Promise<Repository<Environment>> {
     if (EnvironmentsService.environmentRepository) {
@@ -27,6 +42,24 @@ export class EnvironmentsService {
     return await environmentRepository.findOne({
       where: { name: Resource.App.stage }
     });
+  }
+
+  async getDistributionId() {
+    if (Resource.App.stage === 'local') {
+      return '';
+    }
+
+    const resultArn = await this.getCurrentEnvironment();
+
+    assert(resultArn?.distributionArn, 'Distribution ARN is required');
+
+    const { distributionArn } = resultArn;
+
+    const distributionId = distributionArn.split("/").pop();
+
+    assert(distributionId, 'Distribution ID is required');
+
+    return distributionId
   }
 
   async getEnvironmentByName(name: string): Promise<Environment | null> {
@@ -71,5 +104,3 @@ export class EnvironmentsService {
     await environmentRepository.remove(environment);
   }
 }
-
-export type { Environment } from "../entities/global/environment.entity";

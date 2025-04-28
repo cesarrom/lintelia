@@ -26,7 +26,7 @@ export const decisionTableService = restate.object({
   handlers: {
     executeNode: workflowInject(
       [WorkflowExecutionsService],
-      async ({}, [workflowExecutionsService], c: restate.ObjectContext, { executionId, nodeData, yaml, domain, token, result: r }: ExecuteNodeFunctionProps) => {
+      async ({}, [workflowExecutionsService], c: restate.ObjectContext, { executionId, nodeData, workflowId, domain, token, result: r }: ExecuteNodeFunctionProps) => {
         const config = await c.run('validate-config', async () => {
           return DecisionTableNodeDataSchema.parse(nodeData.config || {});
         });
@@ -37,7 +37,7 @@ export const decisionTableService = restate.object({
 
         const eventName = events.success;
 
-        return workflowExecutionsService.nextOrEndExecution({ nodeData, event: eventName, executionId, localResult: result, globalResult: r, yaml, domain, token });
+        return workflowExecutionsService.nextOrEndExecution({ nodeData, event: eventName, executionId, localResult: result, globalResult: r, workflowId, domain, token });
       }
     ),
   },

@@ -1,4 +1,3 @@
-import "reflect-metadata";
 import * as restate from "@restatedev/restate-sdk/fetch";
 import { serveRestate } from "@/lib/restate-utils";
 import { workflowService } from "@/app/(modules)/(private)/(workflows)/(components)/nodes/(workflows)/(server)/node-execute";

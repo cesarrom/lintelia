@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FormAnswer } from '@/lib/entities/tenant';
+import { FormAnswer } from '@/lib/entities';
 
 interface UseFormAnswersResult {
   answers: FormAnswer[];

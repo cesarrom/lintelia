@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { TestFormDialog } from '../../../../(components)/form-builder/components/test-form-dialog';
-import { Form } from '@/lib/entities/tenant';
+import type { Form } from '@/lib/entities';
 
 interface CreateInstanceButtonProps {
   form: Form;

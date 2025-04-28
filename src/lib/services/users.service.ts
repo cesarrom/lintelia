@@ -1,11 +1,11 @@
 import { inject, injectable } from "tsyringe";
-import { AUTH_TOKEN, TENANT_TOKEN } from "../injector/tokens";
-import { auth } from "../clients/auth.client";
-import { Tenant } from "../entities/global";
-import { SdkResponse } from "@descope/node-sdk";
-import { RolesService } from "./roles.service";
+import { AppAuth } from "../clients/auth.client";
 import { LogsService } from "./logs.service";
 import { env } from "../constants";
+import { AuthService } from "./auth.service";
+import { Service } from "./service";
+import { TenantsService } from "./tenants.service";
+import { WebService } from "./web.service";
 
 export interface User {
   id: string;
@@ -26,25 +26,40 @@ export interface InviteUserInput {
 }
 
 @injectable()
-export class UsersService {
+export class UsersService extends Service {
+  private _auth: AppAuth;
+
+  static dependencies() {
+    return [
+      AuthService,
+      TenantsService,
+      LogsService,
+      WebService
+    ]
+  }
+
   constructor(
-    @inject(AUTH_TOKEN) private _auth: typeof auth,
-    @inject(TENANT_TOKEN) private _tenant: Tenant,
-    @inject(RolesService) private _roles: RolesService,
-    @inject(LogsService) private logs: LogsService
-  ) { }
+    @inject(AuthService) private _authService: AuthService,
+    @inject(TenantsService) private _tenantService: TenantsService,
+    @inject(LogsService) private logs: LogsService,
+    @inject(WebService) private webService: WebService
+  ) {
+    super();
+    this._auth = this._authService.auth;
+  }
 
   async listUsers(): Promise<User[]> {
+    const domain = await this._tenantService.getCachedDomainFromTenant();
     try {
       await this.logs.debug('Listing users', {
         category: 'security',
         source: 'UsersService',
         metadata: {
-          tenant: this._tenant.domain
+          tenant: domain
         }
       });
 
-      const response = await this._auth.management.user.searchAll([this._tenant.domain]);
+      const response = await this._auth.management.user.searchAll([domain]);
 
       if (!response.data) return [];
 
@@ -53,7 +68,7 @@ export class UsersService {
         email: user.email || '',
         name: user.name || '',
         picture: user.picture,
-        roles: user.userTenants?.find(t => t.tenantId === this._tenant.domain)?.roleNames || [],
+        roles: user.userTenants?.find(t => t.tenantId === domain)?.roleNames || [],
         status: user.status === 'enabled' ? 'active' as const : 'inactive' as const,
         createdAt: new Date(user.createTime),
         updatedAt: new Date(),
@@ -63,7 +78,7 @@ export class UsersService {
         category: 'security',
         source: 'UsersService',
         metadata: {
-          tenant: this._tenant.domain,
+          tenant: domain,
           userCount: users.length
         }
       });
@@ -74,7 +89,7 @@ export class UsersService {
         category: 'security',
         source: 'UsersService',
         metadata: {
-          tenant: this._tenant.domain,
+          tenant: domain,
           error: error instanceof Error ? error.message : String(error)
         }
       });
@@ -83,6 +98,7 @@ export class UsersService {
   }
 
   async inviteUser({ email, name, roleIds, loginId = email }: InviteUserInput): Promise<boolean> {
+    const domain = await this._tenantService.getCachedDomainFromTenant();
     try {
       await this.logs.info('Inviting user', {
         category: 'security',
@@ -91,7 +107,7 @@ export class UsersService {
           email,
           name,
           roleIds,
-          tenant: this._tenant.domain
+          tenant: domain
         }
       });
 
@@ -99,11 +115,11 @@ export class UsersService {
       await this._auth.management.user.invite(loginId, {
         email,
         displayName: name,
-        inviteUrl: `https://${this._tenant.domain}.${env.HOST}/sign-on`
+        inviteUrl: `https://${domain}.${env.HOST}/sign-on`
       });
 
-      await this._auth.management.user.addTenant(loginId, this._tenant.domain);
-      await this._auth.management.user.addTenantRoles(loginId, this._tenant.domain, roleIds);
+      await this._auth.management.user.addTenant(loginId, domain);
+      await this._auth.management.user.addTenantRoles(loginId, domain, roleIds);
 
       await this.logs.info('User invited successfully', {
         category: 'security',
@@ -112,11 +128,11 @@ export class UsersService {
           email,
           name,
           roleIds,
-          tenant: this._tenant.domain
+          tenant: domain
         }
       });
 
-    return true;
+      return true;
     } catch (error) {
       await this.logs.error('Failed to invite user', {
         category: 'security',
@@ -125,7 +141,7 @@ export class UsersService {
           email,
           name,
           roleIds,
-          tenant: this._tenant.domain,
+          tenant: domain,
           error: error instanceof Error ? error.message : String(error)
         }
       });
@@ -134,13 +150,14 @@ export class UsersService {
   }
 
   async deactivateUser(userId: string): Promise<boolean> {
+    const domain = await this._tenantService.getCachedDomainFromTenant();
     try {
       await this.logs.warning('Deactivating user', {
         category: 'security',
         source: 'UsersService',
         metadata: {
           userId,
-          tenant: this._tenant.domain
+          tenant: domain
         }
       });
 
@@ -151,7 +168,7 @@ export class UsersService {
         source: 'UsersService',
         metadata: {
           userId,
-          tenant: this._tenant.domain
+          tenant: domain
         }
       });
 
@@ -162,7 +179,7 @@ export class UsersService {
         source: 'UsersService',
         metadata: {
           userId,
-          tenant: this._tenant.domain,
+          tenant: domain,
           error: error instanceof Error ? error.message : String(error)
         }
       });
@@ -171,13 +188,14 @@ export class UsersService {
   }
 
   async activateUser(userId: string): Promise<boolean> {
+    const domain = await this._tenantService.getCachedDomainFromTenant();
     try {
       await this.logs.info('Activating user', {
         category: 'security',
         source: 'UsersService',
         metadata: {
           userId,
-          tenant: this._tenant.domain
+          tenant: domain
         }
       });
 
@@ -188,7 +206,7 @@ export class UsersService {
         source: 'UsersService',
         metadata: {
           userId,
-          tenant: this._tenant.domain
+          tenant: domain
         }
       });
 
@@ -199,7 +217,7 @@ export class UsersService {
         source: 'UsersService',
         metadata: {
           userId,
-          tenant: this._tenant.domain,
+          tenant: domain,
           error: error instanceof Error ? error.message : String(error)
         }
       });
@@ -208,13 +226,14 @@ export class UsersService {
   }
 
   async resetPassword(userId: string): Promise<boolean> {
+    const domain = await this._tenantService.getCachedDomainFromTenant();
     try {
       await this.logs.info('Resetting user password', {
         category: 'security',
         source: 'UsersService',
         metadata: {
           userId,
-          tenant: this._tenant.domain
+          tenant: domain
         }
       });
 
@@ -225,7 +244,7 @@ export class UsersService {
         source: 'UsersService',
         metadata: {
           userId,
-          tenant: this._tenant.domain
+          tenant: domain
         }
       });
 
@@ -236,7 +255,7 @@ export class UsersService {
         source: 'UsersService',
         metadata: {
           userId,
-          tenant: this._tenant.domain,
+          tenant: domain,
           error: error instanceof Error ? error.message : String(error)
         }
       });
@@ -245,6 +264,7 @@ export class UsersService {
   }
 
   async updateUserRoles(userId: string, roleIds: string[]): Promise<boolean> {
+    const domain = await this._tenantService.getCachedDomainFromTenant();
     try {
       await this.logs.info('Updating user roles', {
         category: 'security',
@@ -252,7 +272,7 @@ export class UsersService {
         metadata: {
           userId,
           roleIds,
-          tenant: this._tenant.domain
+          tenant: domain
         }
       });
 
@@ -264,20 +284,20 @@ export class UsersService {
           source: 'UsersService',
           metadata: {
             userId,
-            tenant: this._tenant.domain
+            tenant: domain
           }
         });
         return false;
       }
 
-      const tenant = user.data.userTenants?.find(t => t.tenantId === this._tenant.domain);
+      const tenant = user.data.userTenants?.find(t => t.tenantId === domain);
       if (!tenant) {
         await this.logs.error('User not found in tenant', {
           category: 'security',
           source: 'UsersService',
           metadata: {
             userId,
-            tenant: this._tenant.domain
+            tenant: domain
           }
         });
         return false;
@@ -285,14 +305,14 @@ export class UsersService {
 
       // Remove all current roles
       if (tenant?.roleNames?.length) {
-        await this._auth.management.user.removeTenantRoles(userId, this._tenant.domain, tenant.roleNames || []);
+        await this._auth.management.user.removeTenantRoles(userId, domain, tenant.roleNames || []);
       }
 
       // Add new roles
       if (roleIds.length > 0) {
         await this._auth.management.user.addTenantRoles(
           userId,
-          this._tenant.domain,
+          domain,
           roleIds
         );
       }
@@ -304,11 +324,11 @@ export class UsersService {
           userId,
           oldRoles: tenant.roleNames,
           newRoles: roleIds,
-          tenant: this._tenant.domain
+          tenant: domain
         }
       });
 
-    return true;
+      return true;
     } catch (error) {
       await this.logs.error('Failed to update user roles', {
         category: 'security',
@@ -316,7 +336,7 @@ export class UsersService {
         metadata: {
           userId,
           roleIds,
-          tenant: this._tenant.domain,
+          tenant: domain,
           error: error instanceof Error ? error.message : String(error)
         }
       });
@@ -325,13 +345,14 @@ export class UsersService {
   }
 
   async getUser(userId: string): Promise<User | null> {
+    const domain = await this._tenantService.getCachedDomainFromTenant();
     try {
       await this.logs.debug('Getting user details', {
         category: 'security',
         source: 'UsersService',
         metadata: {
           userId,
-          tenant: this._tenant.domain
+          tenant: domain
         }
       });
 
@@ -342,7 +363,7 @@ export class UsersService {
           source: 'UsersService',
           metadata: {
             userId,
-            tenant: this._tenant.domain
+            tenant: domain
           }
         });
         return null;
@@ -354,7 +375,7 @@ export class UsersService {
         email: user.email || '',
         name: user.name || '',
         picture: user.picture,
-        roles: user.userTenants?.find(t => t.tenantId === this._tenant.domain)?.roleNames || [],
+        roles: user.userTenants?.find(t => t.tenantId === domain)?.roleNames || [],
         status: user.status === 'enabled' ? 'active' as const : 'inactive' as const,
         createdAt: new Date(user.createTime),
         updatedAt: new Date(),
@@ -367,7 +388,7 @@ export class UsersService {
           userId,
           email: mappedUser.email,
           roles: mappedUser.roles,
-          tenant: this._tenant.domain
+          tenant: domain
         }
       });
 
@@ -378,7 +399,7 @@ export class UsersService {
         source: 'UsersService',
         metadata: {
           userId,
-          tenant: this._tenant.domain,
+          tenant: domain,
           error: error instanceof Error ? error.message : String(error)
         }
       });
@@ -387,10 +408,11 @@ export class UsersService {
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
+    const domain = await this._tenantService.getCachedDomainFromTenant();
     try {
       const response = await this._auth.management.user.search({
         emails: [email],
-        tenantIds: [this._tenant.domain]
+        tenantIds: [domain]
       });
 
       if (!response.data) {
@@ -408,7 +430,7 @@ export class UsersService {
         email: user.email || '',
         name: user.name || '',
         picture: user.picture,
-        roles: user.userTenants?.find(t => t.tenantId === this._tenant.domain)?.roleNames || [],
+        roles: user.userTenants?.find(t => t.tenantId === domain)?.roleNames || [],
         status: user.status === 'enabled' ? 'active' as const : 'inactive' as const,
         createdAt: new Date(user.createTime),
         updatedAt: new Date(),
@@ -416,5 +438,68 @@ export class UsersService {
     } catch (error) {
       return null;
     }
+  }
+
+  async loginByEmail(email: string) {
+    const domain = await this._tenantService.getCachedDomainFromTenant();
+    try {
+      const response = await this._auth.management.user.search({
+        emails: [email],
+        tenantIds: [domain]
+      });
+
+      if (!response.data) {
+        return null;
+      }
+
+      const user = response.data[0];
+
+      const [loginId] = user?.loginIds || [];
+
+      if (!loginId) {
+        throw new Error('Login ID not found');
+      }
+
+      const jwtResponse = await this._auth.management.jwt.signIn(loginId);
+
+      const session = jwtResponse.data;
+
+      if (!session) {
+        throw new Error('Session not found');
+      }
+
+      return session;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  async getUserByToken(token: string) {
+    const response = await this._auth.validateJwt(token);
+    const userId = response.token.sub;
+
+    if (!userId) {
+      throw new Error('User ID not found');
+    }
+
+    const user = await this.getUser(userId);
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    return user;
+  }
+
+  async getSessionUser() {
+    const userId = await this.webService.getUserId();
+
+    if (!userId) {
+      return null;
+    }
+
+    const user = await this._auth.management.user.loadByUserId(userId);
+
+    return user?.data || null;
   }
 }

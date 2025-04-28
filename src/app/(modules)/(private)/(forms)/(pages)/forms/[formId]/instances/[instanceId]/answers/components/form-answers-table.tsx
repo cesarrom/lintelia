@@ -20,7 +20,7 @@ import { MoreHorizontal, Eye, MessageSquare } from 'lucide-react';
 import { FormConfig } from '@/app/(modules)/(private)/(forms)/(components)/form-builder/schemas';
 import { useFormAnswers } from '../hooks/use-form-answers';
 import { useRouter } from 'next/navigation';
-import { FormAnswer } from '@/lib/entities/tenant';
+import type { FormAnswer } from '@/lib/entities';
 
 interface FormAnswersTableProps {
   formId: string;
@@ -44,7 +44,7 @@ export function FormAnswersTable({ formId, instanceId, formConfig }: FormAnswers
     const component = formConfig.components.find(
       component => component.id === fieldId
     );
-    return component?.config.label as string || fieldId;
+    return ((component?.config as any)?.label as string) || fieldId;
   };
 
   if (isLoading) {

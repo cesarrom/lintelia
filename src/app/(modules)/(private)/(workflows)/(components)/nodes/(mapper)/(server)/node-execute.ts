@@ -3,7 +3,7 @@ import { get } from "lodash";
 import { events, MapperNodeDataSchema, MapperNodeData } from "../types";
 import * as restate from "@restatedev/restate-sdk/fetch";
 import { ExecuteNodeFunctionProps } from "@/app/(modules)/(private)/(workflows)/types";
-import { WorkflowExecutionsService } from "@/lib/services";
+import { WorkflowExecutionsService } from "@/lib/services/workflow-executions.service";
 import { workflowInject } from "@/lib/injector/utils";
 
 export const mapperService = restate.object({
@@ -11,7 +11,7 @@ export const mapperService = restate.object({
   handlers: {
     executeNode: workflowInject(
       [WorkflowExecutionsService],
-      async ({}, [workflowExecutionsService], c: restate.ObjectContext, { executionId, nodeData, yaml, domain, token, result: r }: ExecuteNodeFunctionProps) => {
+      async ({}, [workflowExecutionsService], c: restate.ObjectContext, { executionId, nodeData, workflowId, domain, token, result: r }: ExecuteNodeFunctionProps) => {
         const config = await c.run('validate-config', async () => {
           return MapperNodeDataSchema.parse(nodeData.config || {});
         });
@@ -22,7 +22,7 @@ export const mapperService = restate.object({
 
         const eventName = events.mapped
 
-        return await workflowExecutionsService.nextOrEndExecution({ nodeData, event: eventName, executionId, localResult: { sourceObject }, globalResult: r, yaml, domain, token });
+        return await workflowExecutionsService.nextOrEndExecution({ nodeData, event: eventName, executionId, localResult: { sourceObject }, globalResult: r, workflowId, domain, token });
       }
     ),
   },

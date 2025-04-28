@@ -2,8 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { inject } from '@/lib/injector/utils';
-import { ReviewsService } from '@/lib/services';
-import { Review } from '@/lib/entities/tenant/review.entity';
+import { ReviewsService } from '@/lib/services/reviews.service';
 
 // Get all reviews with optional filtering
 export const getReviews = inject(

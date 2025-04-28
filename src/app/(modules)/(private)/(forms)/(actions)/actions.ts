@@ -7,7 +7,7 @@ import { env } from '@/lib/constants';
 import { systemPrompt } from "./prompt";
 import { FormConfig } from "../(components)/form-builder/schemas";
 import { revalidatePath } from "next/cache";
-import { FormInstance } from "@/lib/entities/tenant";
+import { FormInstance } from "@/lib/entities";
 import { ReviewsService } from "@/lib/services/reviews.service";
 import { LogsService } from "@/lib/services/logs.service";
 
@@ -118,9 +118,13 @@ export const createTestFormInstance = inject(
 export const submitFormAnswers = inject(
   [FormsService, LogsService],
   async (context, [formsService, logsService], instanceId: string, answers: Record<string, unknown>) => {
+    const instance = await formsService.getInstance(instanceId);
+
+    if (!instance) throw new Error('Form instance not found');
+    
     // Create form answers
     const formAnswer = await formsService.createAnswers({
-      formId: instanceId, // Using instanceId as formId since we're saving to the instance
+      formId: instance.formId, // Using instanceId as formId since we're saving to the instance
       instanceId,
       answers,
     });
@@ -139,11 +143,12 @@ export const submitFormAnswers = inject(
       metadata: {
         instanceId,
         answerId: formAnswer.id,
+        formId: instance.formId,
         submittedBy: context.user?.userId || 'system'
       }
     });
 
-    revalidatePath(`/forms/${instanceId}`);
+    revalidatePath(`/forms/${instance.formId}`);
     return formAnswer;
   }
 );
@@ -167,4 +172,4 @@ export const createReview = inject(
     revalidatePath('/my-reviews');
     return { ...review };
   }
-); 
+);

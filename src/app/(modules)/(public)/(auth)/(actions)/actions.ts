@@ -1,10 +1,11 @@
 'use server';
 
-import { env } from "@/lib/constants";
-import { ENVIRONMENT_TOKEN } from "@/lib/injector/tokens";
-import { inject, optional, token } from "@/lib/injector/utils";
-import { InvitationsService, RolesService } from "@/lib/services";
+import { optional } from "@/lib/services/service";
+import { inject } from "@/lib/injector/utils";
+import { EnvironmentsService } from "@/lib/services/environments.service";
+import { InvitationsService } from "@/lib/services/invitations.service";
 import { LogsService } from "@/lib/services/logs.service";
+import { RolesService } from "@/lib/services/roles.service";
 import { SystemTriggersService } from "@/lib/services/system-triggers.service";
 import { TriggerBuilder } from "@/lib/triggers-utils";
 import assert from "assert";
@@ -60,20 +61,20 @@ export const getUserRoles = inject(
 );
 
 export const verifyIdentity = inject(
-  [token<typeof env>(ENVIRONMENT_TOKEN), LogsService],
-  async ({ user }, [environment, logs], person: { givenName: string, familyName: string, primaryEmail: string, primaryPhone: string }) => {
+  [EnvironmentsService, LogsService],
+  async ({ user }, [environmentsService, logs], person: { givenName: string, familyName: string, primaryEmail: string, primaryPhone: string }) => {
     assert(user, 'User is required');
 
     try {
       const verifyPersonBody = {
-        appDomain: environment.DOMAIN,
-        totApiKey: environment.KYC_TOKEN,
-        totSecretKey: environment.KYC_SECRET,
+        appDomain: environmentsService.env.DOMAIN,
+        totApiKey: environmentsService.env.KYC_TOKEN,
+        totSecretKey: environmentsService.env.KYC_SECRET,
         appUserid: user.userId,
         person,
       };
 
-      const response = await fetch(`https://${environment.KYC_ENDPOINT}/api/person`, {
+      const response = await fetch(`https://${environmentsService.env.KYC_ENDPOINT}/api/person`, {
         method: "POST",
         body: JSON.stringify(verifyPersonBody),
         headers: {

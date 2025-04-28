@@ -4,7 +4,7 @@ import { events, IteratorNodeDataSchema, IteratorNodeData } from "../types";
 import * as restate from "@restatedev/restate-sdk/fetch";
 import { ExecuteNodeFunctionProps } from "@/app/(modules)/(private)/(workflows)/types";
 import { yamlToWorkflow } from "@/app/(modules)/(private)/(workflows)/(components)/yaml/converter";
-import { WorkflowExecutionsService } from "@/lib/services";
+import { WorkflowExecutionsService } from "@/lib/services/workflow-executions.service";
 import { workflowInject } from "@/lib/injector/utils";
 
 export const iteratorService = restate.object({
@@ -12,7 +12,7 @@ export const iteratorService = restate.object({
   handlers: {
     executeNode: workflowInject(
       [WorkflowExecutionsService],
-      async ({ }, [workflowExecutionsService], c: restate.ObjectContext, { executionId, nodeData, yaml, domain, token, result: r }: ExecuteNodeFunctionProps) => {
+      async ({ }, [workflowExecutionsService], c: restate.ObjectContext, { executionId, nodeData, workflowId, yaml, domain, token, result: r }: ExecuteNodeFunctionProps) => {
       const config = await c.run('validate-config', async () => {
         return IteratorNodeDataSchema.parse(nodeData.config || {});
       });
@@ -37,14 +37,14 @@ export const iteratorService = restate.object({
         const item = arrayToIterate[index];
         const eventName = events.item + '::' + index;
         const nextNodes = workflowExecutionsService.getNextNodes({ nodeData, yaml, event: eventName }, { forceExecution: nodeEdges.map(e => e.target) });
-        const re = await workflowExecutionsService.nextOrEndExecution({ nodeData, event: eventName, executionId, localResult: { item, index }, globalResult: r, yaml, domain, token, nextNodes });
+        const re = await workflowExecutionsService.nextOrEndExecution({ nodeData, event: eventName, executionId, localResult: { item, index }, globalResult: r, workflowId, domain, token, nextNodes });
 
         Object.assign(output, re);
       }
 
       const eventName = events.done;
 
-      return await workflowExecutionsService.nextOrEndExecution({ nodeData, event: eventName, executionId, localResult: output, globalResult: r, yaml, domain, token });
+      return await workflowExecutionsService.nextOrEndExecution({ nodeData, event: eventName, executionId, localResult: output, globalResult: r, workflowId, domain, token });
     }
   ),
   },

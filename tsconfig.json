@@ -40,7 +40,7 @@
     "**/*.ts",
     "**/*.tsx",
     "sst.config.ts",
-    "next.config.js"
+    "next.config.cjs"
 , "tailwind.config.js"  ],
   "exclude": [
     "node_modules",

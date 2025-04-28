@@ -1,11 +1,11 @@
 import { inject, injectable } from "tsyringe";
-import { AUTH_TOKEN, TENANT_TOKEN } from "../injector/tokens";
-import { auth } from "../clients/auth.client";
-import { Tenant } from "../entities/global";
+import { AppAuth } from "../clients/auth.client";
 import { Role } from "@/lib/auth/roles";
 import { Permission, PERMISSIONS } from "@/lib/auth/permissions";
-import { SdkResponse } from "@descope/node-sdk";
 import { LogsService } from "./logs.service";
+import { AuthService } from "./auth.service";
+import { Service } from "./service";
+import { TenantsService } from "./tenants.service";
 
 interface AuthRole {
   name: string;
@@ -17,12 +17,25 @@ interface AuthRole {
 }
 
 @injectable()
-export class RolesService {
+export class RolesService extends Service {
+  private _auth: AppAuth;
+
+  static dependencies() {
+    return [
+      AuthService,
+      TenantsService,
+      LogsService
+    ]
+  }
+
   constructor(
-    @inject(AUTH_TOKEN) private _auth: typeof auth,
-    @inject(TENANT_TOKEN) private _tenant: Tenant,
+    @inject(AuthService) private _authService: AuthService,
+    @inject(TenantsService) private _tenantService: TenantsService,
     @inject(LogsService) private logs: LogsService
-  ) { }
+  ) {
+    super();
+    this._auth = this._authService.auth;
+  }
 
   // Role Management Methods
   async createRole(data: { name: string; description: string; permissions: string[] }): Promise<Role> {
@@ -35,7 +48,7 @@ export class RolesService {
         roleId,
         description,
         permissions,
-        this._tenant.domain
+        await this._tenantService.getCachedDomainFromTenant()
       );
 
       await this.logs.info('Role created', {
@@ -45,7 +58,7 @@ export class RolesService {
           roleId,
           roleName: name,
           permissions,
-          tenant: this._tenant.domain
+          tenant: await this._tenantService.getCachedDomainFromTenant()
         }
       });
 
@@ -65,7 +78,7 @@ export class RolesService {
           roleId,
           roleName: name,
           permissions,
-          tenant: this._tenant.domain,
+          tenant: await this._tenantService.getCachedDomainFromTenant(),
           error: error instanceof Error ? error.message : String(error)
         }
       });
@@ -84,7 +97,7 @@ export class RolesService {
           name || roleId,
           description,
           permissions,
-          this._tenant.domain
+          await this._tenantService.getCachedDomainFromTenant()
         );
       }
 
@@ -96,7 +109,7 @@ export class RolesService {
           source: 'RolesService',
           metadata: {
             roleId,
-            tenant: this._tenant.domain
+            tenant: await this._tenantService.getCachedDomainFromTenant()
           }
         });
         return null;
@@ -109,7 +122,7 @@ export class RolesService {
           roleId,
           roleName: name,
           updatedFields: Object.keys(data),
-          tenant: this._tenant.domain
+          tenant: await this._tenantService.getCachedDomainFromTenant()
         }
       });
 
@@ -125,7 +138,7 @@ export class RolesService {
         metadata: {
           roleId,
           roleName: name,
-          tenant: this._tenant.domain,
+          tenant: await this._tenantService.getCachedDomainFromTenant(),
           error: error instanceof Error ? error.message : String(error)
         }
       });
@@ -136,14 +149,14 @@ export class RolesService {
   async deleteRole(roleId: string): Promise<boolean> {
     try {
       // Delete role from auth provider
-      await this._auth.management.role.delete(roleId, this._tenant.domain);
+      await this._auth.management.role.delete(roleId, await this._tenantService.getCachedDomainFromTenant());
 
       await this.logs.info('Role deleted', {
         category: 'security',
         source: 'RolesService',
         metadata: {
           roleId,
-          tenant: this._tenant.domain
+          tenant: await this._tenantService.getCachedDomainFromTenant()
         }
       });
 
@@ -154,7 +167,7 @@ export class RolesService {
         source: 'RolesService',
         metadata: {
           roleId,
-          tenant: this._tenant.domain,
+          tenant: await this._tenantService.getCachedDomainFromTenant(),
           error: error instanceof Error ? error.message : String(error)
         }
       });
@@ -176,7 +189,7 @@ export class RolesService {
   async listRoles(): Promise<Role[]> {
     try {
       const response = await this._auth.management.role.search({
-        tenantIds: [this._tenant.domain]
+        tenantIds: [await this._tenantService.getCachedDomainFromTenant()]
       });
 
       if (!response.data) return [];
@@ -200,10 +213,11 @@ export class RolesService {
   }
 
   // User Role Methods
-  async createUserRole({ userId, roleId, tenantId = this._tenant.domain }: UserRoleInput) {
+  async createUserRole({ userId, roleId, tenantId }: UserRoleInput) {
+    const actualTenantId = tenantId || (await this._tenantService.getCachedDomainFromTenant());
     try {
       // Add role in auth provider
-      await this._auth.management.user.addTenantRoles(userId, tenantId, [roleId]);
+      await this._auth.management.user.addTenantRoles(userId, actualTenantId, [roleId]);
 
       await this.logs.info('User role assigned', {
         category: 'security',
@@ -211,7 +225,7 @@ export class RolesService {
         userId,
         metadata: {
           roleId,
-          tenant: tenantId
+          tenant: actualTenantId
         }
       });
 
@@ -231,9 +245,10 @@ export class RolesService {
     }
   }
 
-  async deleteUserRole({ roleId, userId, tenantId = this._tenant.domain }: UserRoleInput) {
+  async deleteUserRole({ roleId, userId, tenantId }: UserRoleInput) {
+    const actualTenantId = tenantId || (await this._tenantService.getCachedDomainFromTenant());
     try {
-      await this._auth.management.user.removeTenantRoles(userId, tenantId, [roleId]);
+      await this._auth.management.user.removeTenantRoles(userId, actualTenantId, [roleId]);
 
       await this.logs.info('User role removed', {
         category: 'security',
@@ -261,14 +276,15 @@ export class RolesService {
     }
   }
 
-  private async getUserAndTenant({ userId, tenantId = this._tenant.domain }: UserInput) {
+  private async getUserAndTenant({ userId, tenantId }: UserInput) {
+    const actualTenantId = tenantId || (await this._tenantService.getCachedDomainFromTenant());
     const { data: user } = await this._auth.management.user.loadByUserId(userId);
 
     if (!user) {
       throw new Error('User not found');
     }
 
-    const tenants = user.userTenants?.filter(tenant => tenant.tenantId === tenantId) || [];
+    const tenants = user.userTenants?.filter(tenant => tenant.tenantId === actualTenantId) || [];
 
     if (!tenants.length) {
       return { user }

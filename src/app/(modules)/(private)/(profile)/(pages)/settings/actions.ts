@@ -1,19 +1,20 @@
 'use server';
 
+import { Service } from '@/lib/services/service';
 import { revalidatePath } from 'next/cache';
 import { inject } from '@/lib/injector/utils';
-import { CreateSystemVariableInput, UpdateSystemVariableInput } from '@/lib/services/system-variables.service';
+import { CreateSystemVariableInput, SystemVariablesService, UpdateSystemVariableInput } from '@/lib/services/system-variables.service';
 import { session } from '@descope/nextjs-sdk/server';
-import { CNAMERecord, type CreateTenant, DomainsService, InvitationsService, TenantsService, RolesService, SystemVariablesService } from '@/lib/services';
 import { auth } from '@/lib/clients/auth.client';
 import { SdkResponse } from '@descope/node-sdk';
 import { omit } from 'lodash';
-import { cookies, headers } from 'next/headers';
-import { redirect } from 'next/navigation';
-import { ENVIRONMENT_TOKEN } from '@/lib/injector/tokens';
-import { getInjector } from '@/lib/injector';
-import { env } from '@/lib/constants';
-import { SystemVariable } from '@/lib/entities/tenant/system-variable.entity';
+import { SystemVariable } from '@/lib/entities';
+import { container } from 'tsyringe';
+import { CreateTenant, TenantsService } from '@/lib/services/tenants.service';
+import { WebService } from '@/lib/services/web.service';
+import { CNAMERecord, DomainsService } from '@/lib/services/domains.service';
+import { InvitationsService } from '@/lib/services/invitations.service';
+import { RolesService } from '@/lib/services/roles.service';
 
 // Tenant Settings Actions
 export const updateTenantSettings = inject(
@@ -108,10 +109,9 @@ export const createTenant = async (tenant: APICreateTenantRequest) => {
   console.log('Starting tenant creation process', { tenant });
   const onError = [] as Array<() => Promise<void>>;
   try {
-    const injector = await getInjector();
     console.log('Got injector');
 
-    const currentSession = session();
+    const currentSession = await session();
     console.log('Got current session');
 
     if (!currentSession?.token) {
@@ -124,8 +124,9 @@ export const createTenant = async (tenant: APICreateTenantRequest) => {
       throw new Error('Unauthorized');
     }
     console.log('Validated session and user', { sub });
-
-    const tenantsService = injector.resolve(TenantsService);
+    const injector = container.createChildContainer();
+    const [tenantsService] = Service.inject([TenantsService], () => injector);
+    
     const domainObject = await tenantsService.create(tenant);
     console.log('Created tenant domain object', { domainObject });
 
@@ -133,11 +134,11 @@ export const createTenant = async (tenant: APICreateTenantRequest) => {
       await tenantsService.delete(tenant.domain);
     });
 
-    const domainInjector = await getInjector(tenant.domain);
-    console.log('Got domain injector');
+    const [webService] = Service.inject([WebService], () => injector);
 
-    const domainsService = domainInjector.resolve(DomainsService);
-    const invitationsService = domainInjector.resolve(InvitationsService);
+    webService.mockDomain(tenant.domain);
+
+    const [domainsService, invitationsService] = Service.inject([DomainsService, InvitationsService], () => injector);
 
     const user = await auth.management.user.loadByUserId(sub);
     console.log('Loaded user', { userId: sub });
@@ -216,9 +217,8 @@ export const createTenant = async (tenant: APICreateTenantRequest) => {
 
 export const deleteTenant = async (userId: string, domain: string) => {
   console.log('Starting tenant deletion process', { userId, domain });
-  const injector = await getInjector();
-  const tenantsService = injector.resolve(TenantsService);
-  const usersService = injector.resolve(RolesService);
+  const injector = container.createChildContainer();
+  const [tenantsService, usersService] = Service.inject([TenantsService, RolesService], () => injector);
 
   const roles = await usersService.getRolesByUserId({ userId });
   console.log('Got user roles', { roles });
@@ -235,36 +235,9 @@ export const deleteTenant = async (userId: string, domain: string) => {
 export type CreatedTenant = Awaited<ReturnType<typeof createTenant>>;
 
 export const getTenant = async (domainRef?: string) => {
-  const headersList = await headers();
-  const cookiesList = await cookies();
-  const headerUrl = 'https://' + headersList.get('x-forwarded-host') || "";
-  
-  const url = new URL(headerUrl);
-  // EX: https://galicia.fintivio.org/
-  // tenant = galicia
-  // domain = galicia.fintivio.org
-  
-  const tenant = url.hostname.split(".")[0];
-  const domain = domainRef || cookiesList.get('fintivio-domain')?.value || url.hostname;
-  
-  const injector = await getInjector();
-  
-  const environment: typeof env = injector.resolve(ENVIRONMENT_TOKEN);
-
-  const tenantsService = injector.resolve(TenantsService);
-
-  let tenantObject = await tenantsService.getByDomain(domain);
-
-  if (!tenantObject) {
-    tenantObject = await tenantsService.getByDomain(tenant);
-  }
-
-  if (!tenantObject && !domain.includes('localhost')) {
-    if (domain !== environment.DOMAIN) {
-      redirect(environment.HOST);
-    }
-    return null;
-  }
+  const injector = container.createChildContainer();
+  const [tenantsService] = Service.inject([TenantsService], () => injector);
+  const tenantObject = domainRef ? await tenantsService.getByDomain(domainRef) : await tenantsService.getContextualTenant();
 
   return omit(tenantObject, [
     'databaseAuthToken',
@@ -274,8 +247,8 @@ export const getTenant = async (domainRef?: string) => {
 }
 
 export const getTenantDatabase = async (domain: string) => {
-  const injector = await getInjector(domain);
-  const tenantsService = injector.resolve(TenantsService);
+  const injector = container.createChildContainer();
+  const [tenantsService] = Service.inject([TenantsService], () => injector);
 
   return tenantsService.getPlatformDBClient(domain);
 }

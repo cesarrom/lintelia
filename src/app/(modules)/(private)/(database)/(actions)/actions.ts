@@ -2,30 +2,30 @@
 
 import { inject } from "@/lib/injector/utils";
 import { DatabaseService } from "@/lib/services/database.service";
-import { TENANT_DB_TOKEN } from "@/lib/injector/tokens";
-import { DataSource, TableColumn } from "typeorm";
+import { TableColumn } from "typeorm";
 import { DatabaseNodeData } from "../../(workflows)/(components)/nodes/(database)/types";
-import { token } from "@/lib/injector/utils";
 import { LogsService } from "@/lib/services/logs.service";
 import { TriggerBuilder } from "@/lib/triggers-utils";
+import { TenantsService } from "@/lib/services/tenants.service";
 
 export const listTables = inject(
-  [token<DataSource>(TENANT_DB_TOKEN), DatabaseService],
-  async ({ }, [db, dbService]) => {
-    return dbService.listTables(db);
+  [DatabaseService, TenantsService],
+  async ({ }, [dbService, tenantsService]) => {
+    return dbService.listTables(await tenantsService.getContextualPlatformDBClient());
   }
 );
 
 export const getTableSchema = inject(
-  [token<DataSource>(TENANT_DB_TOKEN), DatabaseService],
-  async ({ }, [db, dbService], tableName: string) => {
-    return dbService.getTableSchema(db, tableName);
+  [DatabaseService, TenantsService],
+  async ({ }, [dbService, tenantsService], tableName: string) => {
+    return dbService.getTableSchema(await tenantsService.getContextualPlatformDBClient(), tableName);
   }
 );
 
 export const executeQuery = inject(
-  [token<DataSource>(TENANT_DB_TOKEN), DatabaseService, LogsService],
-  async ({ }, [db, dbService, logsService], config: DatabaseNodeData) => {
+  [DatabaseService, TenantsService, LogsService],
+  async ({ }, [dbService, tenantsService, logsService], config: DatabaseNodeData) => {
+    const db = await tenantsService.getContextualPlatformDBClient();
     switch (config.operation) {
       case 'create_table': {
         await dbService.createTable(

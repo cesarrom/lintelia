@@ -5,8 +5,9 @@ import { env } from '@/lib/constants';
 import { ExecuteNodeFunctionProps } from "@/app/(modules)/(private)/(workflows)/types";
 import { downloadFile } from '@/app/(modules)/(private)/(shared)/(actions)/files';
 import { workflowInject } from '@/lib/injector/utils';
-import { FormsService, WorkflowExecutionsService } from '@/lib/services';
 import assert from 'assert';
+import { WorkflowExecutionsService } from '@/lib/services/workflow-executions.service';
+import { FormsService } from '@/lib/services/forms.service';
 
 const prompts = {
   ID_DOCUMENTS: `
@@ -37,7 +38,7 @@ export const documentExtractorService = restate.object({
   handlers: {
     executeNode: workflowInject(
       [WorkflowExecutionsService, FormsService],
-      async ({ user, tenant }, [workflowExecutionsService, formsService], c: restate.ObjectContext, { executionId, nodeData, yaml, domain, token, result: r }: ExecuteNodeFunctionProps) => {
+      async ({ user, tenant }, [workflowExecutionsService, formsService], c: restate.ObjectContext, { executionId, nodeData, workflowId, domain, token, result: r }: ExecuteNodeFunctionProps) => {
         assert(user, 'User is required');
         assert(tenant, 'Tenant is required');
 
@@ -123,7 +124,7 @@ export const documentExtractorService = restate.object({
             );
           });
 
-          return workflowExecutionsService.nextOrEndExecution({ nodeData, event: events.failure, executionId, globalResult: r, localResult: { error: result.error, form_id: form.id, instance_id: instance.id, answer_id: answer.id }, yaml, domain, token });
+          return workflowExecutionsService.nextOrEndExecution({ nodeData, event: events.failure, executionId, globalResult: r, localResult: { error: result.error, form_id: form.id, instance_id: instance.id, answer_id: answer.id }, workflowId, domain, token });
         }
 
         const { form, instance, answer } = await c.run('create-form-with-answers', async () => {
@@ -286,7 +287,7 @@ export const documentExtractorService = restate.object({
           );
         });
 
-        return workflowExecutionsService.nextOrEndExecution({ nodeData, event: events.success, executionId, globalResult: r, localResult: { ...result, form_id: form.id, instance_id: instance.id, answer_id: answer.id }, yaml, domain, token });
+        return workflowExecutionsService.nextOrEndExecution({ nodeData, event: events.success, executionId, globalResult: r, localResult: { ...result, form_id: form.id, instance_id: instance.id, answer_id: answer.id }, workflowId, domain, token });
       }
     ),
   }

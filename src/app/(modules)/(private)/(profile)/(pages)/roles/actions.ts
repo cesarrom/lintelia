@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { Role } from '@/lib/auth/roles';
 import { inject } from '@/lib/injector/utils';
-import { RolesService } from '@/lib/services';
+import { RolesService } from '@/lib/services/roles.service';
 
 // Mock database for roles (in a real app, this would be a database)
 let roles: Role[] = [

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Log } from '@/lib/entities/tenant/log.entity';
+import type { Log } from '@/lib/entities';
 import { 
   Table, 
   TableHeader, 

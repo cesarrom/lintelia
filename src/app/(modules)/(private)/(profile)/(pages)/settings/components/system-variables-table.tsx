@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { SystemVariable } from '@/lib/entities/tenant/system-variable.entity';
+import { SystemVariable } from '@/lib/entities';
 import { 
   Table, 
   TableHeader, 
@@ -82,7 +82,7 @@ export default function SystemVariablesTable({ variables }: SystemVariablesTable
               <TableCell>{variable.description}</TableCell>
               <TableCell>
                 <Badge variant="secondary">
-                  {variable.type}
+                  {String(variable.type)}
                 </Badge>
               </TableCell>
               <TableCell className="font-mono text-sm">

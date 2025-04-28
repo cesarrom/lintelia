@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Review } from '@/lib/entities/tenant/review.entity';
+import type { Review } from '@/lib/entities';
 import { 
   Table, 
   TableHeader, 

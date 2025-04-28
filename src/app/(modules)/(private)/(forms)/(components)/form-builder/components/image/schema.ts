@@ -24,8 +24,6 @@ export class ImageComponentSchema extends BaseComponentSchema<z.ZodString, Image
   constructor(propertyName: string) {
     // Create a base schema that accepts both URLs and data URLs
     const baseSchema = z.string()
-      .url('Must be a valid URL')
-      .or(z.string().regex(/^data:image\/[a-z]+;base64,/, 'Must be a valid image data URL'));
     
     // Cast to ZodString since we know it will always produce a string
     super(baseSchema as unknown as z.ZodString, propertyName);

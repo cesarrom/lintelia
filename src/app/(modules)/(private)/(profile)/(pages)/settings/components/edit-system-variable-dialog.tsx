@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { SystemVariable, SystemVariableType } from '@/lib/entities/tenant/system-variable.entity';
+import { SystemVariable, SystemVariableType } from '@/lib/entities';
 import { updateSystemVariable } from '../actions';
 import { useRouter } from 'next/navigation';
 import { 
@@ -69,7 +69,7 @@ export default function EditSystemVariableDialog({
         default:
           throw new Error('Invalid type');
       }
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Invalid value for type ${type}: ${error.message}`);
     }
   };
@@ -94,7 +94,7 @@ export default function EditSystemVariableDialog({
       
       onOpenChange(false);
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update variable:', error);
       setError(error.message);
     } finally {
@@ -137,7 +137,7 @@ export default function EditSystemVariableDialog({
             </div>
             
             <div className="grid gap-2">
-              <Label htmlFor="value">Value ({variable.type})</Label>
+              <Label htmlFor="value">Value ({String(variable.type)})</Label>
               {variable.type === 'json' || variable.type === 'array' ? (
                 <div className="border rounded-md">
                   <Editor

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { FormInstance } from '@/lib/entities/tenant';
+import { FormInstance } from '@/lib/entities';
 import { getFormInstances } from '../../../../(actions)/actions';
 
 export function useFormInstances(formId: string) {

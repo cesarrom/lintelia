@@ -1,28 +1,53 @@
 import { inject, injectable } from 'tsyringe';
-import { TENANT_DB_TOKEN } from '../injector/tokens';
-import { DataSource, Repository } from 'typeorm';
-import { Workflow } from '../entities/tenant/workflow.entity';
-import { WorkflowTrigger } from '../entities/tenant/workflow-trigger.entity';
+import { DataSource, ObjectLiteral, Repository } from 'typeorm';
+import { Workflow } from '../entities';
+import { WorkflowTrigger } from '../entities';
 import { LogsService } from './logs.service';
 import { v4 as uuid } from 'uuid';
 import { validateWorkflowYaml, yamlToWorkflow } from '@/app/(modules)/(private)/(workflows)/(components)/yaml/converter';
 import { type NodeData } from '@/app/(modules)/(private)/(workflows)/(components)/yaml/types';
 import yaml from 'yaml';
+import { TenantsService } from './tenants.service';
+import { Newable, Service } from './service';
 
 @injectable()
-export class WorkflowsService {
-  private workflowRepository: Repository<Workflow>;
-  private workflowTriggerRepository: Repository<WorkflowTrigger>;
+export class WorkflowsService extends Service {
+  private conn: DataSource | null = null;
+  private repositories: Map<Newable<any>, Repository<any>> = new Map();
+
+  static dependencies() {
+    return [
+      TenantsService,
+      LogsService
+    ]
+  }
+
 
   constructor(
-    @inject(TENANT_DB_TOKEN) private conn: DataSource,
+    @inject(TenantsService) private tenantsService: TenantsService,
     @inject(LogsService) private logs: LogsService
-  ) {
-    this.workflowRepository = this.conn.getRepository(Workflow);
-    this.workflowTriggerRepository = this.conn.getRepository(WorkflowTrigger);
+  ) { super(); }
+
+
+  async getConnection(): Promise<DataSource> {
+    if (this.conn) return this.conn;
+    this.conn = await this.tenantsService.getContextualPlatformDBClient();
+    return this.conn;
+  }
+
+
+  async getRepository<T extends ObjectLiteral>(cls: Newable<T>): Promise<Repository<T>> {
+    if (this.repositories.has(cls)) {
+      return this.repositories.get(cls)!;
+    }
+    const conn = await this.getConnection();
+    const repository = conn.getRepository(cls);
+    this.repositories.set(cls, repository);
+    return repository! as any;
   }
 
   async saveWorkflow(data: SaveWorkflowInput): Promise<Workflow> {
+    const workflowRepository = await this.getRepository(Workflow);
     // Validate YAML format and schema
     if (!validateWorkflowYaml(data.yaml)) {
       await this.logs.error('Invalid workflow YAML', {
@@ -36,7 +61,7 @@ export class WorkflowsService {
 
     // Parse YAML to extract metadata
     const { workflow: parsedWorkflow, triggers } = yamlToWorkflow(data.yaml);
-    
+
 
     // Create workflow
     const workflow = new Workflow();
@@ -51,7 +76,7 @@ export class WorkflowsService {
     workflow.createdBy = data.createdBy;
 
     // Save workflow first
-    const savedWorkflow = await this.workflowRepository.save(workflow);
+    const savedWorkflow = await workflowRepository.save(workflow);
 
     await this.logs.info('Workflow created', {
       category: 'workflow',
@@ -70,7 +95,9 @@ export class WorkflowsService {
   }
 
   async updateWorkflow(workflowId: string, data: UpdateWorkflowInput): Promise<Workflow> {
-    const workflow = await this.workflowRepository.findOne({
+    const workflowRepository = await this.getRepository(Workflow);
+    const workflowTriggerRepository = await this.getRepository(WorkflowTrigger);
+    const workflow = await workflowRepository.findOne({
       where: { id: workflowId }
     });
 
@@ -88,9 +115,9 @@ export class WorkflowsService {
       await this.logs.error('Invalid workflow YAML in update', {
         category: 'workflow',
         source: 'WorkflowsService',
-        metadata: { 
+        metadata: {
           workflowId,
-          yaml: data.yaml 
+          yaml: data.yaml
         }
       });
       throw new Error('Invalid workflow YAML');
@@ -109,7 +136,7 @@ export class WorkflowsService {
     workflow.allowedUsers = parsedWorkflow.allowedUsers || [];
 
     // Save workflow
-    const savedWorkflow = await this.workflowRepository.save(workflow);
+    const savedWorkflow = await workflowRepository.save(workflow);
 
     await this.logs.info('Workflow updated', {
       category: 'workflow',
@@ -124,13 +151,14 @@ export class WorkflowsService {
     });
 
     // Delete existing triggers
-    await this.workflowTriggerRepository.delete({ workflowId });
+    await workflowTriggerRepository.delete({ workflowId });
 
     return savedWorkflow;
   }
 
   async loadWorkflow(workflowId: string): Promise<Workflow> {
-    const workflow = await this.workflowRepository.findOne({
+    const workflowRepository = await this.getRepository(Workflow);
+    const workflow = await workflowRepository.findOne({
       where: { id: workflowId },
     });
 
@@ -142,7 +170,8 @@ export class WorkflowsService {
   }
 
   async getWorkflowNodes(workflowId: string): Promise<(NodeData & { id: string })[]> {
-    const workflow = await this.workflowRepository.findOne({
+    const workflowRepository = await this.getRepository(Workflow);
+    const workflow = await workflowRepository.findOne({
       where: { id: workflowId }
     });
 
@@ -155,7 +184,9 @@ export class WorkflowsService {
   }
 
   async setWorkflowStatus(workflowId: string, status: 'draft' | 'active' | 'archived'): Promise<Workflow> {
-    const workflow = await this.workflowRepository.findOne({
+    const workflowRepository = await this.getRepository(Workflow);
+    const workflowTriggerRepository = await this.getRepository(WorkflowTrigger);
+    const workflow = await workflowRepository.findOne({
       where: { id: workflowId }
     });
 
@@ -173,7 +204,7 @@ export class WorkflowsService {
 
     // If workflow is archived, deactivate all triggers
     if (status === 'archived') {
-      await this.workflowTriggerRepository.update(
+      await workflowTriggerRepository.update(
         { workflowId },
         { status: 'inactive' }
       );
@@ -198,23 +229,26 @@ export class WorkflowsService {
       });
     }
 
-    return await this.workflowRepository.save(workflow);
+    return await workflowRepository.save(workflow);
   }
 
   async listWorkflows(): Promise<Workflow[]> {
-    return await this.workflowRepository.find({
+    const workflowRepository = await this.getRepository(Workflow);
+    return await workflowRepository.find({
     });
   }
 
   async getWorkflowTriggers(workflowId: string): Promise<WorkflowTrigger[]> {
-    return await this.workflowTriggerRepository.find({
+    const workflowTriggerRepository = await this.getRepository(WorkflowTrigger);
+    return await workflowTriggerRepository.find({
       where: { workflowId },
       relations: ['workflow']
     });
   }
 
   async setTriggerStatus(triggerId: string, status: 'active' | 'inactive'): Promise<WorkflowTrigger> {
-    const trigger = await this.workflowTriggerRepository.findOne({
+    const workflowTriggerRepository = await this.getRepository(WorkflowTrigger);
+    const trigger = await workflowTriggerRepository.findOne({
       where: { id: triggerId }
     });
 
@@ -223,10 +257,11 @@ export class WorkflowsService {
     }
 
     trigger.status = status;
-    return await this.workflowTriggerRepository.save(trigger);
+    return await workflowTriggerRepository.save(trigger);
   }
 
   async saveTrigger(data: SaveTriggerInput): Promise<WorkflowTrigger> {
+    const workflowTriggerRepository = await this.getRepository(WorkflowTrigger);
     const trigger = new WorkflowTrigger();
     trigger.id = uuid();
     trigger.workflowId = data.workflowId;
@@ -237,11 +272,12 @@ export class WorkflowsService {
     trigger.status = 'active';
     trigger.createdBy = data.createdBy;
 
-    return await this.workflowTriggerRepository.save(trigger);
+    return await workflowTriggerRepository.save(trigger);
   }
 
   async updateTrigger(triggerId: string, data: UpdateTriggerInput): Promise<WorkflowTrigger> {
-    const trigger = await this.workflowTriggerRepository.findOne({
+    const workflowTriggerRepository = await this.getRepository(WorkflowTrigger);
+    const trigger = await workflowTriggerRepository.findOne({
       where: { id: triggerId }
     });
 
@@ -255,11 +291,12 @@ export class WorkflowsService {
     trigger.config = JSON.stringify(data.config);
     trigger.status = data.status;
 
-    return await this.workflowTriggerRepository.save(trigger);
+    return await workflowTriggerRepository.save(trigger);
   }
 
   async deleteTrigger(triggerId: string): Promise<void> {
-    await this.workflowTriggerRepository.delete({ id: triggerId });
+    const workflowTriggerRepository = await this.getRepository(WorkflowTrigger);
+    await workflowTriggerRepository.delete({ id: triggerId });
   }
 }
 

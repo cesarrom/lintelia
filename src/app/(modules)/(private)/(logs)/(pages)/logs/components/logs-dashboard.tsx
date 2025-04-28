@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getLogsAnalytics, getTopUsers, getTopSources, getLogsTrend } from '../../../(actions)/actions';
 import { LogsFilter } from '@/lib/services/logs.service';
-import { Log } from '@/lib/entities/tenant/log.entity';
+import type { Log } from '@/lib/entities';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, Info, Bug, User, Clock, CheckCircle2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';

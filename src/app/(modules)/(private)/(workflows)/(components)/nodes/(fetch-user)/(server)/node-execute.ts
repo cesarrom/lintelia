@@ -1,9 +1,9 @@
 import { events, FetchUserNodeData, FetchUserNodeDataSchema } from "../types";
 import * as restate from "@restatedev/restate-sdk/fetch";
-import { WorkflowExecutionsService } from "@/lib/services";
+import { WorkflowExecutionsService } from "@/lib/services/workflow-executions.service";
 import { ExecuteNodeFunctionProps } from "@/app/(modules)/(private)/(workflows)/types";
 import { workflowInject } from "@/lib/injector/utils";
-import { UsersService } from "@/lib/services";
+import { UsersService } from "@/lib/services/users.service";
 
 export const fetchUserService = restate.object({
   name: "fetchUser",

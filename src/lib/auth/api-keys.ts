@@ -1,15 +1,18 @@
 'use server';
 
-import { getInjector } from "@/lib/injector/injector";
-import { TENANT_DB_TOKEN } from "@/lib/injector/tokens";
+import { Service } from "../services/service";
 import { createHash } from "crypto";
+import { container } from "tsyringe";
+import { TenantsService } from "../services/tenants.service";
 
 export async function verifyApiKey(apiKeyId: string, providedKey: string): Promise<boolean> {
   try {
-    const injector = await getInjector();
-    const platformDb = injector.resolve(TENANT_DB_TOKEN);
+    const injector = container.createChildContainer();
+    const [tenantsService] = Service.inject([TenantsService], () => injector);
+    const platformDb = await tenantsService.getContextualPlatformDBClient();
 
-    const apiKey = await platformDb.query.apiKeys.findFirst({
+
+    const apiKey = await platformDb.query('apiKeys').findFirst({
       where: (apiKeys, { eq }) => eq(apiKeys.id, apiKeyId),
       columns: {
         key: true,

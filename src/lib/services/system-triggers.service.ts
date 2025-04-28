@@ -1,108 +1,82 @@
 import { inject as i, injectable } from 'tsyringe';
-import { TENANT_DB_TOKEN, USER_TOKEN } from '../injector/tokens';
-import { DataSource, In, Repository } from 'typeorm';
-import { SystemTrigger } from '../entities/tenant/system-trigger.entity';
-import { LogsService } from './logs.service';
-import { Log, LogCategory } from '../entities/tenant/log.entity';
-import { type User } from '@/types/auth';
+import { DataSource, In, ObjectLiteral, Repository } from 'typeorm';
+import { SystemTrigger } from '../entities';
+import { Log } from '../entities';
 import Mustache from 'mustache';
-import { inject, optional } from '../injector/utils';
-import { TriggerDefinition } from '../triggers-utils';
+import { inject } from '../injector/utils';
 import { env } from '../constants';
 import { v4 as uuid } from 'uuid';
-import { Tenant } from '../entities/global';
-import { auth } from '../clients/auth.client';
 import { session } from '@descope/nextjs-sdk/server';
+import { TenantsService } from './tenants.service';
+import { Newable, Service } from './service';
+import { UsersService } from './users.service';
 @injectable()
-export class SystemTriggersService {
-  private repository: Repository<SystemTrigger>;
+export class SystemTriggersService extends Service {
+  private conn: DataSource | null = null;
+  private repositories: Map<Newable<any>, Repository<any>> = new Map();
 
-  constructor(
-    @i(TENANT_DB_TOKEN) private conn: DataSource,
-    @i(USER_TOKEN) private user: User,
-  ) {
-    this.repository = this.conn.getRepository(SystemTrigger);
+  static dependencies() {
+    return [
+      TenantsService,
+      UsersService,
+    ]
   }
 
-  findTriggerById(triggerId: string): Promise<SystemTrigger | null> {
-    return this.repository.findOne({ where: { id: triggerId } });
+  constructor(
+    @i(TenantsService) private tenantsService: TenantsService,
+    @i(UsersService) private usersService: UsersService,
+  ) { super(); }
+
+  async getConnection(): Promise<DataSource> {
+    if (this.conn) return this.conn;
+    this.conn = await this.tenantsService.getContextualPlatformDBClient();
+    return this.conn;
+  }
+
+
+  async getRepository<T extends ObjectLiteral>(cls: Newable<T>): Promise<Repository<T>> {
+    if (this.repositories.has(cls)) {
+      return this.repositories.get(cls)!;
+    }
+    const conn = await this.getConnection();
+    const repository = conn.getRepository(cls);
+    this.repositories.set(cls, repository);
+    return repository! as any;
+  }
+
+  async findTriggerById(triggerId: string): Promise<SystemTrigger | null> {
+    const repository = await this.getRepository(SystemTrigger);
+    return repository.findOne({ where: { id: triggerId } });
   }
 
   async deleteTriggerById(triggerId: string): Promise<void> {
-    await this.repository.delete({ id: triggerId });
+    const repository = await this.getRepository(SystemTrigger);
+    await repository.delete({ id: triggerId });
   }
 
   async replaceTrigger(triggerId: string, trigger: SystemTrigger): Promise<SystemTrigger> {
-    return this.conn.transaction(async (em) => {
+    const conn = await this.getConnection();
+    return conn.transaction(async (em) => {
       await em.delete(SystemTrigger, { id: triggerId });
       trigger.id = triggerId;
       return await em.save(trigger);
     });
   }
 
-  swapTriggersForWorkflow(oldTriggerIds: string[], newTriggers: SystemTrigger[]) {
-    return this.conn.transaction(async (em) => {
+  async swapTriggersForWorkflow(oldTriggerIds: string[], newTriggers: SystemTrigger[]) {
+    const conn = await this.getConnection();
+    return conn.transaction(async (em) => {
       await em.delete(SystemTrigger, { id: In(oldTriggerIds) });
       return await em.save(newTriggers);
     });
   }
 
   /**
-   * Static method to wrap a function with logging
-   */
-  static withLogging<T extends any[], R extends unknown>(category: LogCategory, eventName: string, handler: (...args: T) => Promise<R>): (...args: T) => Promise<R> {
-    return inject(
-      [LogsService],
-      async ({ user }, [logsService], ...args: T): Promise<R> => {
-        // Log start
-        await logsService.create({
-          message: `Event handler started: ${category} :: ${eventName}`,
-          category,
-          level: 'info',
-          metadata: {
-            eventName,
-            triggeredBy: user?.userId || 'system',
-          }
-        });
-
-        try {
-          const r: R = await handler(...args);
-
-          // Log success
-          await logsService.create({
-            message: `Event handler completed: ${category} :: ${eventName}`,
-            category,
-            level: 'info',
-            metadata: {
-              eventName,
-              triggeredBy: user?.userId || 'system',
-            }
-          });
-
-          return r;
-        } catch (error) {
-          // Log error
-          await logsService.create({
-            message: `Event handler failed: ${category} :: ${eventName}`,
-            category,
-            level: 'error',
-            metadata: {
-              eventName,
-              error: error instanceof Error ? error.message : String(error),
-              triggeredBy: user?.userId || 'system',
-            }
-          });
-
-          throw error;
-        }
-      });
-  }
-
-  /**
    * Find matching triggers for a log using PostgreSQL pattern matching and JSONB operations
    */
   async findMatchingTriggers(log: Log): Promise<SystemTrigger[]> {
-    const queryBuilder = this.repository.createQueryBuilder('trigger')
+    const repository = await this.getRepository(SystemTrigger);
+    const queryBuilder = repository.createQueryBuilder('trigger')
       .where('trigger.is_active = :isActive', { isActive: true });
 
     // Add pattern matching conditions
@@ -186,7 +160,7 @@ export class SystemTriggersService {
     [],
     async ({ tenant }, [], trigger: SystemTrigger, inputs: Record<string, unknown>): Promise<void> => {
       const executionId = uuid();
-      const token = session();
+      const token = await session();
 
       if (trigger.action.type === 'INVOKE') {
         await fetch(`${env.RESTATE_ENDPOINT}/workflow/${executionId}/trigger`, {
@@ -212,6 +186,7 @@ export class SystemTriggersService {
             result: inputs,
             token: token?.jwt,
             domain: tenant?.domain,
+            workflowId: trigger.workflowId,
           }),
         });
       } else {
@@ -222,14 +197,17 @@ export class SystemTriggersService {
 
   // Service methods now accept TriggerDefinition
   async createTrigger(definition: SystemTrigger): Promise<SystemTrigger> {
-    return await this.repository.save({
+    const user = await this.usersService.getSessionUser();
+    const repository = await this.getRepository(SystemTrigger);
+    return await repository.save({
       ...definition,
-      createdBy: this.user.userId || 'system',
+      createdBy: user?.userId || 'system',
     });
   }
 
   async putTrigger(id: string, definition: SystemTrigger) {
-    const exists = await this.repository.findOne({
+    const repository = await this.getRepository(SystemTrigger);
+    const exists = await repository.findOne({
       where: { id },
     });
 
@@ -241,7 +219,8 @@ export class SystemTriggersService {
   }
 
   async getAllByWorkflowId(workflowId: string): Promise<SystemTrigger[]> {
-    return await this.repository.createQueryBuilder('system_trigger')
+    const repository = await this.getRepository(SystemTrigger);
+    return await repository.createQueryBuilder('system_trigger')
       .where("action->>'workflowId' = :workflowId", { workflowId })
       .getMany();
   }

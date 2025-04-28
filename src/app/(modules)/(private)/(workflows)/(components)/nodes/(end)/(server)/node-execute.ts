@@ -8,7 +8,7 @@ export const endService = restate.object({
   handlers: {
     executeNode: workflowInject(
       [WorkflowExecutionsService],
-      async ({}, [workflowExecutionsService], c: restate.ObjectContext, { executionId, nodeData, yaml, domain, token, result: r }: ExecuteNodeFunctionProps) => {
+      async ({}, [workflowExecutionsService], c: restate.ObjectContext, { executionId, nodeData, workflowId, domain, token, result: r }: ExecuteNodeFunctionProps) => {
         const eventName = nodeData?.exports?.[0]?.event || 'done';
         // Emit the public URL event first
         return workflowExecutionsService.nextOrEndExecution({
@@ -17,7 +17,7 @@ export const endService = restate.object({
           executionId,
           localResult: {},
           globalResult: r,
-          yaml,
+          workflowId,
           domain,
           token
         });

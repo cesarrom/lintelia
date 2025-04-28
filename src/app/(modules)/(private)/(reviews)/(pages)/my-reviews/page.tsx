@@ -14,10 +14,10 @@ import {
   Eye
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { getAssignedReviews } from '../../../(actions)/actions';
 import { useAuth } from '@/lib/auth/AuthContext';
 import ViewReviewDialog from '../reviews/components/view-review-dialog';
-import { Review } from '@/lib/entities/tenant/review.entity';
+import type { Review } from '@/lib/entities';
+import { getAssignedReviews } from '../../(actions)/actions';
 
 export default function MyReviewsPage() {
   const router = useRouter();
@@ -60,11 +60,11 @@ export default function MyReviewsPage() {
       case 'in_progress':
         return <Badge variant="secondary" className="flex items-center gap-1"><AlertCircle className="h-3 w-3" /> In Progress</Badge>;
       case 'approved':
-        return <Badge variant="success" className="bg-green-500 hover:bg-green-600 flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Approved</Badge>;
+        return <Badge className="bg-green-500 hover:bg-green-600 flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Approved</Badge>;
       case 'rejected':
         return <Badge variant="destructive" className="flex items-center gap-1"><XCircle className="h-3 w-3" /> Rejected</Badge>;
       case 'additional_data_requested':
-        return <Badge variant="warning" className="bg-yellow-500 hover:bg-yellow-600 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> Data Requested</Badge>;
+        return <Badge className="bg-yellow-500 hover:bg-yellow-600 flex items-center gap-1"><AlertCircle className="h-3 w-3" /> Data Requested</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }

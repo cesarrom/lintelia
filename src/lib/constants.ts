@@ -56,3 +56,5 @@ export const env = {
   OPENAI_API_KEY: e.get('OPENAI_API_KEY').default(Resource.Parameters.openaiApiKey).required().asString(),
   RESTATE_ENDPOINT: e.get('RESTATE_ENDPOINT').default(Resource.Parameters.restateEndpoint).required().asString(),
 };
+
+export type AppEnvironment = typeof env;

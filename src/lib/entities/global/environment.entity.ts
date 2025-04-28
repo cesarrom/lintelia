@@ -1,10 +1,21 @@
-import { Entity, Column, PrimaryColumn } from 'typeorm';
+import {
+  DataTypes,
+  Model,
+  InferAttributes,
+  InferCreationAttributes,
+} from '@sequelize/core';
+import { Attribute, PrimaryKey, NotNull, Table } from '@sequelize/core/decorators-legacy';
 
-@Entity('environments')
-export class Environment {
-  @PrimaryColumn({ length: 255 })
-  name!: string;
+@Table({
+  tableName: 'environments'
+})
+export class Environment extends Model<InferAttributes<Environment>, InferCreationAttributes<Environment>> {
+  @PrimaryKey
+  @NotNull
+  @Attribute(DataTypes.STRING(255))
+  declare name: string;
 
-  @Column({ name: 'distribution_arn' })
-  distributionArn!: string;
-} 
+  @NotNull
+  @Attribute(DataTypes.STRING)
+  declare distributionArn: string;
+}

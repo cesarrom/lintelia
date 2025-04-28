@@ -4,10 +4,7 @@ import * as faceapi from 'face-api.js'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useDebounce } from 'use-debounce';
-import { motion } from 'framer-motion'
 import { useParams } from 'next/navigation'
-
-export const Feature = 'Proof of Life';
 
 const instructions = [
   { text: "Look straight at the camera", action: "neutral" },

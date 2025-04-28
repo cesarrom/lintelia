@@ -1,8 +1,9 @@
 import { inject, injectable } from "tsyringe";
-import { DataSource, Repository } from "typeorm";
-import { TENANT_DB_TOKEN } from "../injector/tokens";
-import { SystemVariable, SystemVariableType } from "../entities/tenant/system-variable.entity";
+import { DataSource, ObjectLiteral, Repository } from "typeorm";
+import { SystemVariable, SystemVariableType } from "../entities";
 import { LogsService } from "./logs.service";
+import { Newable, Service } from "./service";
+import { TenantsService } from "./tenants.service";
 
 export interface CreateSystemVariableInput {
   name: string;
@@ -20,17 +21,42 @@ export interface UpdateSystemVariableInput {
 }
 
 @injectable()
-export class SystemVariablesService {
-  private repository: Repository<SystemVariable>;
+export class SystemVariablesService extends Service {
+  private conn: DataSource | null = null;
+  private repositories: Map<Newable<any>, Repository<any>> = new Map();
+
+  static dependencies() {
+    return [
+      TenantsService,
+      LogsService
+    ]
+  }
 
   constructor(
-    @inject(TENANT_DB_TOKEN) private conn: DataSource,
+    @inject(TenantsService) private tenantsService: TenantsService,
     @inject(LogsService) private logs: LogsService
-  ) {
-    this.repository = this.conn.getRepository(SystemVariable);
+  ) { super(); }
+
+
+  async getConnection(): Promise<DataSource> {
+    if (this.conn) return this.conn;
+    this.conn = await this.tenantsService.getContextualPlatformDBClient();
+    return this.conn;
+  }
+
+
+  async getRepository<T extends ObjectLiteral>(cls: Newable<T>): Promise<Repository<T>> {
+    if (this.repositories.has(cls)) {
+      return this.repositories.get(cls)!;
+    }
+    const conn = await this.getConnection();
+    const repository = conn.getRepository(cls);
+    this.repositories.set(cls, repository);
+    return repository! as any;
   }
 
   async create(data: CreateSystemVariableInput): Promise<SystemVariable> {
+    const repository = await this.getRepository(SystemVariable);
     try {
       await this.logs.info('Creating system variable', {
         category: 'system',
@@ -45,8 +71,8 @@ export class SystemVariablesService {
       // Validate value type matches declared type
       this.validateValue(data.type, data.value);
 
-      const variable = this.repository.create(data);
-      const savedVariable = await this.repository.save(variable);
+      const variable = repository.create(data);
+      const savedVariable = await repository.save(variable);
 
       await this.logs.info('System variable created successfully', {
         category: 'system',
@@ -74,8 +100,9 @@ export class SystemVariablesService {
   }
 
   async update(id: string, data: UpdateSystemVariableInput): Promise<SystemVariable> {
+    const repository = await this.getRepository(SystemVariable);
     try {
-      const variable = await this.repository.findOneBy({ id });
+      const variable = await repository.findOneBy({ id });
       if (!variable) {
         await this.logs.error('System variable not found for update', {
           category: 'system',
@@ -101,7 +128,7 @@ export class SystemVariablesService {
       }
 
       Object.assign(variable, data);
-      const savedVariable = await this.repository.save(variable);
+      const savedVariable = await repository.save(variable);
 
       await this.logs.info('System variable updated successfully', {
         category: 'system',
@@ -128,8 +155,9 @@ export class SystemVariablesService {
   }
 
   async delete(id: string): Promise<boolean> {
+    const repository = await this.getRepository(SystemVariable);
     try {
-      const variable = await this.repository.findOneBy({ id });
+      const variable = await repository.findOneBy({ id });
       if (!variable) {
         await this.logs.warning('System variable not found for deletion', {
           category: 'system',
@@ -149,7 +177,7 @@ export class SystemVariablesService {
         }
       });
 
-      const result = await this.repository.delete({ id });
+      const result = await repository.delete({ id });
       const success = result.affected ? result.affected > 0 : false;
 
       if (success) {
@@ -178,9 +206,10 @@ export class SystemVariablesService {
   }
 
   async getById(id: string): Promise<SystemVariable | null> {
+    const repository = await this.getRepository(SystemVariable);
     try {
-      const variable = await this.repository.findOneBy({ id });
-      
+      const variable = await repository.findOneBy({ id });
+
       if (variable) {
         await this.logs.debug('System variable retrieved', {
           category: 'system',
@@ -214,9 +243,10 @@ export class SystemVariablesService {
   }
 
   async getByName(name: string): Promise<SystemVariable | null> {
+    const repository = await this.getRepository(SystemVariable);
     try {
-      const variable = await this.repository.findOneBy({ name });
-      
+      const variable = await repository.findOneBy({ name });
+
       if (variable) {
         await this.logs.debug('System variable retrieved by name', {
           category: 'system',
@@ -250,8 +280,9 @@ export class SystemVariablesService {
   }
 
   async list(): Promise<SystemVariable[]> {
+    const repository = await this.getRepository(SystemVariable);
     try {
-      const variables = await this.repository.find({
+      const variables = await repository.find({
         order: {
           name: 'ASC'
         }

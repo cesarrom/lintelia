@@ -1,9 +1,9 @@
 'use server';
 
-import { getInjector } from "@/lib/injector";
-import { session } from "@descope/nextjs-sdk/server";
-import { auth } from "@/lib/clients/auth.client";
-import { getTenant } from "@/app/(modules)/(private)/(profile)/(pages)/settings/actions";
+import { Service } from "../services/service";
+import { container } from "tsyringe";
+import { TenantsService } from "../services/tenants.service";
+import { UsersService } from "../services/users.service";
 
 const promiseResultOrNull = <T>(promise: Promise<T>): Promise<T | null> => promise.catch((e) => {
   console.error(e);
@@ -11,16 +11,19 @@ const promiseResultOrNull = <T>(promise: Promise<T>): Promise<T | null> => promi
 });
 
 export const getUser = async (id?: string) => {
-  const s = session();
-  const user = await auth.management.user.loadByUserId(id || s?.token?.sub || '');
+  const injector = container.createChildContainer();
+  const [usersService] = Service.inject([UsersService], () => injector);
+  const user = await promiseResultOrNull(usersService.getSessionUser());
 
-  return user?.data || null;
+  return user;
 }
 
 export const getContextualInjector = async (domain?: string) => {
-  const tenant = await promiseResultOrNull(getTenant(domain));
-  const injector = await getInjector(tenant?.domain);
-  const user = await promiseResultOrNull(getUser());
+  const injector = container.createChildContainer();
+  const [tenantsService] = Service.inject([TenantsService], () => injector);
+  const [usersService] = Service.inject([UsersService], () => injector);
+  const user = await promiseResultOrNull(usersService.getSessionUser());
+  const tenant = await promiseResultOrNull(domain ? tenantsService.getByDomain(domain) : tenantsService.getContextualTenant());
 
   return {
     tenant,

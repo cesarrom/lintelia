@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { FormInstance } from '@/lib/entities/tenant';
+import type { FormInstance } from '@/lib/entities';
 import { ClipboardList } from 'lucide-react';
 import CreateReviewDialog from './create-review-dialog';
 import { FormViewer } from '../../../../(components)/form-builder';
@@ -58,7 +58,7 @@ export default function ViewFormAnswersDialog({
                 </div>
                 <FormViewer
                   config={instance.form.config}
-                  answers={answer}
+                  initialValues={answer}
                   readOnly
                 />
               </div>

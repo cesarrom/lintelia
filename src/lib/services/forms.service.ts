@@ -1,36 +1,53 @@
 import { injectable, inject } from "tsyringe";
-import { Form } from "../entities/tenant/form.entity";
-import { FormInstance } from "../entities/tenant/form-instance.entity";
-import { DataSource, Repository } from "typeorm";
-import { TENANT_DB_TOKEN, USER_TOKEN } from "../injector/tokens";
+import { Form } from "../entities";
+import { FormInstance } from "../entities";
+import { DataSource, ObjectLiteral, Repository } from "typeorm";
 import { v4 as uuid } from 'uuid';
 import { FormConfig } from "@/app/(modules)/(private)/(forms)/(components)/form-builder/schemas";
 import { LogsService } from './logs.service';
-import { FormAnswer } from "../entities/tenant";
-import { User } from "@/types/auth";
+import { FormAnswer } from "../entities";
+import { TenantsService } from "./tenants.service";
+import { Newable, Service } from "./service";
+import { UsersService } from "./users.service";
 
 @injectable()
-export class FormsService {
-  private formRepository: Repository<Form>;
-  private formInstanceRepository: Repository<FormInstance>;
-  private formAnswersRepository: Repository<FormAnswer>;
+export class FormsService extends Service {
+  private conn: DataSource | null = null;
+  private repositories: Map<Newable<any>, Repository<any>> = new Map();
+
+  static dependencies() {
+    return [
+      UsersService,
+      LogsService,
+      TenantsService
+    ]
+  }
 
   constructor(
-    @inject(TENANT_DB_TOKEN) private conn: DataSource,
-    @inject(USER_TOKEN) private user: User | null,
-    @inject(LogsService) private logs: LogsService
+    @inject(UsersService) private usersService: UsersService,
+    @inject(LogsService) private logs: LogsService,
+    @inject(TenantsService) private tenantsService: TenantsService
   ) {
-    this.formRepository = this.conn.getRepository(Form);
-    this.formInstanceRepository = this.conn.getRepository(FormInstance);
-    this.formAnswersRepository = this.conn.getRepository(FormAnswer);
+    super();
+  }
+
+  async getRepository<T extends ObjectLiteral>(cls: Newable<T>): Promise<Repository<T>> {
+    if (this.repositories.has(cls)) {
+      return this.repositories.get(cls)!;
+    }
+    const conn = this.conn || (await this.tenantsService.getContextualPlatformDBClient());
+    const repository = conn.getRepository(cls);
+    this.repositories.set(cls, repository);
+    return repository!;
   }
 
   async createFormWithAnswers(data: CreateFormInput, answers: CreateFormAnswersInput['answers']) {
+    const user = await this.usersService.getSessionUser();
     const form = await this.create(data);
     const instance = await this.createInstance({
       formId: form.id,
       variables: {},
-      submittedBy: this.user?.userId || 'system'
+      submittedBy: user?.userId || 'system'
     });
     const answer = await this.createAnswers({
       instanceId: instance.id,
@@ -42,6 +59,7 @@ export class FormsService {
   }
 
   async create(data: CreateFormInput): Promise<Form> {
+    const formRepository = await this.getRepository(Form);
     const form = new Form();
     form.id = uuid();
     form.name = data.name;
@@ -60,7 +78,7 @@ export class FormsService {
       }
     });
 
-    const savedForm = await this.formRepository.save(form);
+    const savedForm = await formRepository.save(form);
 
     await this.logs.info('Form created', {
       category: 'form',
@@ -76,17 +94,20 @@ export class FormsService {
   }
 
   async createAnswers(data: CreateFormAnswersInput): Promise<FormAnswer> {
+    const formAnswerRepository = await this.getRepository(FormAnswer);
+    const user = await this.usersService.getSessionUser();
     const formAnswer = new FormAnswer();
     formAnswer.id = uuid();
     formAnswer.formInstanceId = data.instanceId;
     formAnswer.fieldId = data.formId;
     formAnswer.value = data.answers;
-    formAnswer.createdBy = this.user?.userId || 'system';
-    return await this.formAnswersRepository.save(formAnswer);
+    formAnswer.createdBy = user?.userId || 'system';
+    return await formAnswerRepository.save(formAnswer);
   }
 
   async update(id: string, data: UpdateFormInput): Promise<Form> {
-    const form = await this.formRepository.findOne({
+    const formRepository = await this.getRepository(Form);
+    const form = await formRepository.findOne({
       where: { id }
     });
 
@@ -114,7 +135,7 @@ export class FormsService {
       }
     });
 
-    const updatedForm = await this.formRepository.save(form);
+    const updatedForm = await formRepository.save(form);
 
     await this.logs.info('Form updated', {
       category: 'form',
@@ -130,7 +151,8 @@ export class FormsService {
   }
 
   async delete(id: string): Promise<Form> {
-    const form = await this.formRepository.findOne({
+    const formRepository = await this.getRepository(Form);
+    const form = await formRepository.findOne({
       where: { id }
     });
 
@@ -152,7 +174,7 @@ export class FormsService {
       }
     });
 
-    const deletedForm = await this.formRepository.remove(form);
+    const deletedForm = await formRepository.remove(form);
 
     await this.logs.info('Form deleted', {
       category: 'form',
@@ -167,14 +189,16 @@ export class FormsService {
   }
 
   async getById(id: string): Promise<Form | null> {
-    return await this.formRepository.findOne({
+    const formRepository = await this.getRepository(Form);
+    return await formRepository.findOne({
       where: { id },
     });
   }
 
   async list(search?: string): Promise<Form[]> {
     try {
-      const queryBuilder = this.formRepository.createQueryBuilder('form');
+      const formRepository = await this.getRepository(Form);
+      const queryBuilder = formRepository.createQueryBuilder('form');
 
       if (search) {
         queryBuilder.where(
@@ -203,7 +227,9 @@ export class FormsService {
   }
 
   async createInstance(data: CreateFormInstanceInput): Promise<FormInstance> {
-    const form = await this.formRepository.findOne({
+    const formRepository = await this.getRepository(Form);
+    const formInstanceRepository = await this.getRepository(FormInstance);
+    const form = await formRepository.findOne({
       where: { id: data.formId }
     });
 
@@ -237,7 +263,7 @@ export class FormsService {
       }
     });
 
-    const savedInstance = await this.formInstanceRepository.save(instance);
+    const savedInstance = await formInstanceRepository.save(instance);
 
     await this.logs.info('Form instance created', {
       category: 'form',
@@ -254,13 +280,22 @@ export class FormsService {
   }
 
   async getInstance(id: string): Promise<FormInstance | null> {
-    return await this.formInstanceRepository.findOne({
+    const formInstanceRepository = await this.getRepository(FormInstance);
+    return await formInstanceRepository.findOne({
+      where: { id },
+    });
+  }
+
+  async getAnswer(id: string): Promise<FormAnswer | null> {
+    const formAnswerRepository = await this.getRepository(FormAnswer);
+    return await formAnswerRepository.findOne({
       where: { id },
     });
   }
 
   async updateInstance(id: string, data: UpdateFormInstanceInput): Promise<FormInstance> {
-    const instance = await this.formInstanceRepository.findOne({
+    const formInstanceRepository = await this.getRepository(FormInstance);
+    const instance = await formInstanceRepository.findOne({
       where: { id },
     });
 
@@ -287,12 +322,13 @@ export class FormsService {
       }
     });
 
-    return await this.formInstanceRepository.save(instance);
+    return await formInstanceRepository.save(instance);
   }
 
   async listInstances(formId: string): Promise<FormInstance[]> {
     try {
-      const instances = await this.formInstanceRepository.find({
+      const formInstanceRepository = await this.getRepository(FormInstance);
+      const instances = await formInstanceRepository.find({
         where: { formId },
         order: { createdAt: 'DESC' }
       });

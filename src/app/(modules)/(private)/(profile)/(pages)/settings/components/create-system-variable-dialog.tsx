@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { SystemVariableType } from '@/lib/entities/tenant/system-variable.entity';
+import { SystemVariableType } from '@/lib/entities';
 import { createSystemVariable } from '../actions';
 import { useRouter } from 'next/navigation';
 import { 
@@ -72,7 +72,7 @@ export default function CreateSystemVariableDialog({
         default:
           throw new Error('Invalid type');
       }
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Invalid value for type ${type}: ${error.message}`);
     }
   };
@@ -101,7 +101,7 @@ export default function CreateSystemVariableDialog({
       setValue('');
       setIsProtected(false);
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create variable:', error);
       setError(error.message);
     } finally {
@@ -144,9 +144,9 @@ export default function CreateSystemVariableDialog({
             <div className="grid gap-2">
               <Label htmlFor="type">Type</Label>
               <Select
-                value={type}
-                onValueChange={(value: SystemVariableType) => {
-                  setType(value);
+                value={String(type)}
+                onValueChange={(value: string) => {
+                  setType(value as SystemVariableType);
                   setValue('');
                 }}
               >
@@ -155,7 +155,7 @@ export default function CreateSystemVariableDialog({
                 </SelectTrigger>
                 <SelectContent>
                   {VARIABLE_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
+                    <SelectItem key={String(type.value)} value={String(type.value)}>
                       {type.label}
                     </SelectItem>
                   ))}

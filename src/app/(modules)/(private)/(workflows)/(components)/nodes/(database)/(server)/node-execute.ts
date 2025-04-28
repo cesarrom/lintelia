@@ -1,21 +1,23 @@
 import { events, DatabaseNodeDataSchema, DatabaseNodeData } from "../types";
 import * as restate from "@restatedev/restate-sdk/fetch";
-import { DataSource, TableColumn } from "typeorm";
-import { TENANT_DB_TOKEN } from "@/lib/injector/tokens";
+import { TableColumn } from "typeorm";
 import { DatabaseService as DBService } from "@/lib/services/database.service";
 import { ExecuteNodeFunctionProps } from "@/app/(modules)/(private)/(workflows)/types";
-import { token, workflowInject } from "@/lib/injector/utils";
+import { workflowInject } from "@/lib/injector/utils";
 import { WorkflowExecutionsService } from "@/lib/services/workflow-executions.service";
+import { TenantsService } from "@/lib/services/tenants.service";
 
 export const databaseService = restate.object({
   name: "database",
   handlers: {
     executeNode: workflowInject(
-      [DBService, token<DataSource>(TENANT_DB_TOKEN), WorkflowExecutionsService],
-      async ({  }, [dbService, db, workflowExecutionsService], c: restate.ObjectContext, { executionId, nodeData, yaml, domain, token, result: r }: ExecuteNodeFunctionProps) => {
+      [DBService, TenantsService, WorkflowExecutionsService],
+      async ({  }, [dbService, tenantsService, workflowExecutionsService], c: restate.ObjectContext, { executionId, nodeData, workflowId, domain, token, result: r }: ExecuteNodeFunctionProps) => {
         const config = await c.run('validate-config', async () => {
           return DatabaseNodeDataSchema.parse(nodeData.config || {});
         });
+
+        const db = await tenantsService.getContextualPlatformDBClient();
 
         const variables = workflowExecutionsService.getConfiguration(config, r) as DatabaseNodeData;
 
@@ -98,7 +100,7 @@ export const databaseService = restate.object({
             throw new Error(`Unsupported operation: ${(variables as Record<string, unknown>).operation}`);
         }
 
-        return workflowExecutionsService.nextOrEndExecution({ nodeData, event: eventName, executionId, localResult: (result || {}) as Record<string, unknown>, globalResult: r, yaml, domain, token });
+        return workflowExecutionsService.nextOrEndExecution({ nodeData, event: eventName, executionId, localResult: (result || {}) as Record<string, unknown>, globalResult: r, workflowId, domain, token });
       }
     ),
   },

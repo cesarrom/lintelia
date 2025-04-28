@@ -1,5 +1,5 @@
 import { get, set } from 'lodash';
-import { Log, LogCategory, LogCategorySchema } from './entities/tenant/log.entity';
+import { Log, LogCategory, LogCategorySchema } from './entities';
 import { v4 as uuid } from 'uuid';
 import { z } from 'zod';
 

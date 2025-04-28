@@ -1,13 +1,22 @@
 import { injectable, inject, singleton } from "tsyringe";
-import { TENANT_TOKEN } from "../injector/tokens";
-import { Tenant } from "../entities/global";
+import { TenantsService } from "./tenants.service";
+import { Service } from "./service";
 
 @injectable()
 @singleton()
-export class EventsService {
-  constructor(@inject(TENANT_TOKEN) private _tenant: Tenant) { }
+export class EventsService extends Service {
+  static dependencies() {
+    return [
+      TenantsService
+    ]
+  }
+
+  constructor(@inject(TenantsService) private _tenantService: TenantsService) {
+    super();
+  }
 
   async logEvent(eventName: string, payload: Record<string, unknown>) {
+    const domain = await this._tenantService.getCachedDomainFromTenant();
     try {
       await fetch('/api/workflows/events', {
         method: 'POST',
@@ -16,14 +25,14 @@ export class EventsService {
         },
         body: JSON.stringify({
           type: 'event',
-          domain: this._tenant.domain,
+          domain,
           eventName,
           payload,
           createdAt: Date.now()
         })
       });
 
-      console.log(`Event ${eventName} logged successfully for domain ${this._tenant.domain}`);
+      console.log(`Event ${eventName} logged successfully for domain ${domain}`);
     } catch (error) {
       console.error('Failed to log event:', error);
     }

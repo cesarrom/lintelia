@@ -1,107 +1,54 @@
-import { MigrationInterface, QueryRunner, Table } from "typeorm";
+import { MigrationFn } from 'umzug';
+import { AbstractQueryInterface } from '@sequelize/core';
 
-export class CreateLogsTable1719170100000 implements MigrationInterface {
-    name = 'CreateLogsTable1719170100000';
-    public async up(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.createTable(
-            new Table({
-                name: "sys_logs",
-                columns: [
-                    {
-                        name: "id",
-                        type: "uuid",
-                        isPrimary: true,
-                        isGenerated: true,
-                        generationStrategy: "uuid"
-                    },
-                    {
-                        name: "message",
-                        type: "varchar",
-                        length: "255"
-                    },
-                    {
-                        name: "details",
-                        type: "text",
-                        isNullable: true
-                    },
-                    {
-                        name: "level",
-                        type: "enum",
-                        enum: ["info", "warning", "error", "debug"],
-                        default: "'info'"
-                    },
-                    {
-                        name: "category",
-                        type: "enum",
-                        enum: ["system", "workflow", "user", "form", "security", "integration"],
-                        default: "'system'"
-                    },
-                    {
-                        name: "source",
-                        type: "varchar",
-                        length: "255",
-                        isNullable: true
-                    },
-                    {
-                        name: "user_id",
-                        type: "varchar",
-                        length: "255",
-                        isNullable: true
-                    },
-                    {
-                        name: "metadata",
-                        type: "jsonb",
-                        isNullable: true
-                    },
-                    {
-                        name: "acknowledged",
-                        type: "boolean",
-                        default: false
-                    },
-                    {
-                        name: "acknowledged_by",
-                        type: "varchar",
-                        length: "255",
-                        isNullable: true
-                    },
-                    {
-                        name: "acknowledged_at",
-                        type: "timestamp",
-                        isNullable: true
-                    },
-                    {
-                        name: "created_at",
-                        type: "timestamp",
-                        default: "now()"
-                    },
-                    {
-                        name: "updated_at",
-                        type: "timestamp",
-                        default: "now()"
-                    }
-                ]
-            }),
-            true
-        );
+export const name = 'CreateLogsTable1719170100000';
 
-        // Create indexes for better performance
-        await queryRunner.createIndex("sys_logs", {
-            name: "IDX_logs_created_at",
-            columnNames: ["created_at"]
-        });
+// Define ENUM type names
+const enumLevelName = 'log_level';
+const enumCategoryName = 'log_category';
 
-        await queryRunner.createIndex("sys_logs", {
-            name: "IDX_logs_level",
-            columnNames: ["level"]
-        });
+export const up: MigrationFn<AbstractQueryInterface> = async ({ context: queryInterface }) => {
+    // Create ENUM types first
+    await queryInterface.sequelize.query(`
+        CREATE TYPE ${enumLevelName} AS ENUM ('info', 'warning', 'error', 'debug');
+    `);
+    await queryInterface.sequelize.query(`
+        CREATE TYPE ${enumCategoryName} AS ENUM ('system', 'workflow', 'user', 'form', 'security', 'integration');
+    `);
 
-        await queryRunner.createIndex("sys_logs", {
-            name: "IDX_logs_category",
-            columnNames: ["category"]
-        });
-    }
+    // Create table using the ENUM types
+    await queryInterface.sequelize.query(`
+        CREATE TABLE "sys_logs" (
+            "id" uuid PRIMARY KEY NOT NULL, 
+            "message" varchar(255) NOT NULL,
+            "details" text,
+            "level" ${enumLevelName} NOT NULL DEFAULT 'info',
+            "category" ${enumCategoryName} NOT NULL DEFAULT 'system',
+            "source" varchar(255),
+            "user_id" varchar(255),
+            "metadata" jsonb,
+            "acknowledged" boolean NOT NULL DEFAULT false,
+            "acknowledged_by" varchar(255),
+            "acknowledged_at" TIMESTAMP,
+            "created_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updated_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.dropTable("sys_logs");
-    }
-} 
+    // Create indexes
+    await queryInterface.sequelize.query(`
+        CREATE INDEX "IDX_logs_created_at" ON "sys_logs" ("created_at")
+    `);
+    await queryInterface.sequelize.query(`
+        CREATE INDEX "IDX_logs_level" ON "sys_logs" ("level")
+    `);
+    await queryInterface.sequelize.query(`
+        CREATE INDEX "IDX_logs_category" ON "sys_logs" ("category")
+    `);
+};
+
+export const down: MigrationFn<AbstractQueryInterface> = async ({ context: queryInterface }) => {
+    await queryInterface.sequelize.query(`DROP TABLE IF EXISTS "sys_logs"`);
+    await queryInterface.sequelize.query(`DROP TYPE IF EXISTS ${enumLevelName}`);
+    await queryInterface.sequelize.query(`DROP TYPE IF EXISTS ${enumCategoryName}`);
+};

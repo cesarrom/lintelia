@@ -1,6 +1,7 @@
 import { injectable, singleton } from 'tsyringe';
 import { Resource } from 'sst';
 import { env } from '../constants';
+import '../entities';
 import * as globalEntities from '../entities/global';
 import * as tenantEntities from '../entities/tenant';
 import * as globalMigrations from '../../migrations/global';
@@ -8,14 +9,16 @@ import * as tenantMigrations from '../../migrations/tenant';
 import { DataSource, DataSourceOptions, Table, TableColumn } from 'typeorm';
 import { branchId, endpoint, neon, projectId } from '../clients/neon.client';
 import { wait } from '../utils';
+import { Service } from './service';
+import { Sequelize } from '@sequelize/core';
+import { PostgresDialect } from '@sequelize/postgres';
+import { Umzug, SequelizeStorage } from 'umzug';
 
 @injectable()
 @singleton()
-export class DatabaseService {
-  private static globalConnection: DataSource | null = null;
-  private tenantConnections: Map<string, DataSource> = new Map();
-
-  constructor() { }
+export class DatabaseService extends Service {
+  private static globalConnection: Sequelize | null = null;
+  private tenantConnections: Map<string, Sequelize> = new Map();
 
   static getGlobalConfig(): DataSourceOptions {
     const dbUrl = new URL(env.DATABASE_CORE_URL);
@@ -44,7 +47,7 @@ export class DatabaseService {
     return {
       type: 'postgres',
       url: dbUrl.toString(),
-      entities: Object.values(tenantEntities),
+      models: Object.values(tenantEntities),
       migrations: Object.values(tenantMigrations),
       migrationsTableName: 'typeorm_migrations',
       logging: false,
@@ -61,9 +64,33 @@ export class DatabaseService {
 
   async getGlobalConnection() {
     if (!DatabaseService.globalConnection) {
-      const config = DatabaseService.getGlobalConfig();
-      DatabaseService.globalConnection = new DataSource(config);
-      await DatabaseService.globalConnection.initialize();
+      const dbUrl = new URL(env.DATABASE_CORE_URL);
+      // DatabaseService.globalConnection = new DataSource(config);
+      DatabaseService.globalConnection = new Sequelize({
+        dialect: PostgresDialect,
+        url: dbUrl.toString(),
+        models: Object.values(globalEntities),
+        // migrations: Object.values(globalMigrations),
+        // migrationsTableName: 'typeorm_migrations',
+        logging: false,
+        // synchronize: false,
+        // entitySkipConstructor: true,
+        // migrationsRun: true,
+        // relationLoadStrategy: 'join',
+        // maxQueryExecutionTime: 1000,
+        // extra: {
+        //   max: 30
+        // }
+      });
+
+      const umzug = new Umzug({
+        migrations: Object.values(globalMigrations),
+        context: DatabaseService.globalConnection.getQueryInterface(),
+        storage: new SequelizeStorage({sequelize: DatabaseService.globalConnection, tableName: 'typeorm_migrations'}),
+        logger: console,
+      })
+      
+      await umzug.up();
     }
     return DatabaseService.globalConnection;
   }
@@ -71,23 +98,39 @@ export class DatabaseService {
   async getTenantConnection(domain: string, url: string) {
     if (!this.tenantConnections.has(domain)) {
       try {
-        const config = DatabaseService.getTenantConfig(url);
-        const connection = new DataSource(config);
-        
-        await connection.initialize();
-        
-        await connection.synchronize(false);
-        
+        const dbUrl = new URL(url);
+        const connection = new Sequelize({
+          dialect: PostgresDialect,
+          url: dbUrl.toString(),
+          models: Object.values(tenantEntities),
+          // migrations: Object.values(tenantMigrations),
+          // migrationsTableName: 'typeorm_migrations',
+          logging: false,
+          // synchronize: false,
+          // entitySkipConstructor: true,
+          // migrationsRun: true,
+          // relationLoadStrategy: 'join',
+          // maxQueryExecutionTime: 1000,
+          // extra: {
+          //   max: 30
+          // }
+        });
+
+        const umzug = new Umzug({
+          migrations: Object.values(globalMigrations),
+          context: connection.getQueryInterface(),
+          storage: new SequelizeStorage({sequelize: connection, tableName: 'typeorm_migrations'}),
+          logger: console,
+        });
+
         try {
-          await connection.runMigrations({
-            transaction: 'each'
-          });
+          await umzug.up();
         } catch (error) {
           console.error(`Failed to run migrations for tenant ${domain}:`, error);
-          await connection.destroy();
+          await connection.close();
           throw error;
         }
-        
+
         this.tenantConnections.set(domain, connection);
       } catch (error) {
         console.error(`Failed to initialize tenant connection for ${domain}:`, error);

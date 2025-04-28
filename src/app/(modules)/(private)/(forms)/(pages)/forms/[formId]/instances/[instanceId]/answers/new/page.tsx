@@ -11,7 +11,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Form, FormInstance } from '@/lib/entities/tenant';
+import type { Form, FormInstance } from '@/lib/entities';
 
 export default function NewAnswerPage() {
   const router = useRouter();
@@ -25,6 +25,8 @@ export default function NewAnswerPage() {
   const instanceId = params.instanceId as string;
 
   useEffect(() => {
+    if (form && form.id === formId && instance && instance.id === instanceId) return;
+
     const fetchData = async () => {
       try {
         const [formData, instanceData] = await Promise.all([
@@ -46,7 +48,7 @@ export default function NewAnswerPage() {
     };
 
     fetchData();
-  }, [formId, instanceId]);
+  }, [formId, instanceId, form, instance]);
 
   const handleSubmit = async (values: Record<string, unknown>) => {
     try {
@@ -108,7 +110,7 @@ export default function NewAnswerPage() {
 
       <FormViewer
         config={form.config}
-        initialValues={instance.answers}
+        initialValues={{}}
         variables={{
           values: instance.variables || {},
           definitions: form.config.variables || {},

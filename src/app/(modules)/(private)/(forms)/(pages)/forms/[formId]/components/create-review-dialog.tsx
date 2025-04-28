@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { FormInstance } from '@/lib/entities/tenant';
+import type { FormInstance } from '@/lib/entities';
 import { createReview } from '../../../../(actions)/actions';
 import { toast } from 'sonner';
 
@@ -51,19 +51,12 @@ export default function CreateReviewDialog({
         nodeExecutionId: instance.id, // Using instance ID as node execution ID for now
       });
 
-      toast({
-        title: 'Review Created',
-        description: 'The review has been created successfully.',
-      });
+      toast('The review has been created successfully.');
       
       onOpenChange(false);
     } catch (error) {
       console.error('Failed to create review:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to create review. Please try again.',
-        variant: 'destructive',
-      });
+      toast('Failed to create review. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

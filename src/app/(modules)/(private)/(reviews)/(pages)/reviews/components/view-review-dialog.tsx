@@ -10,16 +10,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { 
   AlertCircle, 
   CheckCircle2, 
   XCircle, 
   Clock, 
   User, 
-  Calendar, 
-  FileText,
-  Upload
+  Calendar,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { 
@@ -28,7 +25,7 @@ import {
   assignReview,
   requestAdditionalData
 } from '../../../(actions)/actions';
-import { Review } from '@/lib/entities/tenant/review.entity';
+import type { Review } from '@/lib/entities';
 import { useAuth } from '@/lib/auth/AuthContext';
 
 interface ViewReviewDialogProps {

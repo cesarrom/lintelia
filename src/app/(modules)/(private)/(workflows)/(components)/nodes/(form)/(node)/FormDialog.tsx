@@ -18,28 +18,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, ChevronDown, Pencil } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { v4 as uuid } from 'uuid';
 import { DialogProps } from '../../types';
 import { FormBuilder } from '../../../../../(forms)/(components)/form-builder';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
 import { VariableInput } from '@/components/ui/variable-input';
 import { useNodeConfig, useNodeData } from '../../../WorkflowContext';
 import { FormNodeData } from '../types';
 import { createForm, listForms, updateForm } from '../../../../../(forms)/(actions)/actions';
 import { toast } from 'sonner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Form } from '@/lib/entities/tenant/form.entity';
+import type { Form } from '@/lib/entities';
 import { FormConfig } from '../../../../../(forms)/(components)/form-builder/schemas';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DialogDescription } from '@radix-ui/react-dialog';
-import { Separator } from '@/components/ui/separator';
 
 // Query keys
 export const formKeys = {

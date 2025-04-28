@@ -5,11 +5,13 @@ import assert from "assert";
 import { ExecuteNodeFunction, ExecuteNodeFunctionProps } from "../../../../types";
 import { yamlToWorkflow } from "../../../yaml/converter";
 import { workflowInject } from "@/lib/injector/utils";
-import { RolesService, WorkflowExecutionsService, WorkflowsService } from "@/lib/services";
+import { RolesService } from "@/lib/services/roles.service";
+import { WorkflowExecutionsService } from "@/lib/services/workflow-executions.service";
+import { WorkflowsService } from "@/lib/services/workflows.service";
 
 const start = workflowInject(
   [RolesService, WorkflowExecutionsService],
-  async ({ user }, [rolesService, workflowExecutionsService], c: restate.ObjectContext, { variables, yaml, token, domain }: { variables: Record<string, unknown>, yaml: string, token: string, domain: string }) => {
+  async ({ user }, [rolesService, workflowExecutionsService], c: restate.ObjectContext, { variables, yaml, token, domain, workflowId }: { variables: Record<string, unknown>, yaml: string, token: string, domain: string, workflowId: string, result: Record<string, unknown> }) => {
     assert(user, 'User not found');
 
     const executionId = c.rand.uuidv4();
@@ -34,7 +36,7 @@ const start = workflowInject(
       throw new restate.TerminalError('Start node not found');
     }
 
-    const result = await workflowExecutionsService.nextOrEndExecution({ nodeData: startNode.data, event: events.done, executionId, globalResult: {}, localResult: variables, yaml, domain, token });
+    const result = await workflowExecutionsService.nextOrEndExecution({ nodeData: startNode.data, event: events.done, executionId, globalResult: {}, localResult: variables, workflowId, domain, token });
 
     return result;
   }
@@ -45,7 +47,7 @@ export const workflowService = restate.object({
   handlers: {
     executeNode: workflowInject(
       [WorkflowExecutionsService],
-      async ({ }, [workflowExecutionsService], c: restate.ObjectContext, { executionId, nodeData, yaml, domain, token, result }: ExecuteNodeFunctionProps) => {
+      async ({ }, [workflowExecutionsService], c: restate.ObjectContext, { executionId, nodeData, yaml, domain, token, result, workflowId }: ExecuteNodeFunctionProps) => {
         const config = await c.run('validate-config', () => {
           return workflowNodeDataSchema.parse(nodeData.config || {});
         });
@@ -56,15 +58,17 @@ export const workflowService = restate.object({
 
         const r = await client.start({
           variables,
+          workflowId,
           yaml,
           token,
-          domain
+          domain,
+          result: {}
         }) as Record<string, Record<string, unknown>>;
 
         const outputs = {};
 
         for (const [key, value] of Object.entries(r)) {
-          const r = await workflowExecutionsService.nextOrEndExecution({ nodeData, event: key, executionId, globalResult: result, localResult: value, yaml, domain, token });
+          const r = await workflowExecutionsService.nextOrEndExecution({ nodeData, event: key, executionId, globalResult: result, localResult: value, workflowId, domain, token });
           Object.assign(outputs, r);
         }
 
@@ -74,21 +78,23 @@ export const workflowService = restate.object({
     start,
     trigger: workflowInject(
       [WorkflowsService],
-      async ({ }, [ws], c, { variables, workflowId, token, domain }: { variables: Record<string, unknown>, workflowId: string, token: string, domain: string }) => {
+      async ({ }, [ws], c, { variables, workflowId, token, domain, result }: { variables: Record<string, unknown>, workflowId: string, token: string, domain: string, result: Record<string, unknown> }) => {
         const { yaml } = await c.run('load-workflow', async () => await ws.loadWorkflow(workflowId));
 
         return start(c, {
+          workflowId,
           variables,
           yaml,
           token,
-          domain
+          domain,
+          result,
         });
       }
     ),
     resume: workflowInject(
       [WorkflowExecutionsService],
-      async ({ }, [ws], c, { resumableId, result, domain, token }: { resumableId: string, domain: string, token: string, result: object }) => {
-        return ws.resumeExecution({ resumableId, result, domain, token });
+      async ({ }, [ws], c, { resumableId, result, domain, token, workflowId }: { resumableId: string, domain: string, token: string, result: object, workflowId: string }) => {
+        return ws.resumeExecution({ resumableId, result, domain, token, workflowId });
       }
     ),
   },

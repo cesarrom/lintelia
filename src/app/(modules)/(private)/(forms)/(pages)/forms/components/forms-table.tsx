@@ -11,7 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Form } from '@/lib/entities/tenant';
+import type { Form } from '@/lib/entities';
 import { Edit, Eye, MoreHorizontal } from 'lucide-react';
 import {
   DropdownMenu,

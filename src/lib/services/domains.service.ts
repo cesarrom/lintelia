@@ -1,8 +1,8 @@
 import AWS, { Route53, CloudFront } from 'aws-sdk';
-import { DISTRIBUTION_ID_TOKEN, ENVIRONMENT_TOKEN } from '../../lib/injector/tokens';
-import { env } from '../constants';
 import { injectable, inject } from 'tsyringe';
 import assert from 'assert';
+import { Service } from './service';
+import { EnvironmentsService } from './environments.service';
 
 interface TenantDomainSetupParams {
   tenantDomains: string[];
@@ -15,25 +15,33 @@ export interface CNAMERecord {
 }
 
 @injectable()
-export class DomainsService {
+export class DomainsService extends Service {
   private _route53?: Route53;
   private _cloudFront?: CloudFront;
+  private distributionId?: string;
+
+  static dependencies() {
+    return [
+      EnvironmentsService
+    ]
+  }
 
   constructor(
-    @inject(ENVIRONMENT_TOKEN) private _env: typeof env,
-    @inject(DISTRIBUTION_ID_TOKEN) private distributionId: string
-  ) {}
+    @inject(EnvironmentsService) private environmentsService: EnvironmentsService
+  ) {
+    super();
+  }
 
   private get hostedZoneId() {
-    return this._env.AWS_HOSTED_ZONE_ID;
+    return this.environmentsService.env.AWS_HOSTED_ZONE_ID;
   }
 
   private get route53() {
     if (!this._route53) {
       this._route53 = new Route53({
-        region: this._env.AWS_REGION,
-        secretAccessKey: this._env.AWS_SECRET,
-        accessKeyId: this._env.AWS_KEY,
+        region: this.environmentsService.env.AWS_REGION,
+        secretAccessKey: this.environmentsService.env.AWS_SECRET,
+        accessKeyId: this.environmentsService.env.AWS_KEY,
       });
     }
 
@@ -44,18 +52,28 @@ export class DomainsService {
     if (!this._cloudFront) {
       this._cloudFront = new CloudFront({
         apiVersion: '2020-05-31',
-        secretAccessKey: this._env.AWS_SECRET,
-        accessKeyId: this._env.AWS_KEY,
+        secretAccessKey: this.environmentsService.env.AWS_SECRET,
+        accessKeyId: this.environmentsService.env.AWS_KEY,
       });
     }
 
     return this._cloudFront;
   }
 
+  private async getDistributionId() {
+    if (this.distributionId !== undefined) {
+      return this.distributionId!;
+    }
+    this.distributionId = await this.environmentsService.getDistributionId();
+
+    return this.distributionId!;
+  }
+
   async getDistributionConfig() {
+
     try {
       const params = {
-        Id: this.distributionId
+        Id: await this.getDistributionId()
       };
       const data = await this.cloudFront.getDistributionConfig(params).promise();
       return data;
@@ -92,7 +110,7 @@ export class DomainsService {
   async updateDistribution(config: CloudFront.DistributionConfig, etag: string, certificateProcessDone = false): Promise<CloudFront.UpdateDistributionResult> {
     try {
       const params = {
-        Id: this.distributionId,
+        Id: await this.getDistributionId(),
         DistributionConfig: config,
         IfMatch: etag
       };
@@ -101,7 +119,7 @@ export class DomainsService {
     } catch (err) {
       console.error("Error updating distribution: ", err);
       if (String(err).includes("The certificate that is attached to your distribution doesn't cover the alternate domain name") && !certificateProcessDone) {
-        await this.setCertificateByArn(this._env.AWS_CERTIFICATE_ARN);
+        await this.setCertificateByArn(this.environmentsService.env.AWS_CERTIFICATE_ARN);
         return this.updateDistribution(config, etag, true);
       } else {
         throw err;
@@ -259,9 +277,9 @@ export class DomainsService {
     }
 
     const acm = new AWS.ACM({
-      region: this._env.AWS_REGION,
-      accessKeyId: this._env.AWS_KEY,
-      secretAccessKey: this._env.AWS_SECRET,
+      region: this.environmentsService.env.AWS_REGION,
+      accessKeyId: this.environmentsService.env.AWS_KEY,
+      secretAccessKey: this.environmentsService.env.AWS_SECRET,
     });
 
     // Request a certificate for the tenant domains
@@ -274,7 +292,7 @@ export class DomainsService {
     const validationRecords = await this.getValidationRecords(acm, certificateArn);
 
     // Update CloudFront distribution with new domains and certificate
-    await this.updateCloudFront(this.cloudFront, this.distributionId, tenantDomains, certificateArn);
+    await this.updateCloudFront(this.cloudFront, await this.getDistributionId(), tenantDomains, certificateArn);
 
     return validationRecords;
   }

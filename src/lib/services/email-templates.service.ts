@@ -1,22 +1,41 @@
 import { injectable, inject } from 'tsyringe';
-import { EmailTemplate } from "../entities/tenant/email-template.entity";
-import { DataSource, Repository } from "typeorm";
-import { TENANT_DB_TOKEN } from "../injector/tokens";
+import { EmailTemplate } from "../entities";
+import { Repository } from "typeorm";
 import { LogsService } from './logs.service';
 import { v4 as uuid } from 'uuid';
+import { TenantsService } from './tenants.service';
+import { Service } from './service';
 
 @injectable()
-export class EmailTemplatesService {
-  private emailTemplateRepository: Repository<EmailTemplate>;
+export class EmailTemplatesService extends Service {
+  private emailTemplateRepository: Repository<EmailTemplate> | null = null;
+
+  static dependencies() {
+    return [
+      TenantsService,
+      LogsService
+    ]
+  }
 
   constructor(
-    @inject(TENANT_DB_TOKEN) private conn: DataSource,
+    @inject(TenantsService) private tenantsService: TenantsService,
     @inject(LogsService) private logs: LogsService
   ) {
-    this.emailTemplateRepository = this.conn.getRepository(EmailTemplate);
+    super();
+  }
+
+  async getRepository() {
+    if (this.emailTemplateRepository) {
+      return this.emailTemplateRepository;
+    }
+
+    const conn = await this.tenantsService.getContextualPlatformDBClient();
+    this.emailTemplateRepository = conn.getRepository(EmailTemplate);
+    return this.emailTemplateRepository;
   }
 
   async create(data: CreateEmailTemplateInput): Promise<EmailTemplate> {
+    const repository = await this.getRepository();
     try {
       const template = new EmailTemplate();
       template.id = uuid();
@@ -27,7 +46,7 @@ export class EmailTemplatesService {
       template.variables = data.variables;
       template.createdBy = data.createdBy;
 
-      const savedTemplate = await this.emailTemplateRepository.save(template);
+      const savedTemplate = await repository.save(template);
 
       await this.logs.info('Email template created', {
         category: 'integration',
@@ -56,7 +75,8 @@ export class EmailTemplatesService {
   }
 
   async update(id: string, data: UpdateEmailTemplateInput): Promise<EmailTemplate> {
-    const template = await this.emailTemplateRepository.findOne({
+    const repository = await this.getRepository();
+    const template = await repository.findOne({
       where: { id }
     });
 
@@ -76,7 +96,7 @@ export class EmailTemplatesService {
       if (data.body !== undefined) template.body = data.body;
       if (data.variables !== undefined) template.variables = data.variables;
 
-      const updatedTemplate = await this.emailTemplateRepository.save(template);
+      const updatedTemplate = await repository.save(template);
 
       await this.logs.info('Email template updated', {
         category: 'integration',
@@ -104,7 +124,8 @@ export class EmailTemplatesService {
   }
 
   async delete(id: string): Promise<EmailTemplate> {
-    const template = await this.emailTemplateRepository.findOne({
+    const repository = await this.getRepository();
+    const template = await repository.findOne({
       where: { id }
     });
 
@@ -118,7 +139,7 @@ export class EmailTemplatesService {
     }
 
     try {
-      const deletedTemplate = await this.emailTemplateRepository.remove(template);
+      const deletedTemplate = await repository.remove(template);
 
       await this.logs.info('Email template deleted', {
         category: 'integration',
@@ -145,7 +166,8 @@ export class EmailTemplatesService {
   }
 
   async getById(id: string): Promise<EmailTemplate | null> {
-    const template = await this.emailTemplateRepository.findOne({
+    const repository = await this.getRepository();
+    const template = await repository.findOne({
       where: { id }
     });
 
@@ -164,7 +186,8 @@ export class EmailTemplatesService {
   }
 
   async list(): Promise<EmailTemplate[]> {
-    const templates = await this.emailTemplateRepository.find();
+    const repository = await this.getRepository();
+    const templates = await repository.find();
 
     await this.logs.debug('Email templates listed', {
       category: 'integration',

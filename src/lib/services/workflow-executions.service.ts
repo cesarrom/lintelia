@@ -1,17 +1,19 @@
 import { inject, injectable } from 'tsyringe';
-import { RESTATE_CONTEXT_TOKEN, USER_TOKEN } from '../injector/tokens';
+import { RESTATE_CONTEXT_TOKEN } from '../injector/tokens';
 import { KeyValueService } from './key-value.service';
 
 import { yamlToWorkflow } from "@/app/(modules)/(private)/(workflows)/(components)/yaml/converter";
 import { NodeData } from "@/app/(modules)/(private)/(workflows)/(components)/yaml/types";
 import { ExecutableNode, ExecuteNodeFunctionProps } from "@/app/(modules)/(private)/(workflows)/types";
 import * as restate from "@restatedev/restate-sdk/fetch";
-import { get, result, set } from "lodash";
+import { get, set } from "lodash";
 import Mustache from 'mustache';
 import { SystemTriggersService } from './system-triggers.service';
-import { TriggerBuilder, TriggerDefinition } from '../triggers-utils';
-import { SystemTrigger } from '../entities/tenant';
-import { User } from '@/types/auth';
+import { TriggerBuilder } from '../triggers-utils';
+import { SystemTrigger } from '../entities';
+import { WorkflowsService } from './workflows.service';
+import { UsersService } from './users.service';
+import { Service, token } from './service';
 
 export type NextNodeOrExecutionArgs = StandardNodeArgs & {
   nextNodes?: NodeData[],
@@ -21,11 +23,11 @@ export type NextNodeOrExecutionArgs = StandardNodeArgs & {
   domain: string,
   token: string,
   resumableId?: string,
-  resumableResult?: Record<string, unknown>
+  resumableResult?: Record<string, unknown>,
 };
 
 export type StandardNodeArgs = {
-  yaml: string;
+  workflowId: string,
   nodeData: NodeData;
   event: string;
 }
@@ -37,14 +39,26 @@ export type ForceNextNodeArgs = {
 export type ResumableArgs = NextNodeOrExecutionArgs & { maxCalls: number }
 
 @injectable()
-export class WorkflowExecutionsService {
+export class WorkflowExecutionsService extends Service {
   private readonly KEY_PREFIX = 'workflow-executions';
+
+  static dependencies() {
+    return [
+      UsersService,
+      token<restate.ObjectContext>(RESTATE_CONTEXT_TOKEN),
+      KeyValueService,
+      SystemTriggersService,
+      WorkflowsService
+    ]
+  }
+
   constructor(
-    @inject(USER_TOKEN) private readonly user: User | null,
+    @inject(UsersService) private readonly usersService: UsersService,
     @inject(RESTATE_CONTEXT_TOKEN) private readonly restateContext: restate.ObjectContext,
     @inject(KeyValueService) private keyValueService: KeyValueService,
     @inject(SystemTriggersService) private readonly systemTriggerService: SystemTriggersService,
-  ) { }
+    @inject(WorkflowsService) private readonly workflowService: WorkflowsService,
+  ) { super(); }
 
   protected flattenObject(ob: Record<string, unknown>): Record<string, unknown> {
     const toReturn: Record<string, unknown> = {};
@@ -106,7 +120,7 @@ export class WorkflowExecutionsService {
     return set(ctx, [nodeName, eventName], newResult);
   }
 
-  getNextNodes({ nodeData, event, yaml }: StandardNodeArgs, opts?: ForceNextNodeArgs): NodeData[] {
+  getNextNodes({ nodeData, event, yaml }: Omit<StandardNodeArgs, 'workflowId'> & { yaml: string }, opts?: ForceNextNodeArgs): NodeData[] {
     const { nodes, edges } = yamlToWorkflow(yaml);
 
     const nodesById = nodes.reduce((acc, node) => {
@@ -127,7 +141,9 @@ export class WorkflowExecutionsService {
   }
 
   async nextOrEndExecution(args: NextNodeOrExecutionArgs) {
-    const { executionId, nodeData, yaml, domain, token, globalResult, localResult, event, nextNodes = this.getNextNodes({ nodeData, event, yaml }), resumableId, resumableResult } = args;
+    const { workflowId } = args;
+    const { yaml } = await this.workflowService.loadWorkflow(workflowId);
+    const { executionId, nodeData, domain, token, globalResult, localResult, event, nextNodes = this.getNextNodes({ nodeData, event, yaml }), resumableId, resumableResult } = args;
     const result = this.mergeResult(globalResult, localResult, nodeData.name, event);
     await this.putExecution(executionId, args);
 
@@ -147,7 +163,7 @@ export class WorkflowExecutionsService {
 
       const client = this.restateContext.objectClient<ExecutableNode>({ name: type }, this.restateContext.key) as { executeNode: (p: ExecuteNodeFunctionProps) => Promise<Record<string, unknown>> };
 
-      const r = await client.executeNode({ executionId, nodeData: data, yaml, domain, token, result, sourceEvent: event, resumableId, resumableResult }) || {};
+      const r = await client.executeNode({ executionId, nodeData: data, yaml, domain, token, result, sourceEvent: event, resumableId, resumableResult, workflowId }) || {};
 
       Object.assign(outputs, r);
     }
@@ -162,25 +178,29 @@ export class WorkflowExecutionsService {
    * @param args
    * @returns 
    */
-  async createResumable(args: Omit<ResumableArgs, 'maxCalls'> & { maxCalls?: number }, triggerRef?: TriggerBuilder): Promise<string> {
+  async createResumable(args: Omit<ResumableArgs, 'maxCalls'> & { maxCalls?: number }, triggerRef?: TriggerBuilder, inputs: Record<string, unknown> = {}): Promise<string> {
+    const user = await this.usersService.getSessionUser();
     args.maxCalls = args.maxCalls || -1;
     const resumableId = this.restateContext.rand.uuidv4();
+    await this.putExecution(resumableId, args)
+    const { workflowId } = args;
+    const { yaml } = await this.workflowService.loadWorkflow(workflowId);
     const { executionId } = args;
-    const { workflow } = yamlToWorkflow(args.yaml);
+    const { workflow } = yamlToWorkflow(yaml);
 
     // if you do not pass a trigger, we will create one, but this trigger we create is not triggered by any log in the system
     // so you will have to grab the ID to resume the execution manually later on potentially.
     const trigger = (
       triggerRef || new TriggerBuilder(resumableId)
         .matchMessage(`resume::${executionId}::${resumableId}`)
-        .resumeWorkflow(workflow.id, args.nodeData.id, args)
     )
+      .resumeWorkflow(workflow.id, args.nodeData.id, { ...inputs, executionId })
       .build();
 
     trigger.id = resumableId;
 
     await this.systemTriggerService.putTrigger(resumableId, SystemTrigger.fromTriggerDefinition(trigger, {
-      createdBy: this.user?.email || 'system',
+      createdBy: user?.email || 'system',
       workflowId: workflow.id,
       active: true
     }));
@@ -192,7 +212,7 @@ export class WorkflowExecutionsService {
    * This will take a resumable at any point of time, and call `nextOrEndExecution` with the same arguments
    * @param resumableId 
    */
-  async resumeExecution({ resumableId, result, domain, token }: { resumableId: string, result: object, domain: string, token: string }) {
+  async resumeExecution({ resumableId, result, domain, token, workflowId }: { resumableId: string, result: object, domain: string, token: string, workflowId: string }) {
     const trigger = await this.systemTriggerService.findTriggerById(resumableId);
 
     if (!trigger) {
@@ -211,18 +231,20 @@ export class WorkflowExecutionsService {
       }
     }
 
+    const actualArgs = await this.getExecution(resumableId);
+
     return await this.nextOrEndExecution({
-      executionId: args.executionId,
-      nodeData: args.nodeData,
-      localResult: args.localResult,
-      globalResult: args.globalResult,
-      yaml: args.yaml,
+      executionId: resumableId,
+      nodeData: actualArgs.nodeData,
+      localResult: actualArgs.localResult,
+      globalResult: actualArgs.globalResult,
       domain: domain,
       token: token,
-      nextNodes: args.nextNodes,
-      event: args.event,
+      nextNodes: actualArgs.nextNodes,
+      event: actualArgs.event,
       resumableId,
       resumableResult: result as any,
+      workflowId: actualArgs.workflowId || workflowId,
     });
   }
 
@@ -249,6 +271,7 @@ export class WorkflowExecutionsService {
   }
 
   async putExecution(executionId: string, props: NextNodeOrExecutionArgs) {
+    const user = await this.usersService.getSessionUser();
     const exec = await this.keyValueService.findByKey(`${this.KEY_PREFIX}::${executionId}`);
     if (exec) {
       await this.keyValueService.update(exec.id, {
@@ -258,7 +281,7 @@ export class WorkflowExecutionsService {
       await this.keyValueService.create({
         key: `${this.KEY_PREFIX}::${executionId}`,
         value: JSON.stringify(props),
-        createdBy: this.user?.email || 'system'
+        createdBy: user?.email || 'system'
       })
     }
   }

@@ -6,8 +6,7 @@ import { FormsService } from "@/lib/services/forms.service";
 import { auth } from "@/lib/clients/auth.client";
 import assert from "assert";
 import { env } from "@/lib/constants";
-import { WorkflowExecutionsService } from "@/lib/services";
-import { get } from "lodash";
+import { WorkflowExecutionsService } from "@/lib/services/workflow-executions.service";
 import { TriggerBuilder } from "@/lib/triggers-utils";
 
 export const formService = restate.object({
@@ -57,7 +56,12 @@ export const formService = restate.object({
               .matchMessage('Form answers submitted')
               .matchCategory('form')
               .matchLevel('info')
-              .matchMetadata(['metadata', 'instanceId'], instance.id)
+              .matchMetadata(['metadata', 'instanceId'], instance.id),
+              {
+                instanceId: '{{metadata.instanceId}}',
+                answerId: '{{metadata.answerId}}',
+                formId: '{{metadata.formId}}'
+              }
           );
 
           const publicUrl = `https://${domain}.${env.DOMAIN}/forms/${config.formId}/instances/${instance.id}/answers/new?resumableId=${resumable}`;
@@ -76,38 +80,27 @@ export const formService = restate.object({
             token
           });
         }
-
-        const path = [nodeData.name, events.publicUrl, 'instance_id']
-        const instanceIdRef = get(r, path) as string;
+        
+        const { instanceId, answerId, formId } = resumableResult as { instanceId: string, answerId: string, formId: string }
+        const instanceIdRef = instanceId;
 
         if (!instanceIdRef) {
           throw new Error('Instance ID is required');
         }
 
-        // Wait for the form to be submitted
-        const formData = resumableResult as Record<string, unknown>;
-
-        if (!formData) {
+        if (!instanceId || !answerId || !formId) {
           throw new Error('Form data is required');
         }
 
         // Update the form instance with the submitted data
-        const { instanceId, answersId } = await c.run('update-instance', async () => {
-          const answers = await formsService.createAnswers({
-            formId: config.formId,
-            instanceId: instanceIdRef,
-            answers: formData,
-          });
-
+        await c.run('update-instance', async () => {
           const updatedInstance = await formsService.updateInstance(instanceIdRef, {
-            answers: formData,
             status: 'submitted'
           });
+        });
 
-          return {
-            instanceId: updatedInstance.id,
-            answersId: answers.id,
-          };
+        const answers = await c.run('get-answers', async () => {
+          return formsService.getAnswer(answerId);
         });
 
         // Continue workflow execution with the form data
@@ -115,7 +108,7 @@ export const formService = restate.object({
           nodeData,
           event: events.success,
           executionId,
-          localResult: { ...formData, form_id: config.formId, instance_id: instanceId, answers_id: answersId },
+          localResult: { ...(answers?.value || {}), form_id: config.formId, instance_id: instanceId, answers_id: answerId },
           globalResult: r,
           yaml,
           domain,

@@ -6,16 +6,15 @@ import assert from "assert";
 import { ExecutableNode, ExecuteNodeFunctionProps } from "@/app/(modules)/(private)/(workflows)/types";
 import { workflowToYaml, yamlToWorkflow } from "@/app/(modules)/(private)/(workflows)/(components)/yaml/converter";
 import { workflowInject } from "@/lib/injector/utils";
-import { FormsService, WorkflowExecutionsService } from "@/lib/services";
-import { downloadFile } from "@/app/(modules)/(private)/(shared)/(actions)/files";
+import { WorkflowExecutionsService } from "@/lib/services/workflow-executions.service";
 import { TriggerBuilder } from "@/lib/triggers-utils";
 import { KeyValueService } from "@/lib/services/key-value.service";
+import { FormsService } from "@/lib/services/forms.service";
 
 const DEFAULT_MIN_CONFIDENCE_SCORE = 0.5;
 const DEFAULT_MAX_ATTEMPTS = 3;
 
-const aliveByVideoFile = async (fileBase64: string) => 0.65;
-
+// TODO: this logic is potentially broken now, because it is modifying the yaml, and maybe it was assuming that `nextOrEndExecution` was going to use that yaml, but now, that function fetches the yaml from db
 export const proofOfLifeService = restate.object({
   name: "proofOfLife",
   handlers: {
@@ -23,7 +22,7 @@ export const proofOfLifeService = restate.object({
       [WorkflowExecutionsService, KeyValueService, FormsService],
       async ({ tenant, user }, [workflowExecutionsService, keyValueService, formsService], c: restate.ObjectContext, args: ExecuteNodeFunctionProps) => {
         assert(tenant, 'Tenant is required');
-        const { executionId, nodeData, yaml, domain, token, result: r, resumableId, resumableResult } = args;
+        const { executionId, nodeData, workflowId, yaml, domain, token, result: r, resumableId, resumableResult } = args;
 
         const configRef = await c.run('validate-config', async () => {
           return ProofOfLifeNodeDataSchema.parse(nodeData.config || {});
@@ -73,7 +72,7 @@ export const proofOfLifeService = restate.object({
             executionId,
             localResult,
             globalResult: r,
-            yaml,
+            workflowId,
             domain,
             token
           });
@@ -176,11 +175,11 @@ export const proofOfLifeService = restate.object({
         });
 
         if (passed) {
-          return workflowExecutionsService.nextOrEndExecution({ nodeData, event: events.success, executionId, globalResult: r, localResult: { form_id: form.id, instance_id: instance.id, answers_id: answer.id }, yaml, domain, token });
+          return workflowExecutionsService.nextOrEndExecution({ nodeData, event: events.success, executionId, globalResult: r, localResult: { form_id: form.id, instance_id: instance.id, answers_id: answer.id }, workflowId, domain, token });
         }
 
         if (maxAttempts <= attempt) {
-          return workflowExecutionsService.nextOrEndExecution({ nodeData, event: events.failure, executionId, globalResult: r, localResult: { form_id: form.id, instance_id: instance.id, answers_id: answer.id }, yaml, domain, token });
+          return workflowExecutionsService.nextOrEndExecution({ nodeData, event: events.failure, executionId, globalResult: r, localResult: { form_id: form.id, instance_id: instance.id, answers_id: answer.id }, workflowId, domain, token });
         }
 
         // re attempt is by calling ourselves again, but with a decremented maxAttempts
@@ -197,7 +196,7 @@ export const proofOfLifeService = restate.object({
 
         const newYaml = workflowToYaml(workflow.workflow, workflow.nodes, workflow.edges, workflow.triggers);
 
-        return await client.executeNode({ executionId, nodeData, yaml: newYaml, domain, token, result: r, sourceEvent: events.reAttemptUrl }) || {};
+        return await client.executeNode({ executionId, nodeData, workflowId,yaml: newYaml, domain, token, result: r, sourceEvent: events.reAttemptUrl }) || {};
       }
     ),
   }

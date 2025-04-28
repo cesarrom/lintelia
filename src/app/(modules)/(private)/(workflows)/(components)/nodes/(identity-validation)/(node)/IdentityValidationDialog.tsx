@@ -25,10 +25,29 @@ import { useNodeData } from '../../../WorkflowContext';
 import { VariableInput } from '@/components/ui/variable-input';
 
 const DOCUMENT_TYPES: Array<{ value: ValidationType; label: string }> = [
-  { value: 'id_card', label: 'ID Card' },
+  { value: 'national_identity_card', label: 'National Identity Card' },
   { value: 'passport', label: 'Passport' },
-  { value: 'driver_license', label: "Driver's License" },
-  { value: 'national_id', label: 'National ID' },
+  { value: 'driving_license', label: "Driver's License" },
+  { value: 'national_insurance_number', label: 'National Insurance Number' },
+  { value: 'social_security_number', label: 'Social Security Number' },
+  { value: 'tax_identification_number', label: 'Tax Identification Number' },
+  { value: 'utility_bill', label: 'Utility Bill' },
+  { value: 'visa', label: 'Visa' },
+  { value: 'polling_card', label: 'Polling Card' },
+  { value: 'residence_permit', label: 'Residence Permit' },
+  { value: 'birth_certificate', label: 'Birth Certificate' },
+  { value: 'bank_statement', label: 'Bank Statement' },
+  { value: 'change_of_name', label: 'Change of Name' },
+  { value: 'tax_document', label: 'Tax Document' },
+  { value: 'company_confirmation_statement', label: 'Company Confirmation Statement' },
+  { value: 'company_annual_accounts', label: 'Company Annual Accounts' },
+  { value: 'company_statement_of_capital', label: 'Company Statement of Capital' },
+  { value: 'company_change_of_address', label: 'Company Change of Address' },
+  { value: 'company_incorporation', label: 'Company Incorporation' },
+  { value: 'company_change_of_officers', label: 'Company Change of Officers' },
+  { value: 'company_change_of_beneficial_owners', label: 'Company Change of Beneficial Owners' },
+  { value: 'unknown', label: 'Unknown' },
+  { value: 'other', label: 'Other' },
 ];
 
 export function IdentityValidationDialog({ open, onOpenChange, data, onSave }: DialogProps) {
@@ -41,7 +60,7 @@ export function IdentityValidationDialog({ open, onOpenChange, data, onSave }: D
   }
 
   const config = (nodeData.config || {
-    documentType: 'id_card',
+    documentType: 'national_identity_card',
     selfieFile: '',
     frontFile: '',
     backFile: '',

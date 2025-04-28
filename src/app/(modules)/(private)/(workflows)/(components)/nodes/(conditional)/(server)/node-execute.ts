@@ -9,7 +9,7 @@ export const conditionalService = restate.object({
   handlers: {
     executeNode: workflowInject(
       [WorkflowExecutionsService],
-      async ({}, [workflowExecutionsService], c: restate.ObjectContext, { executionId, nodeData, yaml, domain, token, result: res = {} }: ExecuteNodeFunctionProps) => {
+      async ({}, [workflowExecutionsService], c: restate.ObjectContext, { executionId, nodeData, workflowId, domain, token, result: res = {} }: ExecuteNodeFunctionProps) => {
         const config = await c.run('validate-config', async () => {
           return ConditionalNodeDataSchema.parse(nodeData.config || {});
         });
@@ -83,7 +83,7 @@ export const conditionalService = restate.object({
 
         const eventName = conditionalResult ? events.true : events.false;
 
-        return workflowExecutionsService.nextOrEndExecution({ nodeData, event: eventName, executionId, globalResult: res, localResult: { result: conditionalResult }, yaml, domain, token });
+        return workflowExecutionsService.nextOrEndExecution({ nodeData, event: eventName, executionId, globalResult: res, localResult: { result: conditionalResult }, workflowId , domain, token });
       }
     ),
   },

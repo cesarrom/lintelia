@@ -393,6 +393,7 @@ export function FormViewer({
   variables,
   onChange,
   onSubmit,
+  readOnly = false
 }: {
   config: FormConfig;
   initialValues?: Record<string, unknown>;
@@ -402,6 +403,7 @@ export function FormViewer({
   };
   onChange?: (values: Record<string, unknown>) => void;
   onSubmit?: (values: Record<string, unknown>) => void;
+  readOnly?: boolean;
 }) {
   return (
     <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
@@ -413,6 +415,7 @@ export function FormViewer({
         variableDefinitions={variables?.definitions}
         onChange={onChange}
         onSubmit={onSubmit}
+        readOnly={readOnly}
       />
     </div>
   );

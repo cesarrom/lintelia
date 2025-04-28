@@ -5,16 +5,18 @@ import * as restate from "@restatedev/restate-sdk/fetch";
 import { Check, ComplyCube } from "@complycube/api";
 import assert from "assert";
 import { ExecuteNodeFunctionProps } from "@/app/(modules)/(private)/(workflows)/types";
-import { downloadFile } from "@/app/(modules)/(private)/(shared)/(actions)/files";
+import { downloadFileContents } from "@/app/(modules)/(private)/(shared)/(actions)/files";
 import { workflowInject } from "@/lib/injector/utils";
-import { FormsService, WorkflowExecutionsService } from "@/lib/services";
+import { FormsService } from "@/lib/services/forms.service";
+import { blobToBase64, compressBlobUntil } from "@/lib/file-utils";
+import { WorkflowExecutionsService } from "@/lib/services/workflow-executions.service";
 
 export const identityValidationService = restate.object({
   name: "identityValidation",
   handlers: {
     executeNode: workflowInject(
       [WorkflowExecutionsService, FormsService],
-      async ({ tenant, user }, [workflowExecutionsService, formsService], c: restate.ObjectContext, { executionId, nodeData, yaml, domain, token, result: r }: ExecuteNodeFunctionProps) => {
+      async ({ tenant, user }, [workflowExecutionsService, formsService], c: restate.ObjectContext, { executionId, nodeData, workflowId, domain, token, result: r }: ExecuteNodeFunctionProps) => {
         assert(user, 'User is required');
         assert(tenant, 'Tenant is required');
 
@@ -29,9 +31,10 @@ export const identityValidationService = restate.object({
         // Create client
         const client = await complycube.client.create({
           type: "person",
+          email: user.email!,
           personDetails: {
-            firstName: "", // Will be extracted from document
-            lastName: ""  // Will be extracted from document
+            firstName: user.givenName!,
+            lastName: user.familyName!
           }
         });
 
@@ -43,21 +46,41 @@ export const identityValidationService = restate.object({
         });
 
         // Upload front image
-        const frontImageFile = await downloadFile(config.frontFile!);
+        
         await c.run('upload-front', async () => {
+          const frontImageFile = await downloadFileContents(config.frontFile!);
+          // max 4MB
+          const blob = await compressBlobUntil(
+            await frontImageFile.blob(),
+            4 * 1024 * 1024,
+            0.5
+          );
+
+          const data = await blobToBase64(blob);
+
           await complycube.document.upload(document.id, {
-            data: frontImageFile.Body,
-            fileName: "front.jpg"
+            data,
+            fileName: config.frontFile!,
           }, "front");
         });
 
         // Upload back image if provided
         if (config.backFile) {
-          const backImageFile = await downloadFile(config.backFile!);
           await c.run('upload-back', async () => {
+            const backImageFile = await downloadFileContents(config.backFile!);
+
+            // max 4MB
+            const blob = await compressBlobUntil(
+              await backImageFile.blob(),
+              4 * 1024 * 1024,
+              0.5
+            );
+
+            const data = await blobToBase64(blob);
+            
             await complycube.document.upload(document.id, {
-              data: backImageFile.Body,
-              fileName: "back.jpg"
+              data,
+              fileName: config.backFile!,
             }, "back");
           });
         }
@@ -66,10 +89,19 @@ export const identityValidationService = restate.object({
         let livePhotoId: string | undefined;
 
         if (config.selfieFile) {
-          const selfieFile = await downloadFile(config.selfieFile);
           const livePhoto = await c.run('upload-selfie', async () => {
+            const selfieFile = await downloadFileContents(config.selfieFile!);
+            // max 4MB
+            const blob = await compressBlobUntil(
+              await selfieFile.blob(),
+              4 * 1024 * 1024,
+              0.5
+            );
+
+            const data = await blobToBase64(blob);
+
             return complycube.livePhoto.upload(client.id, {
-              data: selfieFile.Body
+              data
             });
           });
           livePhotoId = livePhoto.id;
@@ -172,7 +204,7 @@ export const identityValidationService = restate.object({
             form_id: form.id,
             instance_id: instance.id,
             answer_id: answer.id
-          }, yaml, domain, token
+          }, workflowId, domain, token
         });
       }
     ),

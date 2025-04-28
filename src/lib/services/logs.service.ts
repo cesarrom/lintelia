@@ -1,9 +1,11 @@
 import { inject, injectable } from "tsyringe";
-import { DataSource, Repository, Between, FindOptionsWhere, MoreThanOrEqual, LessThanOrEqual, Like, ILike } from "typeorm";
-import { TENANT_DB_TOKEN, USER_TOKEN } from "../injector/tokens";
-import { Log, LogLevel, LogCategory } from "../entities/tenant/log.entity";
-import { User } from "@/types/auth";
+import { Repository, Between, FindOptionsWhere, MoreThanOrEqual, LessThanOrEqual, ILike } from "typeorm";
+import { Log, LogLevel, LogCategory } from "../entities";
 import { SystemTriggersService } from "./system-triggers.service";
+import { TenantsService } from "./tenants.service";
+import assert from "assert";
+import { UsersService } from "./users.service";
+import { Service } from "./service";
 
 export interface CreateLogInput {
   message: string;
@@ -42,26 +44,44 @@ export interface LogsAnalytics {
 }
 
 @injectable()
-export class LogsService {
-  private repository: Repository<Log>;
+export class LogsService extends Service {
+  private repository: Repository<Log> | null = null;
+
+  static dependencies() {
+    return [
+      TenantsService,
+      SystemTriggersService,
+      UsersService
+    ]
+  }
 
   constructor(
-    @inject(TENANT_DB_TOKEN) private conn: DataSource,
+    @inject(TenantsService) private tenantsService: TenantsService,
     @inject(SystemTriggersService) private systemTriggersService: SystemTriggersService,
-    @inject(USER_TOKEN) private user: User | null
+    @inject(UsersService) private usersService: UsersService,
   ) {
-    this.repository = this.conn.getRepository(Log);
+    super();
+  }
+
+  async getRepository() {
+    if (this.repository) return this.repository;
+    const conn = await this.tenantsService.getContextualPlatformDBClient();
+    this.repository = conn.getRepository(Log);
+    return this.repository;
   }
 
   async create(data: CreateLogInput): Promise<Log> {
+    const user = await this.usersService.getSessionUser();
+    const repository = await this.getRepository();
+    assert(repository, 'Log repository not found');
     // If userId is not provided but we have a logged-in user, use their email
     const logData = {
       ...data,
-      userId: data.userId || this.user?.email
+      userId: data.userId || user?.email || 'system',
     };
-    
-    const log = this.repository.create(logData);
-    const savedLog = await this.repository.save(log);
+
+    const log = repository.create(logData);
+    const savedLog = await repository.save(log);
 
     setImmediate(() => this.systemTriggersService.processLog(savedLog));
 
@@ -69,6 +89,8 @@ export class LogsService {
   }
 
   async list(filter?: LogsFilter): Promise<Log[]> {
+    const repository = await this.getRepository();
+    assert(repository, 'Log repository not found');
     const where: FindOptionsWhere<Log> = {};
 
     if (filter?.startDate && filter?.endDate) {
@@ -104,7 +126,7 @@ export class LogsService {
       where.details = ILike(`%${filter.search}%`);
     }
 
-    return await this.repository.find({
+    return await repository.find({
       where,
       order: {
         createdAt: 'DESC'
@@ -113,11 +135,15 @@ export class LogsService {
   }
 
   async getById(id: string): Promise<Log | null> {
-    return await this.repository.findOneBy({ id });
+    const repository = await this.getRepository();
+    assert(repository, 'Log repository not found');
+    return await repository.findOneBy({ id });
   }
 
   async acknowledge(id: string, userId: string): Promise<boolean> {
-    const result = await this.repository.update(id, {
+    const repository = await this.getRepository();
+    assert(repository, 'Log repository not found');
+    const result = await repository.update(id, {
       acknowledged: true,
       acknowledgedBy: userId,
       acknowledgedAt: new Date()
@@ -126,12 +152,16 @@ export class LogsService {
   }
 
   async delete(id: string): Promise<boolean> {
-    const result = await this.repository.delete({ id });
+    const repository = await this.getRepository();
+    assert(repository, 'Log repository not found');
+    const result = await repository.delete({ id });
     return result.affected ? result.affected > 0 : false;
   }
 
   async deleteOlderThan(date: Date): Promise<boolean> {
-    const result = await this.repository.delete({
+    const repository = await this.getRepository();
+    assert(repository, 'Log repository not found');
+    const result = await repository.delete({
       createdAt: Between(new Date(0), date)
     });
     return result.affected ? result.affected > 0 : false;
@@ -141,10 +171,10 @@ export class LogsService {
   async getAnalytics(filter?: LogsFilter): Promise<LogsAnalytics> {
     // Get logs based on filter
     const logs = await this.list(filter);
-    
+
     // Calculate total count
     const totalCount = logs.length;
-    
+
     // Initialize counters
     const byLevel: Record<LogLevel, number> = {
       info: 0,
@@ -152,7 +182,7 @@ export class LogsService {
       error: 0,
       debug: 0
     };
-    
+
     const byCategory: Record<LogCategory, number> = {
       system: 0,
       workflow: 0,
@@ -163,33 +193,33 @@ export class LogsService {
       review: 0,
       database: 0
     };
-    
+
     const bySource: Record<string, number> = {};
     const byUser: Record<string, number> = {};
-    
+
     // Group logs by date for time distribution
     const logsByDate: Record<string, {
       count: number;
       byLevel: Record<LogLevel, number>;
     }> = {};
-    
+
     // Process each log
     logs.forEach(log => {
       // Count by level
       byLevel[log.level]++;
-      
+
       // Count by category
       byCategory[log.category]++;
-      
+
       // Count by source
       const source = log.source || 'unknown';
       bySource[source] = (bySource[source] || 0) + 1;
-      
+
       // Count by user
       if (log.userId) {
         byUser[log.userId] = (byUser[log.userId] || 0) + 1;
       }
-      
+
       // Group by date for time distribution
       const dateStr = new Date(log.createdAt).toISOString().split('T')[0];
       if (!logsByDate[dateStr]) {
@@ -201,22 +231,22 @@ export class LogsService {
       logsByDate[dateStr].count++;
       logsByDate[dateStr].byLevel[log.level]++;
     });
-    
+
     // Convert logsByDate to array and sort by date
     const timeDistribution = Object.entries(logsByDate).map(([date, data]) => ({
       date,
       count: data.count,
       byLevel: data.byLevel
     })).sort((a, b) => a.date.localeCompare(b.date));
-    
+
     // Get top errors
     const topErrors = logs
       .filter(log => log.level === 'error')
       .slice(0, 5);
-    
+
     // Get recent activity
     const recentActivity = logs.slice(0, 10);
-    
+
     return {
       totalCount,
       byLevel,
@@ -230,7 +260,9 @@ export class LogsService {
   }
 
   async getTopUsers(limit: number = 10): Promise<Array<{ userId: string; count: number }>> {
-    const result = await this.repository
+    const repository = await this.getRepository();
+    assert(repository, 'Log repository not found');
+    const result = await repository
       .createQueryBuilder('log')
       .select('log.userId, COUNT(*) as count')
       .where('log.userId IS NOT NULL')
@@ -238,7 +270,7 @@ export class LogsService {
       .orderBy('count', 'DESC')
       .limit(limit)
       .getRawMany();
-    
+
     return result.map(item => ({
       userId: item.userId,
       count: parseInt(item.count)
@@ -246,7 +278,9 @@ export class LogsService {
   }
 
   async getTopSources(limit: number = 10): Promise<Array<{ source: string; count: number }>> {
-    const result = await this.repository
+    const repository = await this.getRepository();
+    assert(repository, 'Log repository not found');
+    const result = await repository
       .createQueryBuilder('log')
       .select('log.source, COUNT(*) as count')
       .where('log.source IS NOT NULL')
@@ -254,7 +288,7 @@ export class LogsService {
       .orderBy('count', 'DESC')
       .limit(limit)
       .getRawMany();
-    
+
     return result.map(item => ({
       source: item.source,
       count: parseInt(item.count)
@@ -264,19 +298,21 @@ export class LogsService {
   async getLogsTrend(days: number = 30): Promise<Array<{ date: string; count: number; byLevel: Record<LogLevel, number> }>> {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
-    
-    const logs = await this.repository.find({
+
+    const repository = await this.getRepository();
+    assert(repository, 'Log repository not found');
+    const logs = await repository.find({
       where: {
         createdAt: MoreThanOrEqual(startDate)
       }
     });
-    
+
     // Group logs by date
     const logsByDate: Record<string, {
       count: number;
       byLevel: Record<LogLevel, number>;
     }> = {};
-    
+
     // Initialize all dates in the range
     for (let i = 0; i <= days; i++) {
       const date = new Date(startDate);
@@ -287,7 +323,7 @@ export class LogsService {
         byLevel: { info: 0, warning: 0, error: 0, debug: 0 }
       };
     }
-    
+
     // Fill in actual log counts
     logs.forEach(log => {
       const dateStr = new Date(log.createdAt).toISOString().split('T')[0];
@@ -296,7 +332,7 @@ export class LogsService {
         logsByDate[dateStr].byLevel[log.level]++;
       }
     });
-    
+
     // Convert to array and sort by date
     return Object.entries(logsByDate).map(([date, data]) => ({
       date,
@@ -307,37 +343,41 @@ export class LogsService {
 
   // Helper methods for common logging scenarios
   async info(message: string, details?: Partial<CreateLogInput>): Promise<Log> {
+    const user = await this.usersService.getSessionUser();
     return this.create({
       message,
       level: 'info',
-      userId: this.user?.email, // Include user email if available
+      userId: user?.email, // Include user email if available
       ...details
     });
   }
 
   async warning(message: string, details?: Partial<CreateLogInput>): Promise<Log> {
+    const user = await this.usersService.getSessionUser();
     return this.create({
       message,
       level: 'warning',
-      userId: this.user?.email, // Include user email if available
+      userId: user?.email, // Include user email if available
       ...details
     });
   }
 
   async error(message: string, details?: Partial<CreateLogInput>): Promise<Log> {
+    const user = await this.usersService.getSessionUser();
     return this.create({
       message,
       level: 'error',
-      userId: this.user?.email, // Include user email if available
+      userId: user?.email, // Include user email if available
       ...details
     });
   }
 
   async debug(message: string, details?: Partial<CreateLogInput>): Promise<Log> {
+    const user = await this.usersService.getSessionUser();
     return this.create({
       message,
       level: 'debug',
-      userId: this.user?.email, // Include user email if available
+      userId: user?.email, // Include user email if available
       ...details
     });
   }

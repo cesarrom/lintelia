@@ -13,8 +13,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { LogLevel, LogCategory } from '@/lib/entities/tenant/log.entity';
-import { Search, X, Calendar } from 'lucide-react';
+import type { LogLevel, LogCategory } from '@/lib/entities';
+import { X, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';

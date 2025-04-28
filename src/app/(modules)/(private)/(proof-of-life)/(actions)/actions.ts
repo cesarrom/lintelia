@@ -4,7 +4,7 @@ import { inject } from "@/lib/injector/utils";
 import { KeyValueService } from "@/lib/services/key-value.service";
 import { ProofOfLifeNodeData } from "../../(workflows)/(components)/nodes/(proof-of-life)/types";
 import assert from "assert";
-import { LogsService } from "@/lib/services";
+import { LogsService } from "@/lib/services/logs.service";
 
 export const fetchProofOfLifeConfig = inject(
   [KeyValueService],

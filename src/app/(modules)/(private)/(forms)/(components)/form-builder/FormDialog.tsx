@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Form } from '@/lib/entities/tenant';
+import { Form } from '@/lib/entities';
 import { FormBuilder } from '.';
 import { FormConfig } from './schemas';
 import { createForm, updateForm } from '../../(actions)/actions';
@@ -26,7 +26,7 @@ interface FormDialogProps {
 export function FormDialog({ form, open, onOpenChange }: FormDialogProps) {
   const [name, setName] = useState(form?.name || '');
   const [description, setDescription] = useState(form?.description || '');
-  const [config, setConfig] = useState<FormConfig>(form?.config || { components: [] });
+  const [config, setConfig] = useState<FormConfig>((form?.config || { components: [] }) as any);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export function FormDialog({ form, open, onOpenChange }: FormDialogProps) {
     } else {
       setName('');
       setDescription('');
-      setConfig({ fields: [] });
+      setConfig({ fields: [] } as any);
     }
   }, [form]);
 
@@ -46,24 +46,14 @@ export function FormDialog({ form, open, onOpenChange }: FormDialogProps) {
       setIsSaving(true);
       if (form) {
         await updateForm(form.id, { name, description, config });
-        toast({
-          title: 'Form updated',
-          description: 'The form has been updated successfully.',
-        });
+        toast('The form has been updated successfully.');
       } else {
         await createForm({ name, description, config });
-        toast({
-          title: 'Form created',
-          description: 'The form has been created successfully.',
-        });
+        toast('The form has been created successfully.');
       }
       onOpenChange(false);
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to save the form. Please try again.',
-        variant: 'destructive',
-      });
+      toast('Failed to save the form. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -99,7 +89,7 @@ export function FormDialog({ form, open, onOpenChange }: FormDialogProps) {
 
           <div className="space-y-2">
             <Label>Form Builder</Label>
-            <FormBuilder config={config} onChange={setConfig} />
+            <FormBuilder initialConfig={config as any} onSave={setConfig} />
           </div>
         </div>
 

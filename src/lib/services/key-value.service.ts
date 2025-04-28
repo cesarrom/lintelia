@@ -1,9 +1,11 @@
 import { injectable, inject } from "tsyringe";
-import { DataSource, Repository } from "typeorm";
-import { TENANT_DB_TOKEN, USER_TOKEN } from "../injector/tokens";
-import { KeyValue } from "../entities/tenant/key-value.entity";
+import { Repository } from "typeorm";
+import { KeyValue } from "../entities";
 import { LogsService } from './logs.service';
-import { User } from "@/types/auth";
+import { TenantsService } from "./tenants.service";
+import assert from "assert";
+import { UsersService } from "./users.service";
+import { Service } from "./service";
 
 export interface CreateKeyValueInput {
     key: string;
@@ -18,18 +20,35 @@ export interface UpdateKeyValueInput {
 }
 
 @injectable()
-export class KeyValueService {
-    private keyValueRepository: Repository<KeyValue>;
+export class KeyValueService extends Service {
+    private keyValueRepository: Repository<KeyValue> | null = null;
+
+    static dependencies() {
+        return [
+            TenantsService,
+            UsersService,
+            LogsService
+        ]
+    }
 
     constructor(
-        @inject(TENANT_DB_TOKEN) private conn: DataSource,
-        @inject(USER_TOKEN) private user: User | null,
+        @inject(TenantsService) private tenantsService: TenantsService,
+        @inject(UsersService) private usersService: UsersService,
         @inject(LogsService) private logs: LogsService
     ) {
-        this.keyValueRepository = this.conn.getRepository(KeyValue);
+        super();
+    }
+
+    async getRepository() {
+        if (this.keyValueRepository) return this.keyValueRepository;
+        const conn = await this.tenantsService.getContextualPlatformDBClient();
+        this.keyValueRepository = conn.getRepository(KeyValue);
+        return this.keyValueRepository;
     }
 
     async create(data: CreateKeyValueInput): Promise<KeyValue> {
+        const repository = await this.getRepository();
+        assert(repository, 'Key-value repository not found');
         const keyValue = new KeyValue();
         keyValue.key = data.key;
         keyValue.value = data.value;
@@ -46,7 +65,7 @@ export class KeyValueService {
             }
         });
 
-        const saved = await this.keyValueRepository.save(keyValue);
+        const saved = await repository.save(keyValue);
 
         await this.logs.info('Key-value pair created', {
             category: 'system',
@@ -62,7 +81,10 @@ export class KeyValueService {
     }
 
     async update(id: string, data: UpdateKeyValueInput): Promise<KeyValue> {
-        const keyValue = await this.keyValueRepository.findOneOrFail({ where: { id } });
+        const user = await this.usersService.getSessionUser();
+        const repository = await this.getRepository();
+        assert(repository, 'Key-value repository not found');
+        const keyValue = await repository.findOneOrFail({ where: { id } });
 
         if (data.value !== undefined) {
             keyValue.value = data.value;
@@ -74,7 +96,7 @@ export class KeyValueService {
         await this.logs.info('Updating key-value pair', {
             category: 'system',
             source: 'KeyValueService',
-            userId: this.user?.userId,
+            userId: user?.userId,
             metadata: {
                 id: keyValue.id,
                 key: keyValue.key,
@@ -82,12 +104,12 @@ export class KeyValueService {
             }
         });
 
-        const updated = await this.keyValueRepository.save(keyValue);
+        const updated = await repository.save(keyValue);
 
         await this.logs.info('Key-value pair updated', {
             category: 'system',
             source: 'KeyValueService',
-            userId: this.user?.userId,
+            userId: user?.userId,
             metadata: {
                 id: updated.id,
                 key: updated.key
@@ -98,24 +120,27 @@ export class KeyValueService {
     }
 
     async delete(id: string): Promise<void> {
-        const keyValue = await this.keyValueRepository.findOneOrFail({ where: { id } });
+        const user = await this.usersService.getSessionUser();
+        const repository = await this.getRepository();
+        assert(repository, 'Key-value repository not found');
+        const keyValue = await repository.findOneOrFail({ where: { id } });
 
         await this.logs.info('Deleting key-value pair', {
             category: 'system',
             source: 'KeyValueService',
-            userId: this.user?.userId,
+            userId: user?.userId,
             metadata: {
                 id: keyValue.id,
                 key: keyValue.key
             }
         });
 
-        await this.keyValueRepository.remove(keyValue);
+        await repository.remove(keyValue);
 
         await this.logs.info('Key-value pair deleted', {
             category: 'system',
             source: 'KeyValueService',
-            userId: this.user?.userId,
+            userId: user?.userId,
             metadata: {
                 id: keyValue.id,
                 key: keyValue.key
@@ -124,19 +149,27 @@ export class KeyValueService {
     }
 
     async findById(id: string): Promise<KeyValue | null> {
-        return this.keyValueRepository.findOne({ where: { id } });
+        const repository = await this.getRepository();
+        assert(repository, 'Key-value repository not found');
+        return repository.findOne({ where: { id } });
     }
 
     async findByKey(key: string): Promise<KeyValue | null> {
-        return this.keyValueRepository.findOne({ where: { key } });
+        const repository = await this.getRepository();
+        assert(repository, 'Key-value repository not found');
+        return repository.findOne({ where: { key } });
     }
 
     async findAll(): Promise<KeyValue[]> {
-        return this.keyValueRepository.find();
+        const repository = await this.getRepository();
+        assert(repository, 'Key-value repository not found');
+        return repository.find();
     }
 
     async findByKeys(keys: string[]): Promise<KeyValue[]> {
-        return this.keyValueRepository.find({
+        const repository = await this.getRepository();
+        assert(repository, 'Key-value repository not found');
+        return repository.find({
             where: keys.map(key => ({ key }))
         });
     }

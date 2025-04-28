@@ -2,8 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { inject } from '@/lib/injector/utils';
-import { LogsService } from '@/lib/services';
-import { LogsFilter } from '@/lib/services/logs.service';
+import { LogsService, LogsFilter } from '@/lib/services/logs.service';
 
 // List logs with optional filtering
 export const getLogs = inject(
