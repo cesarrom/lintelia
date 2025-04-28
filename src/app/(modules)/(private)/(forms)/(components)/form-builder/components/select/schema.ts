@@ -34,18 +34,15 @@ export type OptionsSource = z.infer<typeof optionsSourceSchema>;
 
 // Form builder config schema
 export const selectConfigSchema = baseConfigSchema.extend({
+  type: z.literal('select'),
   label: z.string().min(1, 'Label is required'),
-  placeholder: z.string().optional(),
-  description: z.string().optional(),
+  placeholder: z.string().optional().default('Select an option'),
+  description: z.string().optional().default(''),
   source: optionsSourceSchema.default({
     type: 'static',
     options: [],
   }),
-}).transform((data) => ({
-  ...data,
-  placeholder: data.placeholder ?? 'Select an option',
-  description: data.description ?? '',
-}));
+});
 
 export type SelectConfig = z.infer<typeof selectConfigSchema>;
 

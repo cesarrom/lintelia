@@ -12,6 +12,7 @@ export function ColorToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
     data: {
       type: 'color',
       config: colorConfigSchema.parse({
+        type: 'color',
         propertyName: 'color',
         label: 'Color Field',
         placeholder: '',

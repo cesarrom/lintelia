@@ -13,6 +13,7 @@ export function TextareaToolbar({ disabled }: ToolbarProps) {
     data: {
       type: 'textarea',
       config: textareaConfigSchema.parse({
+        type: 'textarea',
         propertyName: `textareaField${uuid().substring(0, 4)}`,
         label: 'Text Area',
         placeholder: 'Enter text here...',

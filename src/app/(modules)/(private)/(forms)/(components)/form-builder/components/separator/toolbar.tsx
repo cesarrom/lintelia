@@ -13,6 +13,7 @@ export function SeparatorToolbar({ disabled }: ToolbarProps) {
     data: {
       type: 'separator',
       config: separatorConfigSchema.parse({
+        type: 'separator',
         propertyName: `separator${uuid().substring(0, 4)}`,
         title: 'Separator',
         showTitle: false,

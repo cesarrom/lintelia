@@ -15,7 +15,7 @@ export const endService = restate.object({
           nodeData,
           event: eventName,
           executionId,
-          localResult: r,
+          localResult: {},
           globalResult: r,
           yaml,
           domain,

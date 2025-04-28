@@ -14,6 +14,7 @@ export function RangeToolbar({ disabled }: ToolbarProps) {
     data: {
       type: 'range',
       config: rangeConfigSchema.parse({
+        type: 'range',
         propertyName: `rangeField${Math.floor(Math.random() * 1000)}`,
         label: 'Range Slider',
         description: '',

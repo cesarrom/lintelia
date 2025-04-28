@@ -3,22 +3,17 @@ import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
 // Form builder config schema
 export const textareaConfigSchema = baseConfigSchema.extend({
+  type: z.literal('textarea'),
   label: z.string().min(1, 'Label is required'),
-  placeholder: z.string().optional(),
-  description: z.string().optional(),
+  placeholder: z.string().optional().default(''),
+  description: z.string().optional().default(''),
   rows: z.number().min(2).default(4),
   validation: z.object({
     minLength: z.number().optional(),
     maxLength: z.number().optional(),
     pattern: z.string().optional(),
-  }).optional(),
-}).transform((data) => ({
-  ...data,
-  placeholder: data.placeholder ?? '',
-  description: data.description ?? '',
-  rows: data.rows ?? 4,
-  validation: data.validation ?? {},
-}));
+  }).optional().default({}),
+});
 
 export type TextareaConfig = z.infer<typeof textareaConfigSchema>;
 

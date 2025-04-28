@@ -3,8 +3,9 @@ import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
 // Form builder config schema
 export const imageConfigSchema = baseConfigSchema.extend({
+  type: z.literal('image'),
   label: z.string().min(1, 'Label is required'),
-  description: z.string().optional(),
+  description: z.string().optional().default(''),
   accept: z.array(z.string()).default(['.jpg', '.jpeg', '.png', '.gif']),
   maxSize: z.number().min(0).default(5 * 1024 * 1024), // 5MB default
   validation: z.object({
@@ -13,12 +14,8 @@ export const imageConfigSchema = baseConfigSchema.extend({
     minHeight: z.number().optional(),
     maxHeight: z.number().optional(),
     aspectRatio: z.number().optional(),
-  }).optional(),
-}).transform((data) => ({
-  ...data,
-  description: data.description ?? '',
-  validation: data.validation ?? {},
-}));
+  }).optional().default({}),
+});
 
 export type ImageConfig = z.infer<typeof imageConfigSchema>;
 

@@ -12,6 +12,7 @@ export function DateToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
     data: {
       type: 'date',
       config: dateConfigSchema.parse({
+        type: 'date',
         propertyName: 'date',
         label: 'Date Field',
         placeholder: '',

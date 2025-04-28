@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { baseComponentConfigSchema, formComponentSchema } from '../../schemas';
+import { formComponentSchema } from '../../schemas';
+import { baseConfigSchema } from '../base-schema';
 
 const columnSchema = z.object({
   id: z.string(),
@@ -7,7 +8,8 @@ const columnSchema = z.object({
   components: z.array(formComponentSchema).default([]),
 });
 
-export const columnsConfigSchema = baseComponentConfigSchema.extend({
+export const columnsConfigSchema = baseConfigSchema.extend({
+  type: z.literal('columns'),
   columns: z.array(columnSchema).default([
     { id: '1', width: 6, components: [] },
     { id: '2', width: 6, components: [] },

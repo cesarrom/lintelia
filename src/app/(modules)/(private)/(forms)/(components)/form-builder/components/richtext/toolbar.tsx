@@ -12,8 +12,9 @@ export function RichtextToolbar({ disabled }: ToolbarProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: 'richtext-toolbar',
     data: {
-      type: 'richtext',
+      type: 'richText',
       config: richtextConfigSchema.parse({
+        type: 'richText',
         propertyName: `richtextField${uuid().substring(0, 4)}`,
         label: 'Rich Text',
         placeholder: 'Enter rich text content here...',

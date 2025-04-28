@@ -13,6 +13,7 @@ export function PhoneToolbar({ disabled }: ToolbarProps) {
     data: {
       type: 'phone',
       config: phoneConfigSchema.parse({
+        type: 'phone',
         propertyName: `phoneField_${uuid().substring(0, 4)}`,
         label: 'Phone Number',
         placeholder: 'Enter your phone number',

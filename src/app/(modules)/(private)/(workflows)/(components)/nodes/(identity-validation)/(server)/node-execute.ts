@@ -7,14 +7,15 @@ import assert from "assert";
 import { ExecuteNodeFunctionProps } from "@/app/(modules)/(private)/(workflows)/types";
 import { downloadFile } from "@/app/(modules)/(private)/(shared)/(actions)/files";
 import { workflowInject } from "@/lib/injector/utils";
-import { WorkflowExecutionsService } from "@/lib/services";
+import { FormsService, WorkflowExecutionsService } from "@/lib/services";
 
 export const identityValidationService = restate.object({
   name: "identityValidation",
   handlers: {
     executeNode: workflowInject(
-      [WorkflowExecutionsService],
-      async ({ tenant }, [workflowExecutionsService], c: restate.ObjectContext, { executionId, nodeData, yaml, domain, token, result: r }: ExecuteNodeFunctionProps) => {
+      [WorkflowExecutionsService, FormsService],
+      async ({ tenant, user }, [workflowExecutionsService, formsService], c: restate.ObjectContext, { executionId, nodeData, yaml, domain, token, result: r }: ExecuteNodeFunctionProps) => {
+        assert(user, 'User is required');
         assert(tenant, 'Tenant is required');
 
         const configRef = await c.run('validate-config', async () => {
@@ -98,7 +99,81 @@ export const identityValidationService = restate.object({
           return checkResult;
         });
 
-        return workflowExecutionsService.nextOrEndExecution({ nodeData, event: events.validationCompleted, executionId, globalResult: r, localResult: result, yaml, domain, token });
+        assert(result.status === 'complete', 'Check did not complete');
+
+        const formId = c.rand.uuidv4();
+
+        const { form, instance, answer } = await c.run('create-form-with-answers', async () => {
+          return formsService.createFormWithAnswers(
+            {
+              name: 'Identity Validation',
+              description: '',
+              createdBy: user?.userId || 'System',
+              config: {
+                id: formId,
+                name: 'Identity Validation',
+                description: '',
+                variables: {},
+                components: [
+                  {
+                    id: 'result',
+                    type: 'textarea',
+                    config: {
+                      type: 'textarea',
+                      propertyName: 'result',
+                      label: 'Result',
+                      required: true,
+                      description: '',
+                      validation: {},
+                      placeholder: '',
+                      rows: 4
+                    }
+                  },
+                  {
+                    id: 'type',
+                    type: 'text',
+                    config: {
+                      type: 'text',
+                      propertyName: 'type',
+                      label: 'Type',
+                      required: true,
+                      description: '',
+                      validation: {},
+                      placeholder: ''
+                    }
+                  },
+                  {
+                    id: 'status',
+                    type: 'text',
+                    config: {
+                      type: 'text',
+                      propertyName: 'status',
+                      label: 'Status',
+                      required: true,
+                      description: '',
+                      validation: {},
+                      placeholder: ''
+                    }
+                  }
+                ],
+              },
+            },
+            {
+              result: result.result! || 'No result',
+              type: result.type,
+              status: result.status,
+            }
+          );
+        });
+
+        return workflowExecutionsService.nextOrEndExecution({
+          nodeData, event: events.validationCompleted, executionId, globalResult: r, localResult: {
+            result,
+            form_id: form.id,
+            instance_id: instance.id,
+            answer_id: answer.id
+          }, yaml, domain, token
+        });
       }
     ),
   }

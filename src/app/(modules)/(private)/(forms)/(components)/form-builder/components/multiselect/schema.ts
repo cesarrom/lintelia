@@ -27,23 +27,17 @@ export const optionsSourceSchema = z.discriminatedUnion('type', [
 
 // Form builder config schema
 export const multiselectConfigSchema = baseConfigSchema.extend({
+  type: z.literal('multiselect'),
   label: z.string().min(1, 'Label is required'),
-  placeholder: z.string().optional(),
-  description: z.string().optional(),
+  placeholder: z.string().optional().default(''),
+  description: z.string().optional().default(''),
   source: optionsSourceSchema,
-  defaultValue: z.array(z.string()).optional(),
+  defaultValue: z.array(z.string()).optional().default([]),
   minSelect: z.number().min(0).optional(),
   maxSelect: z.number().min(0).optional(),
-  searchable: z.boolean(),
-  creatable: z.boolean(),
-}).transform((data) => ({
-  ...data,
-  placeholder: data.placeholder ?? '',
-  description: data.description ?? '',
-  defaultValue: data.defaultValue ?? [],
-  searchable: data.searchable ?? false,
-  creatable: data.creatable ?? false,
-}));
+  searchable: z.boolean().default(false),
+  creatable: z.boolean().default(false),
+});
 
 export type MultiselectConfig = z.infer<typeof multiselectConfigSchema>;
 

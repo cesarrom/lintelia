@@ -1,45 +1,14 @@
-import * as cheerio from 'cheerio';
 import { events, DecisionTableNodeDataSchema, DecisionTableNodeData } from "../types";
 import * as restate from "@restatedev/restate-sdk/fetch";
 import { ExecuteNodeFunctionProps } from "@/app/(modules)/(private)/(workflows)/types";
 import { workflowInject } from '@/lib/injector/utils';
 import { WorkflowExecutionsService } from '@/lib/services/workflow-executions.service';
+import { parseDMN } from "../(utils)/utils";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { decisionTable } = require('@hbtgmbh/dmn-eval-js');
 
-/**
- * Filters XML string by removing disallowed nodes.
- *
- * @param {string} xml - The XML string to be filtered.
- * @param {string[]} allowedNodes - An array of node names that should be retained.
- * @returns {string} - The resulting XML string with only allowed nodes.
- */
-function filterXmlNodes(xml: string, allowedNodes: string[]) {
-  // Load the XML with xmlMode enabled
-  const $ = cheerio.load(xml, { xmlMode: true });
-
-  // Select the <definitions> node
-  const definitions = $('definitions');
-
-  // Remove all direct children that are not in the allowedNodes list
-  definitions.children().each((index, element) => {
-    if (!allowedNodes.includes(element.tagName)) {
-      $(element).remove();
-    }
-  });
-
-  // a node with <decision name=risk ></decision>
-  const riskNode = definitions.find('decision[name=risk]');
-  const riskId = riskNode.attr('id');
-
-  // Return the resulting XML string
-  return { xml: $.xml().replace(/<(\/)?(\w+)/g, '<$1dmn:$2'), riskId: riskId };
-}
-
 async function evaluateDecisionTable({ xml, targetDmnId: riskId, outputName }: DecisionTableNodeData, context: Record<string, unknown>) {
-  const xmlContent = filterXmlNodes(xml, ['decision', 'inputData', 'input', 'output']);
-
-  const decisions = await decisionTable.parseDmnXml(xmlContent);
+  const decisions = await parseDMN(xml);
 
   const output = decisionTable.evaluateDecision(riskId, decisions, context);
 

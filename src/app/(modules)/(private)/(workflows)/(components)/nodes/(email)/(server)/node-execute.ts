@@ -10,19 +10,23 @@ export const emailsService = restate.object({
   handlers: {
     executeNode: workflowInject(
       [ES, WorkflowExecutionsService],
-      async ({}, [emailService, workflowExecutionsService], c: restate.ObjectContext, { executionId, nodeData, yaml, domain, token, result: r }: ExecuteNodeFunctionProps) => {
+      async ({ }, [emailService, workflowExecutionsService], c: restate.ObjectContext, { executionId, nodeData, yaml, domain, token, result: r }: ExecuteNodeFunctionProps) => {
         try {
           const config = await c.run('validate-config', async () => {
             return EmailNodeDataSchema.parse(nodeData.config || {});
           });
 
-          const variables = workflowExecutionsService.getConfiguration(config, r) as EmailNodeData;
+          const variables = await c.run('get-variables', async () => {
+            return workflowExecutionsService.getConfiguration(config, r) as EmailNodeData;
+          });
 
-          await emailService.sendEmailTemplate({
-            to: variables.to,
-            subject: variables.subject,
-            template: variables.template,
-            cc: variables.cc,
+          await c.run('just-send-email', async () => {
+            await emailService.sendEmailTemplate({
+              to: variables.to,
+              subject: variables.subject,
+              template: variables.template,
+              cc: variables.cc,
+            });
           });
 
 

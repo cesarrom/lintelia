@@ -34,24 +34,16 @@ export type SystemReference = z.infer<typeof systemReferenceSchema>;
 
 // Form builder config schema
 export const richtextConfigSchema = baseConfigSchema.extend({
+  type: z.literal('richText'),
   label: z.string().min(1, 'Label is required'),
-  placeholder: z.string().optional(),
-  description: z.string().optional(),
-  content: z.string().optional(),
-  references: z.array(referenceSchema).optional(),
-  enableVariables: z.boolean().optional(),
-  enableFieldReferences: z.boolean().optional(),
-  enableSystemVariables: z.boolean().optional(),
-}).transform((data) => ({
-  ...data,
-  placeholder: data.placeholder ?? '',
-  description: data.description ?? '',
-  content: data.content ?? '',
-  references: data.references ?? [],
-  enableVariables: data.enableVariables ?? true,
-  enableFieldReferences: data.enableFieldReferences ?? true,
-  enableSystemVariables: data.enableSystemVariables ?? true,
-}));
+  placeholder: z.string().optional().default(''),
+  description: z.string().optional().default(''),
+  content: z.string().optional().default(''),
+  references: z.array(referenceSchema).optional().default([]),
+  enableVariables: z.boolean().optional().default(true),
+  enableFieldReferences: z.boolean().optional().default(true),
+  enableSystemVariables: z.boolean().optional().default(true),
+});
 
 export type RichtextConfig = z.infer<typeof richtextConfigSchema>;
 

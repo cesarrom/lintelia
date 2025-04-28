@@ -20,7 +20,7 @@ import { RichtextToolbar } from './toolbar';
  * - Real-time interpolation of variables and field values
  */
 export const richtextComponent: IFormComponent = {
-  type: 'richtext',
+  type: 'richText',
   label: 'Rich Text',
   icon: FileText,
   category: 'input',

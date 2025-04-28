@@ -13,6 +13,7 @@ export function RatingToolbar({ disabled }: ToolbarProps) {
     data: {
       type: 'rating',
       config: ratingConfigSchema.parse({
+        type: 'rating',
         propertyName: `rating${uuid().substring(0, 8)}`,
         label: 'Rating',
         required: false,

@@ -3,13 +3,10 @@ import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
 // Form builder config schema
 export const pageSeparatorConfigSchema = baseConfigSchema.extend({
-  title: z.string().min(1, 'Title is required'),
-  description: z.string().optional(),
-}).transform((data) => ({
-  ...data,
-  title: data.title || 'New Page',
-  description: data.description ?? '',
-}));
+  type: z.literal('pageSeparator'),
+  title: z.string().min(1, 'Title is required').default('New Page'),
+  description: z.string().optional().default(''),
+});
 
 export type PageSeparatorConfig = z.infer<typeof pageSeparatorConfigSchema>;
 

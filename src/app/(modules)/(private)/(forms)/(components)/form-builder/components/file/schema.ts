@@ -3,23 +3,18 @@ import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
 // Form builder config schema
 export const fileConfigSchema = baseConfigSchema.extend({
+  type: z.literal('file'),
   label: z.string().min(1, 'Label is required'),
-  description: z.string().optional(),
-  accept: z.string().optional(),
+  description: z.string().optional().default(''),
+  accept: z.string().optional().default('*/*'),
   multiple: z.boolean().default(false),
   maxSize: z.number().optional(), // in bytes
   validation: z.object({
     minFiles: z.number().optional(),
     maxFiles: z.number().optional(),
     allowedTypes: z.array(z.string()).optional(),
-  }).optional(),
-}).transform((data) => ({
-  ...data,
-  description: data.description ?? '',
-  accept: data.accept ?? '*/*',
-  multiple: data.multiple ?? false,
-  validation: data.validation ?? {},
-}));
+  }).optional().default({}),
+});
 
 export type FileConfig = z.infer<typeof fileConfigSchema>;
 

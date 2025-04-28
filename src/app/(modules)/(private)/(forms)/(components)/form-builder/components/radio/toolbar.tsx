@@ -14,6 +14,7 @@ export function RadioToolbar({ disabled }: ToolbarProps) {
     data: {
       type: 'radio',
       config: radioConfigSchema.parse({
+        type: 'radio',
         propertyName: `radioField${uuid().slice(0, 8)}`,
         label: 'Radio Group',
         options: [

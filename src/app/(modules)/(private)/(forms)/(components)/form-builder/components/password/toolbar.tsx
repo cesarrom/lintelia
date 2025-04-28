@@ -13,6 +13,7 @@ export function PasswordToolbar({ disabled }: ToolbarProps) {
     data: {
       type: 'password',
       config: passwordConfigSchema.parse({
+        type: 'password',
         propertyName: `passwordField${uuid().substring(0, 4)}`,
         label: 'Password',
         placeholder: 'Enter your password',

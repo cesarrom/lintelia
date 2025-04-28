@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -37,6 +37,10 @@ import { toast } from 'sonner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Form } from '@/lib/entities/tenant/form.entity';
 import { FormConfig } from '../../../../../(forms)/(components)/form-builder/schemas';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DialogDescription } from '@radix-ui/react-dialog';
+import { Separator } from '@/components/ui/separator';
+
 // Query keys
 export const formKeys = {
   all: ['forms'] as const,
@@ -46,12 +50,43 @@ export const formKeys = {
   detail: (id: string) => [...formKeys.details(), id] as const,
 };
 
+// Default empty form config
+const defaultFormConfig: FormConfig = {
+  id: '', // Will be set when creating a new form
+  name: '',
+  description: '',
+  variables: {},
+  components: [],
+  // validation: {},
+};
+
 // Queries
 export const useFormsList = () => {
   return useQuery({
     queryKey: formKeys.lists(),
     queryFn: () => listForms(),
   });
+};
+
+// Helper to map Form entity to FormConfig for the builder
+const mapFormToConfig = (form: Form): FormConfig => {
+  // Ensure config exists and has expected structure, provide defaults if not
+  const config = form.config || {};
+  return {
+    id: form.id, // Use the actual form ID
+    name: form.name || '',
+    description: form.description || '',
+    variables: config.variables || {},
+    components: config.components || [],
+    // validation: config.validation || {}, // Make sure validation exists
+  };
+};
+
+// Helper to check if form has unsaved changes
+const formHasChanges = (original: FormConfig | null | undefined, current: FormConfig | null | undefined): boolean => {
+  if (!original || !current) return false; // Consider new form as having changes if not empty
+  // Simple string comparison, could be more robust
+  return JSON.stringify(original) !== JSON.stringify(current);
 };
 
 // Mutations
@@ -111,53 +146,162 @@ export const useUpdateForm = () => {
   });
 };
 
-interface FormNodeConfig {
+interface FormNodeConfig { // This interface might be redundant now, keeping for reference
   selectedForm?: string;
   config?: FormConfig;
   variables?: Record<string, string>;
 }
 
-const mapFormToConfig = (form: Form): FormConfig => {
-  return {
-    id: form.id,
-    name: form.name,
-    description: form.description,
-    variables: form.config.variables || {},
-    components: form.config.components || [],
-    validation: form.config.validation,
-  };
-};
-
 export function FormDialog({ open, onOpenChange }: DialogProps) {
   const [data, setData] = useNodeData();
   const [config, setConfig] = useNodeConfig<FormNodeData>((data?.config as FormNodeData) || { formId: '', variables: {} });
-  const [name, setName] = useState(data?.name || '');
+  const [nodeName, setNodeName] = useState(data?.name || '');
 
-  const [formConfig, setFormConfig] = useState<FormNodeConfig>(() => {
-    return {
-      selectedForm: config.formId || undefined,
-      config: {
-        id: uuid(),
-        name: '',
-        description: '',
-        variables: {},
-        components: []
-      },
-    };
-  });
+  // State for the form builder
+  const [selectedFormId, setSelectedFormId] = useState<string | 'new'>(config.formId || 'new');
+  const [currentFormDefinition, setCurrentFormDefinition] = useState<FormConfig | null>(null);
+  const [originalFormDefinition, setOriginalFormDefinition] = useState<FormConfig | null>(null);
+  const [formBuilderKey, setFormBuilderKey] = useState(uuid()); // Key to force re-render
 
-  const [builderOpen, setBuilderOpen] = useState(false);
-  const [newForm, setNewForm] = useState<FormConfig | null>(null);
-
-  // Queries
-  const { data: forms = [] } = useFormsList();
+  // Queries & Mutations
+  const { data: forms = [], isLoading: isLoadingForms } = useFormsList();
   const createFormMutation = useCreateForm();
   const updateFormMutation = useUpdateForm();
 
-  const updateState = useCallback((e: FormConfig) => {
+  // Effect to load form definition when selectedFormId changes or forms data is loaded
+  useEffect(() => {
+    if (isLoadingForms) return;
+
+    let formToLoad: FormConfig | null = null;
+
+    if (selectedFormId === 'new') {
+      formToLoad = { ...defaultFormConfig, id: uuid(), name: 'New Form' }; // Create a fresh default form
+    } else {
+      const selectedForm = forms.find(f => f.id === selectedFormId);
+      if (selectedForm) {
+        formToLoad = mapFormToConfig(selectedForm);
+      } else if (config.formId && selectedFormId === config.formId) {
+        // If the initial formId from config doesn't match any loaded forms (maybe deleted?), fallback to new
+        console.warn(`Form with ID ${config.formId} not found, falling back to new form.`);
+        setSelectedFormId('new');
+        formToLoad = { ...defaultFormConfig, id: uuid(), name: 'New Form' };
+      } else if (!selectedFormId) {
+        // No form selected yet, default to 'new'
+        setSelectedFormId('new');
+        formToLoad = { ...defaultFormConfig, id: uuid(), name: 'New Form' };
+      }
+    }
+
+    if (formToLoad) {
+      setCurrentFormDefinition(formToLoad);
+      setOriginalFormDefinition(JSON.parse(JSON.stringify(formToLoad))); // Deep copy for change detection
+      setFormBuilderKey(uuid()); // Force FormBuilder remount
+    }
+  }, [selectedFormId, forms, isLoadingForms, config.formId]);
+
+  // Effect to update node config when form definition changes (specifically variables)
+  useEffect(() => {
+    if (currentFormDefinition && currentFormDefinition.id === config.formId) {
+      const currentVariables = Object.keys(config.variables || {});
+      const formVariables = Object.keys(currentFormDefinition.variables || {});
+
+      const newVariables = formVariables.reduce((acc, key) => {
+        acc[key] = config.variables?.[key] || ''; // Keep existing values, add new ones as empty
+        return acc;
+      }, {} as Record<string, string>);
+
+      // Only update if variables structure changed
+      if (JSON.stringify(newVariables) !== JSON.stringify(config.variables)) {
+        setConfig(prev => ({ ...prev, variables: newVariables }));
+      }
+    }
+  }, [currentFormDefinition, config.formId, config.variables, setConfig]);
+
+  const hasUnsavedChanges = formHasChanges(originalFormDefinition, currentFormDefinition);
+
+  const handleSelectChange = (value: string) => {
+    if (hasUnsavedChanges) {
+      if (!confirm('You have unsaved changes in the current form. Are you sure you want to switch? Changes will be lost.')) {
+        return; // Prevent switching
+      }
+    }
+    setSelectedFormId(value);
+    const formConfig = forms?.find(f => f.id === value);
+    if (formConfig) {
+      setCurrentFormDefinition(formConfig.config);
+      setOriginalFormDefinition(JSON.parse(JSON.stringify(formConfig.config)));
+    }
+  };
+
+  const handleSaveForm = useCallback(async () => {
+    if (!currentFormDefinition) {
+      toast.error('No form definition to save.');
+      return;
+    }
+    if (!currentFormDefinition.name?.trim()) {
+      toast.error('Form name cannot be empty.');
+      return;
+    }
+
+    const dataToSave = {
+      name: currentFormDefinition.name,
+      description: currentFormDefinition.description,
+      config: currentFormDefinition,
+    };
+
+    try {
+      let savedForm: Form | undefined;
+      if (selectedFormId === 'new' || !forms.find(f => f.id === currentFormDefinition.id)) {
+        // It's either explicitly 'new' or the ID doesn't exist in the fetched list (might be a newly generated UUID)
+        savedForm = await createFormMutation.mutateAsync(dataToSave);
+        if (savedForm) {
+          setSelectedFormId(savedForm.id); // Switch from 'new' to the actual ID
+          // Update config immediately only if node had no form selected before
+          if (!config.formId) {
+            setConfig(prev => ({ ...prev, formId: savedForm!.id }));
+          }
+        }
+      } else {
+        savedForm = await updateFormMutation.mutateAsync({ id: currentFormDefinition.id, data: dataToSave });
+      }
+
+      if (savedForm) {
+        // Update original definition after successful save
+        setOriginalFormDefinition(JSON.parse(JSON.stringify(currentFormDefinition)));
+      }
+    } catch (error) {
+      // Error handling is done within the mutation hooks
+    }
+  }, [createFormMutation, updateFormMutation, setConfig, selectedFormId, nodeName]);
+
+  const handleFormDefinitionChange = useCallback((newDefinition: FormConfig) => {
+    setCurrentFormDefinition(newDefinition);
+    // Update node name only if it's a new form and name hasn't been manually set
+    handleSaveForm();
+  }, [selectedFormId, nodeName, handleSaveForm]);
+
+  const handleResetForm = () => {
+    if (originalFormDefinition) {
+      setCurrentFormDefinition(JSON.parse(JSON.stringify(originalFormDefinition))); // Deep copy reset
+      setFormBuilderKey(uuid()); // Force re-render
+      toast.info('Form reset to last saved state.');
+    } else {
+      toast.error('Cannot reset form.');
+    }
+  };
+
+  // Update Node Data when saving the dialog
+  const onSave = useCallback(() => {
+    if (!currentFormDefinition?.id || selectedFormId === 'new') {
+      toast.error('Please select or save a form before saving the node.');
+      return;
+    }
+
+    const finalFormId = currentFormDefinition.id;
+
     const events = data?.events.map(evt => {
-      if (evt.name === 'form_submitted') {
-        const outputs = Object.entries(generateFormSchema(e)).map(([key, value]) => ({
+      if (evt.name === 'form_submitted' && currentFormDefinition) {
+        const outputs = Object.entries(generateFormSchema(currentFormDefinition)).map(([key, value]) => ({ // Use generateFormSchema
           name: key,
           type: value.type,
         }));
@@ -166,55 +310,45 @@ export function FormDialog({ open, onOpenChange }: DialogProps) {
           name: 'form_submitted',
           outputs: [
             ...outputs,
-            {
-              name: 'form_id',
-              type: 'string',
-            },
-            {
-              name: 'instance_id',
-              type: 'string',
-            },
-            {
-              name: 'answers_id',
-              type: 'string',
-            }
+            { name: 'form_id', type: 'string' },
+            { name: 'instance_id', type: 'string' },
+            { name: 'answers_id', type: 'string' },
           ],
         };
       }
-
       return evt;
     }) as any[];
 
-    const variables = Object.entries(e.variables || {}).reduce((acc, [key, value]) => ({
-      ...acc,
-      [key]: '',
-    }), {});
+    // Ensure variables in config match the latest form definition variables
+    const formVariables = Object.keys(currentFormDefinition.variables || {}).reduce((acc, key) => {
+      acc[key] = config.variables?.[key] || ''; // Keep existing values, add new ones as empty
+      return acc;
+    }, {} as Record<string, string>);
+
 
     setData(d => ({
       ...d,
+      name: nodeName,
       config: {
-        formId: e.id,
-        variables,
+        ...config,
+        formId: finalFormId,
+        variables: formVariables, // Use updated variables
       },
-      name,
       events,
     }));
-  }, [setData, name, data?.events]);
+    onOpenChange(false);
+  }, [data, nodeName, setData, onOpenChange, currentFormDefinition, config, setConfig, selectedFormId]);
 
-  const getCurrentConfig = useCallback(() => {
-    if (formConfig.selectedForm) {
-      const selectedForm = forms.find(f => f.id === formConfig.selectedForm);
-      return selectedForm ? mapFormToConfig(selectedForm) : formConfig.config;
-    }
-    return formConfig.config;
-  }, [formConfig, forms]);
+  const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setNodeName(event.target.value);
+  };
 
   const generateFormSchema = useCallback((config: FormConfig) => {
     const schema: Record<string, { type: string }> = {};
 
     config.components.forEach(component => {
       if ('config' in component && 'label' in component.config) {
-        const fieldId = component.id;
+        const fieldId = component.config.propertyName;
         let fieldType = 'string';
 
         switch (component.type) {
@@ -240,227 +374,122 @@ export function FormDialog({ open, onOpenChange }: DialogProps) {
     return schema;
   }, []);
 
-  const handleSaveForm = async (form: FormConfig) => {
-    try {
-      let result;
-      
-      // If we're editing an existing form, use its ID
-      if (formConfig.selectedForm && form.id === formConfig.selectedForm) {
-        result = await updateFormMutation.mutateAsync({
-          id: form.id,
-          data: {
-            name: form.name,
-            description: form.description,
-            config: form
-          }
-        });
-      } else {
-        // For new forms, generate a new ID
-        const newForm = {
-          ...form,
-          id: uuid(),
-        };
-        result = await createFormMutation.mutateAsync({
-          name: newForm.name,
-          description: newForm.description,
-          config: newForm
-        });
-      }
-      
-      // Update the form selection with the saved form
-      setFormConfig(prev => ({
-        ...prev,
-        selectedForm: result.id,
-        config: mapFormToConfig(result),
-      }));
-      
-      // Update the node config with the new form
-      updateState(mapFormToConfig(result));
-      
-      setBuilderOpen(false);
-    } catch (error) {
-      // Error is handled by the mutation
-      console.error('Failed to save form:', error);
-      toast.error('Failed to save form');
-    }
-  };
+  // Prepare variables for the configuration tab
+  const formVariables = currentFormDefinition?.variables ? Object.entries(currentFormDefinition.variables) : [];
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-5xl h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>Form Configuration</DialogTitle>
-          </DialogHeader>
-          <ScrollArea className="h-[calc(100vh-20rem)]">
-            <div className="grid grid-cols-1 gap-4 h-full">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Node Name</Label>
-                  <Input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter node name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Select Form</Label>
-                  <div className="flex gap-2">
-                    <Select
-                      value={formConfig.selectedForm}
-                      onValueChange={(value) => {
-                        const selectedForm = forms.find(f => f.id === value);
-                        const cnf = selectedForm ? mapFormToConfig(selectedForm) : formConfig.config;
-                        setFormConfig(c => ({
-                          ...c,
-                          selectedForm: value,
-                          config: cnf,
-                        }));
-
-                        updateState(cnf!);
-                      }}
-                    >
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Select a form" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {forms.map((form) => (
-                          <SelectItem key={form.id} value={form.id}>
-                            {form.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => {
-                        setNewForm({
-                          id: uuid(),
-                          name: 'New Form',
-                          description: '',
-                          variables: {},
-                          components: []
-                        });
-                        setBuilderOpen(true);
-                      }}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                    {formConfig.selectedForm && (
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => {
-                          const selectedForm = forms.find(f => f.id === formConfig.selectedForm);
-                          if (selectedForm) {
-                            setNewForm(mapFormToConfig(selectedForm));
-                            setBuilderOpen(true);
-                          }
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {formConfig.config && (
-                  <>
-                    <Accordion type="single" collapsible>
-                      <AccordionItem value="form-details">
-                        <AccordionTrigger className="flex items-center gap-2">
-                          <ChevronDown className="h-4 w-4" />
-                          <Label>Form Details</Label>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <div className="rounded-lg border bg-muted/50 p-4 mt-2">
-                            <div className="text-sm font-medium">{formConfig.config.name}</div>
-                            {formConfig.config.description && (
-                              <div className="mt-1 text-sm text-muted-foreground">
-                                {formConfig.config.description}
-                              </div>
-                            )}
-                            <div className="mt-4 space-y-2">
-                              {formConfig.config.components.map((component) => {
-                                const config = component.config as { label: string; required?: boolean };
-                                return (
-                                  <div key={component.id} className="text-sm">
-                                    • {config.label} ({component.type})
-                                    {config.required && ' *'}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-
-                    {Object.entries(formConfig.config?.variables || {}).length > 0 && (
-                      <div className="space-y-2">
-                        <Label>Form Variables</Label>
-                        <div className="space-y-4">
-                          {Object.entries(formConfig?.config?.variables || {}).map(([key, variable]) => (
-                            <div key={key}>
-                              <Label className="text-sm">{variable.name}</Label>
-                              <VariableInput
-                                value={config.variables?.[key] || ''}
-                                onChange={(value) => {
-                                  setConfig(prev => ({
-                                    ...prev,
-                                    variables: {
-                                      ...prev.variables,
-                                      [key]: value
-                                    }
-                                  }));
-                                }}
-                              />
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {variable.description}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          </ScrollArea>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => updateState(getCurrentConfig()!)}>Save</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog 
-        open={builderOpen} 
-        onOpenChange={(open) => {
-          // Prevent dialog from closing when clicking outside
-          if (open === false) return;
-          setBuilderOpen(open);
-        }}
-      >
-        <DialogContent className="max-w-7xl max-h-[95vh] p-0">
-          <DialogHeader className="px-6 py-4">
-            <DialogTitle>Form Builder</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-auto">
-          {newForm && (
-            <FormBuilder
-              initialConfig={newForm}
-                onSave={handleSaveForm}
-              onCancel={() => setBuilderOpen(false)}
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      onOpenChange(isOpen);
+    }}>
+      <DialogContent className="h-[95vh] w-[95vw] max-w-[95vw] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>
+            <Input
+              value={nodeName}
+              onChange={handleNameChange}
+              className="text-lg font-semibold border-none focus-visible:ring-1 focus-visible:ring-ring p-1 h-auto"
+              placeholder="Form Node Name"
             />
-          )}
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+          </DialogTitle>
+          <DialogDescription>
+            Select or create a form, then configure its input variables.
+          </DialogDescription>
+        </DialogHeader>
+
+        <Tabs defaultValue="form" className="flex-grow flex flex-col min-h-0 h-full w-full">
+          <TabsList className="shrink-0">
+            <TabsTrigger value="form">Form</TabsTrigger>
+            <TabsTrigger value="config" disabled={!currentFormDefinition?.id || selectedFormId === 'new'}>
+              Configuration
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Form Tab: Selection and Builder */}
+          <TabsContent value="form" className="flex-grow flex flex-col min-h-0 p-0 pt-4">
+            <div className="flex items-center gap-2 mb-4 px-6 shrink-0">
+              <Label htmlFor="form-select" className="whitespace-nowrap">Select Form:</Label>
+              <Select
+                value={selectedFormId}
+                onValueChange={handleSelectChange}
+                disabled={isLoadingForms}
+              >
+                <SelectTrigger id="form-select" className="flex-grow">
+                  <SelectValue placeholder="Select a form or create new" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">
+                    <div className="flex items-center">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create New Form
+                    </div>
+                  </SelectItem>
+                  {forms?.map(form => (<SelectItem key={form.id} value={form.id}>{form.name}</SelectItem>))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Form Builder Area */}
+            <ScrollArea className="flex-grow min-h-0 px-6 pb-6">
+              {currentFormDefinition ? (
+                <FormBuilder
+                  key={formBuilderKey} // Use key to force re-render on reset/load
+                  initialConfig={currentFormDefinition}
+                  onSave={config => {
+                    handleFormDefinitionChange(config);
+                  }}
+                  onCancel={handleResetForm}
+                />
+              ) : (
+                <div className="text-center text-gray-500 py-10">{isLoadingForms ? 'Loading forms...' : 'Select a form or create a new one.'}</div>
+              )}
+            </ScrollArea>
+          </TabsContent>
+
+          {/* Configuration Tab: Variable Inputs */}
+          <TabsContent value="config" className="flex-grow flex flex-col p-6">
+            {currentFormDefinition && selectedFormId !== 'new' ? (
+              formVariables.length > 0 ? (
+                <>
+                  {formVariables.map(([key, variable]) => (
+                    <div key={key} className="flex items-center gap-4">
+                      <Label htmlFor={key} className="text-right col-span-1">
+                        {variable.name || key}
+                      </Label>
+                      <div className="flex flex-col gap-2">
+                        <VariableInput
+                          value={config.variables?.[key] || ''}
+                          onChange={(value) => setConfig(c => ({
+                            ...c,
+                            variables: {
+                              ...c.variables,
+                              [key]: value,
+                            },
+                          }))}
+                        />
+                        {variable.description && <p className="text-sm text-muted-foreground mt-1">{variable.description}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <p className="text-muted-foreground">This form does not have any input variables defined.</p>
+              )
+            ) : (
+              <p className="text-muted-foreground">Select and save a form to configure its variables.</p>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        <DialogFooter className="mt-auto shrink-0">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button
+            onClick={onSave}
+            disabled={selectedFormId === 'new' || !currentFormDefinition?.id || createFormMutation.isPending || updateFormMutation.isPending}
+          >
+            Save Node
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

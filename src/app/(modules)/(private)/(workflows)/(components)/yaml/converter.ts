@@ -1,7 +1,7 @@
 import type { Node, Edge } from 'reactflow';
 import type { Workflow, NodeData, WorkflowYaml, StepExportYaml, WorkflowTrigger } from './types';
 import yaml from 'yaml';
-
+import { v4 as uuid } from 'uuid';
 // Helper to find all steps that can be reached from a given step
 function findReachableSteps(
   stepId: string,
@@ -48,6 +48,7 @@ function validateExports(
 
 export function workflowToYaml(workflow: Workflow, nodes: Node<NodeData>[], edges: Edge[], triggers: WorkflowTrigger[]): string {
   const schema: WorkflowYaml = {
+    id: workflow.id || uuid(),
     schemaVersion: '1.0',
     name: workflow.name,
     description: workflow.description,
@@ -123,7 +124,7 @@ export function yamlToWorkflow(yamlContent: string, options: { id?: string } = {
 
   // Convert to workflow
   const workflow: Workflow = {
-    id: options.id || '', // This should be generated or preserved
+    id: options.id || schema.id || uuid(), // This should be generated or preserved
     name: schema.name,
     description: schema.description,
     version: schema.version,

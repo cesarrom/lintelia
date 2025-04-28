@@ -11,16 +11,13 @@ export type RadioOption = z.infer<typeof radioOptionSchema>;
 
 // Form builder config schema
 export const radioConfigSchema = baseConfigSchema.extend({
+  type: z.literal('radio'),
   label: z.string().min(1, 'Label is required'),
-  description: z.string().optional(),
-  options: z.array(radioOptionSchema).min(1, 'At least one option is required'),
+  description: z.string().optional().default(''),
+  options: z.array(radioOptionSchema).min(1, 'At least one option is required').default([]),
   defaultValue: z.string().optional(),
   layout: z.enum(['horizontal', 'vertical']).default('vertical'),
-}).transform((data) => ({
-  ...data,
-  description: data.description ?? '',
-  options: data.options ?? [],
-}));
+});
 
 export type RadioConfig = z.infer<typeof radioConfigSchema>;
 

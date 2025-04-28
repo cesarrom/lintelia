@@ -12,6 +12,7 @@ export function TextToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
     data: {
       type: 'text',
       config: textConfigSchema.parse({
+        type: 'text',
         propertyName: 'text',
         label: 'Text Field',
         placeholder: '',

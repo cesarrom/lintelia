@@ -3,18 +3,14 @@ import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
 // Form builder config schema
 export const timeConfigSchema = baseConfigSchema.extend({
+  type: z.literal('time'),
   label: z.string().min(1, 'Label is required'),
-  placeholder: z.string().optional(),
-  description: z.string().optional(),
+  placeholder: z.string().optional().default('Select time'),
+  description: z.string().optional().default(''),
   min: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format').optional(),
   max: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format').optional(),
-  step: z.number().optional(),
-}).transform((data) => ({
-  ...data,
-  placeholder: data.placeholder ?? 'Select time',
-  description: data.description ?? '',
-  step: data.step ?? 60, // Default step is 60 seconds (1 minute)
-}));
+  step: z.number().optional().default(60),
+});
 
 export type TimeConfig = z.infer<typeof timeConfigSchema>;
 

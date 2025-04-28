@@ -12,6 +12,7 @@ export function DatetimeToolbar({ disabled }: ToolbarProps) {
     data: {
       type: 'datetime',
       config: datetimeConfigSchema.parse({
+        type: 'datetime',
         propertyName: 'dateField',
         label: 'Date & Time',
         format: 'datetime',

@@ -3,20 +3,14 @@ import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
 // Form builder config schema
 export const ratingConfigSchema = baseConfigSchema.extend({
+  type: z.literal('rating'),
   label: z.string().min(1, 'Label is required'),
-  description: z.string().optional(),
+  description: z.string().optional().default(''),
   maxRating: z.number().min(1).max(10).default(5),
   showLabels: z.boolean().default(false),
-  lowLabel: z.string().optional(),
-  highLabel: z.string().optional(),
-}).transform((data) => ({
-  ...data,
-  description: data.description ?? '',
-  maxRating: data.maxRating ?? 5,
-  showLabels: data.showLabels ?? false,
-  lowLabel: data.lowLabel ?? 'Poor',
-  highLabel: data.highLabel ?? 'Excellent',
-}));
+  lowLabel: z.string().optional().default('Poor'),
+  highLabel: z.string().optional().default('Excellent'),
+});
 
 export type RatingConfig = z.infer<typeof ratingConfigSchema>;
 

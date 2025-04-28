@@ -12,6 +12,7 @@ export function TimeToolbar() {
     data: {
       type: 'time',
       config: timeConfigSchema.parse({
+        type: 'time',
         propertyName: 'time',
         label: 'Time',
         placeholder: 'Select time',

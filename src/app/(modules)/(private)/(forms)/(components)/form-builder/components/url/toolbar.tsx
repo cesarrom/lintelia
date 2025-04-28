@@ -13,6 +13,7 @@ export function UrlToolbar({ disabled }: ToolbarProps) {
     data: {
       type: 'url',
       config: urlConfigSchema.parse({
+        type: 'url',
         propertyName: `urlField${uuid().substring(0, 4)}`,
         label: 'URL',
         required: false,

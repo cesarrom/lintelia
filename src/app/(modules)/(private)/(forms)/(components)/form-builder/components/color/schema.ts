@@ -3,21 +3,16 @@ import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
 // Form builder config schema
 export const colorConfigSchema = baseConfigSchema.extend({
+  type: z.literal('color'),
   label: z.string().min(1, 'Label is required'),
-  placeholder: z.string().optional(),
-  description: z.string().optional(),
+  placeholder: z.string().optional().default(''),
+  description: z.string().optional().default(''),
   defaultValue: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Must be a valid hex color').optional(),
-  format: z.enum(['hex', 'rgb']),
+  format: z.enum(['hex', 'rgb']).default('hex'),
   validation: z.object({
     pattern: z.string().optional(),
-  }).optional(),
-}).transform((data) => ({
-  ...data,
-  placeholder: data.placeholder ?? '',
-  description: data.description ?? '',
-  format: data.format ?? 'hex',
-  validation: data.validation ?? {},
-}));
+  }).optional().default({}),
+});
 
 export type ColorConfig = z.infer<typeof colorConfigSchema>;
 

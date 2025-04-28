@@ -7,6 +7,7 @@ import { LogsService } from './logs.service';
 import { v4 as uuid } from 'uuid';
 import { validateWorkflowYaml, yamlToWorkflow } from '@/app/(modules)/(private)/(workflows)/(components)/yaml/converter';
 import { type NodeData } from '@/app/(modules)/(private)/(workflows)/(components)/yaml/types';
+import yaml from 'yaml';
 
 @injectable()
 export class WorkflowsService {
@@ -35,13 +36,16 @@ export class WorkflowsService {
 
     // Parse YAML to extract metadata
     const { workflow: parsedWorkflow, triggers } = yamlToWorkflow(data.yaml);
+    
 
     // Create workflow
     const workflow = new Workflow();
-    workflow.id = uuid();
+    workflow.id = parsedWorkflow.id || uuid();
     workflow.name = parsedWorkflow.name;
     workflow.description = parsedWorkflow.description;
-    workflow.yaml = data.yaml;
+    const parsedYaml = yaml.parse(data.yaml);
+    parsedYaml.id = workflow.id;
+    workflow.yaml = yaml.stringify(parsedYaml);
     workflow.allowedRoles = parsedWorkflow.allowedRoles || [];
     workflow.allowedUsers = parsedWorkflow.allowedUsers || [];
     workflow.createdBy = data.createdBy;
@@ -61,31 +65,6 @@ export class WorkflowsService {
         allowedUsers: workflow.allowedUsers
       }
     });
-
-    // Create triggers
-    for (const trigger of triggers) {
-      try {
-        await this.saveTrigger({
-          workflowId: savedWorkflow.id,
-          name: trigger.name,
-          type: trigger.type,
-          eventName: trigger.eventName,
-          config: trigger.config,
-          createdBy: data.createdBy
-        });
-      } catch (error) {
-        await this.logs.error('Failed to create workflow trigger', {
-          category: 'workflow',
-          source: 'WorkflowsService',
-          userId: data.createdBy,
-          metadata: {
-            workflowId: savedWorkflow.id,
-            triggerName: trigger.name,
-            error: error instanceof Error ? error.message : String(error)
-          }
-        });
-      }
-    }
 
     return savedWorkflow;
   }
@@ -123,7 +102,9 @@ export class WorkflowsService {
     // Update workflow
     workflow.name = parsedWorkflow.name;
     workflow.description = parsedWorkflow.description;
-    workflow.yaml = data.yaml;
+    const parsedYaml = yaml.parse(data.yaml);
+    parsedYaml.id = workflow.id;
+    workflow.yaml = yaml.stringify(parsedYaml);
     workflow.allowedRoles = parsedWorkflow.allowedRoles || [];
     workflow.allowedUsers = parsedWorkflow.allowedUsers || [];
 
@@ -144,44 +125,6 @@ export class WorkflowsService {
 
     // Delete existing triggers
     await this.workflowTriggerRepository.delete({ workflowId });
-
-    // Create new triggers
-    for (const trigger of triggers) {
-      try {
-        const workflowTrigger = new WorkflowTrigger();
-        workflowTrigger.id = uuid();
-        workflowTrigger.workflowId = savedWorkflow.id;
-        workflowTrigger.name = trigger.name as string;
-        workflowTrigger.type = trigger.type as string;
-        workflowTrigger.eventName = (trigger.config.eventName as string) || trigger.name as string;
-        workflowTrigger.config = JSON.stringify(trigger.config);
-        workflowTrigger.status = 'active';
-        workflowTrigger.createdBy = workflow.createdBy;
-
-        await this.workflowTriggerRepository.save(workflowTrigger);
-
-        await this.logs.info('Workflow trigger updated', {
-          category: 'workflow',
-          source: 'WorkflowsService',
-          metadata: {
-            workflowId,
-            triggerId: workflowTrigger.id,
-            triggerName: workflowTrigger.name,
-            eventName: workflowTrigger.eventName
-          }
-        });
-      } catch (error) {
-        await this.logs.error('Failed to update workflow trigger', {
-          category: 'workflow',
-          source: 'WorkflowsService',
-          metadata: {
-            workflowId,
-            triggerName: trigger.name,
-            error: error instanceof Error ? error.message : String(error)
-          }
-        });
-      }
-    }
 
     return savedWorkflow;
   }

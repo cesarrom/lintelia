@@ -3,22 +3,18 @@ import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
 // Form builder config schema
 export const numberConfigSchema = baseConfigSchema.extend({
+  type: z.literal('number'),
   label: z.string().min(1, 'Label is required'),
-  placeholder: z.string().optional(),
-  description: z.string().optional(),
+  placeholder: z.string().optional().default(''),
+  description: z.string().optional().default(''),
   defaultValue: z.number().optional(),
   validation: z.object({
     min: z.number().optional(),
     max: z.number().optional(),
     step: z.number().positive().optional(),
     precision: z.number().int().min(0).max(10).optional(),
-  }).optional(),
-}).transform((data) => ({
-  ...data,
-  placeholder: data.placeholder ?? '',
-  description: data.description ?? '',
-  validation: data.validation ?? {},
-}));
+  }).optional().default({}),
+});
 
 export type NumberConfig = z.infer<typeof numberConfigSchema>;
 

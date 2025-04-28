@@ -3,23 +3,18 @@ import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
 // Form builder config schema
 export const passwordConfigSchema = baseConfigSchema.extend({
+  type: z.literal('password'),
   label: z.string().min(1, 'Label is required'),
-  placeholder: z.string().optional(),
-  description: z.string().optional(),
+  placeholder: z.string().optional().default(''),
+  description: z.string().optional().default(''),
   showToggle: z.boolean().default(true),
   showStrengthIndicator: z.boolean().default(false),
   validation: z.object({
     minLength: z.number().optional(),
     maxLength: z.number().optional(),
     pattern: z.string().optional(),
-  }).optional(),
-}).transform((data) => ({
-  ...data,
-  placeholder: data.placeholder ?? '',
-  description: data.description ?? '',
-  showToggle: data.showToggle ?? true,
-  validation: data.validation ?? {},
-}));
+  }).optional().default({}),
+});
 
 export type PasswordConfig = z.infer<typeof passwordConfigSchema>;
 

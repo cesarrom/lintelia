@@ -19,7 +19,6 @@ export const ProofOfLifeNodeDataSchema = z.object({
   maxAttempts: z.number().optional(),
   timeoutDuration: z.number().optional(), // in seconds
   attempt: z.number().optional(),
-  videoFile: z.string(),
   requireLocation: z.boolean().optional(),
   requireDeviceInfo: z.boolean().optional(),
 });

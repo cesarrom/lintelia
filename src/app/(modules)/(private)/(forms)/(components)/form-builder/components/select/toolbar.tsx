@@ -4,13 +4,15 @@ import { useDraggable } from '@dnd-kit/core';
 import { ListFilter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ToolbarProps } from '../../schemas';
+import { selectConfigSchema } from './schema';
 
 export function SelectToolbar({ onDragStart, onDragEnd, disabled }: ToolbarProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: 'select-toolbar',
     data: {
       type: 'select',
-      config: {
+      config: selectConfigSchema.parse({
+        type: 'select',
         propertyName: 'select',
         label: 'Select',
         placeholder: 'Select an option',
@@ -24,7 +26,7 @@ export function SelectToolbar({ onDragStart, onDragEnd, disabled }: ToolbarProps
             { id: '3', label: 'Option 3', value: 'option3' },
           ],
         },
-      },
+      }),
     },
   });
 

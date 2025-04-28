@@ -12,8 +12,9 @@ export function PageSeparatorToolbar({ disabled }: ToolbarProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id,
     data: {
-      type: 'page-separator',
+      type: 'pageSeparator',
       config: pageSeparatorConfigSchema.parse({
+        type: 'pageSeparator',
         propertyName: `page${uuid().substring(0, 8)}`,
         title: 'New Page',
         description: '',

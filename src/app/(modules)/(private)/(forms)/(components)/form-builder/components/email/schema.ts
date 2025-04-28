@@ -3,18 +3,14 @@ import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
 // Form builder config schema
 export const emailConfigSchema = baseConfigSchema.extend({
+  type: z.literal('email'),
   label: z.string().min(1, 'Label is required'),
-  placeholder: z.string().optional(),
-  description: z.string().optional(),
+  placeholder: z.string().optional().default(''),
+  description: z.string().optional().default(''),
   validation: z.object({
     pattern: z.string().optional(), // Additional email pattern if needed
-  }).optional(),
-}).transform((data) => ({
-  ...data,
-  placeholder: data.placeholder ?? '',
-  description: data.description ?? '',
-  validation: data.validation ?? {},
-}));
+  }).optional().default({}),
+});
 
 export type EmailConfig = z.infer<typeof emailConfigSchema>;
 

@@ -11,6 +11,7 @@ export function EmailToolbar() {
     data: {
       type: 'email',
       config: emailConfigSchema.parse({
+        type: 'email',
         propertyName: 'email',
         label: 'Email',
         placeholder: 'Enter email address',

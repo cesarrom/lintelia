@@ -3,6 +3,28 @@ import { LucideIcon } from 'lucide-react';
 import { BaseComponentSchema } from './components/base-schema';
 import { DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import { FormState, UseFormRegister } from 'react-hook-form';
+import { checkboxConfigSchema } from './components/checkbox/schema';
+import { colorConfigSchema } from './components/color/schema';
+import { dateConfigSchema } from './components/date/schema';
+import { datetimeConfigSchema } from './components/datetime/schema';
+import { emailConfigSchema } from './components/email/schema';
+import { fileConfigSchema } from './components/file/schema';
+import { imageConfigSchema } from './components/image/schema';
+import { multiselectConfigSchema } from './components/multiselect/schema';
+import { numberConfigSchema } from './components/number/schema';
+import { pageSeparatorConfigSchema } from './components/page-separator/schema';
+import { passwordConfigSchema } from './components/password/schema';
+import { phoneConfigSchema } from './components/phone/schema';
+import { radioConfigSchema } from './components/radio/schema';
+import { rangeConfigSchema } from './components/range/schema';
+import { ratingConfigSchema } from './components/rating/schema';
+import { richtextConfigSchema } from './components/richtext/schema';
+import { selectConfigSchema } from './components/select/schema';
+import { separatorConfigSchema } from './components/separator/schema';
+import { textConfigSchema } from './components/text/schema';
+import { textareaConfigSchema } from './components/textarea/schema';
+import { timeConfigSchema } from './components/time/schema';
+import { urlConfigSchema } from './components/url/schema';
 
 // Component Category
 export type ComponentCategory = 'input' | 'layout' | 'container';
@@ -83,7 +105,30 @@ export const formVariableSchema = z.object({
 export const formComponentSchema = z.object({
   id: z.string(),
   type: z.string(),
-  config: z.record(z.string(), z.unknown()),
+  config: z.discriminatedUnion('type', [
+    colorConfigSchema,
+    checkboxConfigSchema,
+    dateConfigSchema,
+    datetimeConfigSchema,
+    emailConfigSchema,
+    fileConfigSchema,
+    imageConfigSchema,
+    multiselectConfigSchema,
+    numberConfigSchema,
+    pageSeparatorConfigSchema,
+    passwordConfigSchema,
+    phoneConfigSchema,
+    radioConfigSchema,
+    rangeConfigSchema,
+    ratingConfigSchema,
+    richtextConfigSchema,
+    selectConfigSchema,
+    separatorConfigSchema,
+    textConfigSchema,
+    textareaConfigSchema,
+    timeConfigSchema,
+    urlConfigSchema
+  ])
 });
 
 // Complete form schema
@@ -100,31 +145,11 @@ export const formConfigSchema = z.object({
 });
 
 // Types
-export type FormVariable = {
-  name: string;
-  type: 'string' | 'number' | 'boolean' | 'array' | 'object';
-  description?: string;
-  required?: boolean;
-  defaultValue?: unknown;
-};
+export type FormVariable = z.infer<typeof formVariableSchema>;
 
-export type FormComponentConfig = {
-  id: string;
-  type: string;
-  config: Record<string, unknown>;
-};
+export type FormComponentConfig = Omit<z.infer<typeof formComponentSchema>, 'type'> & { type: z.infer<typeof formComponentSchema>['config']['type'] }
 
-export type FormConfig = {
-  id: string;
-  name: string;
-  description?: string;
-  variables: Record<string, FormVariable>;
-  components: FormComponentConfig[];
-  validation?: {
-    schema: Record<string, unknown>;  // Serialized validation schema
-    rules: Record<string, unknown>;   // Component-specific validation rules
-  };
-};
+export type FormConfig = Omit<z.infer<typeof formConfigSchema>, 'components'> & { components: FormComponentConfig[] }
 
 // Form Engine Props
 export interface FormEngineProps {
@@ -148,8 +173,8 @@ export function generateValidationConfig(config: FormConfig): FormConfig {
       schema: {},  // Will be populated by validation.ts
       rules: config.components.reduce((acc, component) => {
         acc[component.id] = {
-          type: component.type,
           ...component.config,
+          type: component.type,
         };
         return acc;
       }, {} as Record<string, unknown>),

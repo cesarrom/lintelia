@@ -1,15 +1,23 @@
 'use client';
 
 import { FileUp } from 'lucide-react';
-import { ToolbarProps } from '../../types';
 import { Button } from '@/components/ui/button';
 import { useDraggable } from '@dnd-kit/core';
+import { fileConfigSchema } from './schema';
+import { ToolbarProps } from '../../schemas';
 
 export function FileToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: 'file',
     data: {
       type: 'file',
+      config: fileConfigSchema.parse({
+        type: 'file',
+        propertyName: 'file',
+        label: 'File Upload',
+        description: '',
+        required: false,
+      }),
     },
   });
 

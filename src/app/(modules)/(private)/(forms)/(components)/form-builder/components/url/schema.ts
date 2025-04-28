@@ -3,16 +3,12 @@ import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
 // Form builder config schema
 export const urlConfigSchema = baseConfigSchema.extend({
+  type: z.literal('url'),
   label: z.string().min(1, 'Label is required'),
-  placeholder: z.string().optional(),
-  description: z.string().optional(),
-  prefix: z.string().optional(),
-}).transform((data) => ({
-  ...data,
-  placeholder: data.placeholder ?? 'Enter URL',
-  description: data.description ?? '',
-  prefix: data.prefix ?? 'https://',
-}));
+  placeholder: z.string().optional().default('Enter URL'),
+  description: z.string().optional().default(''),
+  prefix: z.string().optional().default('https://'),
+});
 
 export type UrlConfig = z.infer<typeof urlConfigSchema>;
 

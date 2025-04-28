@@ -12,6 +12,7 @@ export function ImageToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
     data: {
       type: 'image',
       config: {
+        type: 'image',
         propertyName: 'image',
         label: 'Image Field',
         placeholder: '',

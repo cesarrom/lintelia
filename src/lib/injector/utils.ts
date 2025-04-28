@@ -5,6 +5,8 @@ import { auth } from "../clients/auth.client";
 import { RESTATE_CONTEXT_TOKEN, TENANT_TOKEN } from "./tokens";
 import { Tenant } from "../entities/global";
 import * as restate from "@restatedev/restate-sdk/fetch";
+import { SystemVariablesService } from "../services";
+import { set } from "lodash";
 
 type Newable<T> = { new(...args: any[]): T };
 
@@ -106,17 +108,19 @@ export function inject<
   };
 }
 
+type WorkflowCtx = Ctx & { systemVariables: Record<string, any> }
+
 export function workflowInject<
   Deps extends readonly Dependency<unknown>[],
-  Args extends [restate.ObjectContext, { domain?: string, token?: string }],
+  Args extends [restate.ObjectContext, { domain?: string, token?: string, result: Record<string, any> }],
   R
 >(
   deps: [...Deps],
-  fn: (ctx: Ctx, deps: InferDependencies<Deps>, ...args: Args) => R | Promise<R>,
+  fn: (ctx: WorkflowCtx, deps: InferDependencies<Deps>, ...args: Args) => R | Promise<R>,
 ): (...args: Args) => Promise<R> {
   return async (...args) => {
     const [c, authInfo] = args;
-    const { domain, token } = authInfo;
+    const { domain, token, result } = authInfo;
 
     const info = await c.run('validate-session', async () => {
       const info = await auth.validateJwt(token || '')
@@ -135,11 +139,23 @@ export function workflowInject<
 
     injector.register(RESTATE_CONTEXT_TOKEN, { useValue: c });
 
+    let systemVariables = await c.get('system-variables');
+
+    if (!systemVariables) {
+      const svService = injector.resolve(SystemVariablesService);
+      const sv = await c.run('fetch-system-variables', async () => await svService.asRecord());
+      systemVariables = sv;
+      c.set('system-variables', sv);
+    }
+
+    set(result, ['System', 'variables'], systemVariables);
+
     const ctx = {
       injector,
       user,
+      systemVariables,
       tenant: injector.resolve(TENANT_TOKEN) as Tenant
-    };
+    } as WorkflowCtx;
 
     const resolvedDeps = deps.map(dep => {
       const token = 'optional' in dep ? dep.token : dep;

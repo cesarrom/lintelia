@@ -14,6 +14,7 @@ export function NumberToolbar({ disabled }: ToolbarProps) {
       type: 'number',
       config: numberConfigSchema.parse({
         propertyName: `number${uuid().substring(0, 8)}`,
+        type: 'number',
         label: 'Number Field',
         description: '',
         required: false,

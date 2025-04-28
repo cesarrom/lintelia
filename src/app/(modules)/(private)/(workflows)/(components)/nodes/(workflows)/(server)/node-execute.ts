@@ -7,6 +7,39 @@ import { yamlToWorkflow } from "../../../yaml/converter";
 import { workflowInject } from "@/lib/injector/utils";
 import { RolesService, WorkflowExecutionsService, WorkflowsService } from "@/lib/services";
 
+const start = workflowInject(
+  [RolesService, WorkflowExecutionsService],
+  async ({ user }, [rolesService, workflowExecutionsService], c: restate.ObjectContext, { variables, yaml, token, domain }: { variables: Record<string, unknown>, yaml: string, token: string, domain: string }) => {
+    assert(user, 'User not found');
+
+    const executionId = c.rand.uuidv4();
+
+    const roles = await c.run('roles', async () => rolesService.getRolesByUserId({ userId: user.userId }));
+
+    const { workflow, nodes } = yamlToWorkflow(yaml);
+
+    const allowedRoles = workflow.allowedRoles || [];
+
+    const allowedUsers = workflow.allowedUsers || [];
+
+    const hasAccess = allowedRoles.length === 0 || allowedRoles.some((role) => roles.some((r) => r === role)) || allowedUsers.some((userId) => userId === user.userId);
+
+    if (!hasAccess) {
+      throw new Error('User does not have access to this workflow');
+    }
+
+    const startNode = nodes.find((node) => node.type === 'start');
+
+    if (!startNode) {
+      throw new restate.TerminalError('Start node not found');
+    }
+
+    const result = await workflowExecutionsService.nextOrEndExecution({ nodeData: startNode.data, event: events.done, executionId, globalResult: {}, localResult: variables, yaml, domain, token });
+
+    return result;
+  }
+);
+
 export const workflowService = restate.object({
   name: "workflow",
   handlers: {
@@ -38,53 +71,18 @@ export const workflowService = restate.object({
         return outputs;
       }
     ) as ExecuteNodeFunction,
-    start: workflowInject(
-      [RolesService, WorkflowExecutionsService],
-      async ({ user }, [rolesService, workflowExecutionsService], c: restate.ObjectContext, { variables, yaml, token, domain }: { variables: Record<string, unknown>, yaml: string, token: string, domain: string }) => {
-        assert(user, 'User not found');
-
-        const executionId = c.rand.uuidv4();
-
-        const roles = await c.run('roles', async () => rolesService.getRolesByUserId({ userId: user.userId }));
-
-        const { workflow, nodes } = yamlToWorkflow(yaml);
-
-        const allowedRoles = workflow.allowedRoles || [];
-
-        const allowedUsers = workflow.allowedUsers || [];
-
-        const hasAccess = allowedRoles.length === 0 || allowedRoles.some((role) => roles.some((r) => r === role)) || allowedUsers.some((userId) => userId === user.userId);
-
-        if (!hasAccess) {
-          throw new Error('User does not have access to this workflow');
-        }
-
-        const startNode = nodes.find((node) => node.type === 'start');
-
-        if (!startNode) {
-          throw new restate.TerminalError('Start node not found');
-        }
-
-        const result = await workflowExecutionsService.nextOrEndExecution({ nodeData: startNode.data, event: events.done, executionId, globalResult: {}, localResult: variables, yaml, domain, token });
-
-        return result;
-      }
-    ),
+    start,
     trigger: workflowInject(
       [WorkflowsService],
       async ({ }, [ws], c, { variables, workflowId, token, domain }: { variables: Record<string, unknown>, workflowId: string, token: string, domain: string }) => {
         const { yaml } = await c.run('load-workflow', async () => await ws.loadWorkflow(workflowId));
 
-        const client = c.objectClient(workflowService, c.key);
-
-        const r: any = await client.start({
+        return start(c, {
           variables,
           yaml,
           token,
           domain
-        })
-
-        return r;
+        });
       }
     ),
     resume: workflowInject(

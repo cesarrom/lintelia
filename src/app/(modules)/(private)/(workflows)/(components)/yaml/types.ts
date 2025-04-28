@@ -17,6 +17,7 @@ export type ValueType = z.infer<typeof ValueTypeSchema>;
 
 export type TypeDefinition = 
   | z.infer<typeof ValueTypeSchema>
+  | 'json'
   | { type: 'object'; properties: Record<string, TypeDefinition> }
   | { type: 'array'; items: TypeDefinition };
 
@@ -58,6 +59,7 @@ export type Event = z.infer<typeof EventSchema>;
 
 // YAML Schema types
 export const WorkflowYamlSchema = z.object({
+  id: z.string().optional(),
   schemaVersion: z.string(),
   name: z.string(),
   description: z.string(),

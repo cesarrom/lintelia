@@ -12,6 +12,7 @@ export function CheckboxToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
     data: {
       type: 'checkbox',
       config: checkboxConfigSchema.parse({
+        type: 'checkbox',
         propertyName: 'checkbox',
         label: 'Checkbox Field',
         description: '',

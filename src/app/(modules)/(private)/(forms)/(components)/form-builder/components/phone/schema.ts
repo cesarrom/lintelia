@@ -3,18 +3,13 @@ import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
 // Form builder config schema
 export const phoneConfigSchema = baseConfigSchema.extend({
+  type: z.literal('phone'),
   label: z.string().min(1, 'Label is required'),
-  placeholder: z.string().optional(),
-  description: z.string().optional(),
-  format: z.enum(['international', 'national']),
-  defaultCountry: z.string(),
-}).transform((data) => ({
-  ...data,
-  placeholder: data.placeholder ?? 'Enter your phone number',
-  description: data.description ?? '',
-  format: data.format ?? 'international',
-  defaultCountry: data.defaultCountry ?? 'US',
-}));
+  placeholder: z.string().optional().default('Enter your phone number'),
+  description: z.string().optional().default(''),
+  format: z.enum(['international', 'national']).default('international'),
+  defaultCountry: z.string().default('US'),
+});
 
 export type PhoneConfig = z.infer<typeof phoneConfigSchema>;
 

@@ -3,22 +3,15 @@ import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
 // Form builder config schema
 export const rangeConfigSchema = baseConfigSchema.extend({
+  type: z.literal('range'),
   label: z.string().min(1, 'Label is required'),
-  description: z.string().optional(),
+  description: z.string().optional().default(''),
   min: z.number().default(0),
   max: z.number().default(100),
   step: z.number().default(1),
-  defaultValue: z.number().optional(),
+  defaultValue: z.number().optional().default(0),
   showValue: z.boolean().default(true),
-}).transform((data) => ({
-  ...data,
-  description: data.description ?? '',
-  min: data.min ?? 0,
-  max: data.max ?? 100,
-  step: data.step ?? 1,
-  defaultValue: data.defaultValue ?? data.min ?? 0,
-  showValue: data.showValue ?? true,
-}));
+});
 
 export type RangeConfig = z.infer<typeof rangeConfigSchema>;
 

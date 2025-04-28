@@ -3,15 +3,12 @@ import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
 // Form builder config schema
 export const checkboxConfigSchema = baseConfigSchema.extend({
+  type: z.literal('checkbox'),
   label: z.string().optional(),
   description: z.string().optional(),
-  text: z.string(),
-  defaultChecked: z.boolean(),
-}).transform((data) => ({
-  ...data,
-  text: data.text ?? 'Checkbox',
-  defaultChecked: data.defaultChecked ?? false,
-}));
+  text: z.string().default('Checkbox'),
+  defaultChecked: z.boolean().default(false),
+});
 
 export type CheckboxConfig = z.infer<typeof checkboxConfigSchema>;
 

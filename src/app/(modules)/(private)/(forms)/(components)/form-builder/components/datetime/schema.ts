@@ -3,21 +3,16 @@ import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
 // Form builder config schema
 export const datetimeConfigSchema = baseConfigSchema.extend({
+  type: z.literal('datetime'),
   label: z.string().min(1, 'Label is required'),
-  description: z.string().optional(),
-  placeholder: z.string().optional(),
-  format: z.enum(['date', 'datetime', 'time']),
+  description: z.string().optional().default(''),
+  placeholder: z.string().optional().default(''),
+  format: z.enum(['date', 'datetime', 'time']).default('datetime'),
   validation: z.object({
     min: z.string().datetime().optional(),
     max: z.string().datetime().optional(),
-  }).optional(),
-}).transform((data) => ({
-  ...data,
-  description: data.description ?? '',
-  placeholder: data.placeholder ?? '',
-  format: data.format ?? 'datetime',
-  validation: data.validation ?? {},
-}));
+  }).optional().default({}),
+});
 
 export type DatetimeConfig = z.infer<typeof datetimeConfigSchema>;
 

@@ -278,6 +278,12 @@ export class SystemVariablesService {
     }
   }
 
+  async asRecord() {
+    const list = await this.list();
+
+    return Object.fromEntries(list.map(v => [v.name, v.value]));
+  }
+
   private validateValue(type: SystemVariableType, value: any) {
     try {
       switch (type) {

@@ -221,11 +221,23 @@ export class SystemTriggersService {
   )
 
   // Service methods now accept TriggerDefinition
-  async createTrigger(definition: SystemTrigger & { workflowId: string }): Promise<SystemTrigger> {
+  async createTrigger(definition: SystemTrigger): Promise<SystemTrigger> {
     return await this.repository.save({
       ...definition,
       createdBy: this.user.userId || 'system',
     });
+  }
+
+  async putTrigger(id: string, definition: SystemTrigger) {
+    const exists = await this.repository.findOne({
+      where: { id },
+    });
+
+    if (exists) {
+      return await this.replaceTrigger(id, definition);
+    }
+
+    return await this.createTrigger(definition);
   }
 
   async getAllByWorkflowId(workflowId: string): Promise<SystemTrigger[]> {

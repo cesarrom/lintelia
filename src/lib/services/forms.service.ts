@@ -25,6 +25,22 @@ export class FormsService {
     this.formAnswersRepository = this.conn.getRepository(FormAnswer);
   }
 
+  async createFormWithAnswers(data: CreateFormInput, answers: CreateFormAnswersInput['answers']) {
+    const form = await this.create(data);
+    const instance = await this.createInstance({
+      formId: form.id,
+      variables: {},
+      submittedBy: this.user?.userId || 'system'
+    });
+    const answer = await this.createAnswers({
+      instanceId: instance.id,
+      formId: form.id,
+      answers
+    });
+
+    return { form, instance, answer };
+  }
+
   async create(data: CreateFormInput): Promise<Form> {
     const form = new Form();
     form.id = uuid();

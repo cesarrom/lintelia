@@ -3,20 +3,16 @@ import { BaseComponentSchema, baseConfigSchema } from '../base-schema';
 
 // Form builder config schema
 export const dateConfigSchema = baseConfigSchema.extend({
+  type: z.literal('date'),
   label: z.string().min(1, 'Label is required'),
-  placeholder: z.string().optional(),
-  description: z.string().optional(),
+  placeholder: z.string().optional().default(''),
+  description: z.string().optional().default(''),
   defaultValue: z.string().date().optional(),
   validation: z.object({
     minDate: z.string().date().optional(),
     maxDate: z.string().date().optional(),
-  }).optional(),
-}).transform((data) => ({
-  ...data,
-  placeholder: data.placeholder ?? '',
-  description: data.description ?? '',
-  validation: data.validation ?? {},
-}));
+  }).optional().default({}),
+});
 
 export type DateConfig = z.infer<typeof dateConfigSchema>;
 

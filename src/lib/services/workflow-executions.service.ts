@@ -6,7 +6,7 @@ import { yamlToWorkflow } from "@/app/(modules)/(private)/(workflows)/(component
 import { NodeData } from "@/app/(modules)/(private)/(workflows)/(components)/yaml/types";
 import { ExecutableNode, ExecuteNodeFunctionProps } from "@/app/(modules)/(private)/(workflows)/types";
 import * as restate from "@restatedev/restate-sdk/fetch";
-import { set } from "lodash";
+import { get, result, set } from "lodash";
 import Mustache from 'mustache';
 import { SystemTriggersService } from './system-triggers.service';
 import { TriggerBuilder, TriggerDefinition } from '../triggers-utils';
@@ -67,20 +67,36 @@ export class WorkflowExecutionsService {
   }
 
   getConfiguration(config: Record<string, unknown>, result: Record<string, unknown> = {}): Record<string, unknown> {
-    const configString = JSON.stringify(config);
+    const prePhaseFlattened = this.flattenObject(config);
+    const resolvedConfig = {};
+    Object.entries(prePhaseFlattened).forEach(([key, value]) => {
+      let parsedValue;
+
+      if (typeof value === 'string' && value.startsWith('{{') && value.endsWith('}}')) {
+        const path = value.slice(2, -2);
+        parsedValue = get(result, path);
+      }
+
+      set(resolvedConfig, key, parsedValue || value);
+    });
+
+    const configString = JSON.stringify(resolvedConfig);
     const renderedString = Mustache.render(configString, result);
     const object = JSON.parse(renderedString);
+
     const flattened = this.flattenObject(object);
     const resolved = {};
 
     Object.entries(flattened).forEach(([key, value]) => {
       let parsedValue;
+
       try {
         parsedValue = JSON.parse(value as string);
       } catch {
         parsedValue = value;
       }
-      return set(resolved, key, parsedValue);
+
+      set(resolved, key, parsedValue);
     });
 
     return resolved;
@@ -113,7 +129,7 @@ export class WorkflowExecutionsService {
   async nextOrEndExecution(args: NextNodeOrExecutionArgs) {
     const { executionId, nodeData, yaml, domain, token, globalResult, localResult, event, nextNodes = this.getNextNodes({ nodeData, event, yaml }), resumableId, resumableResult } = args;
     const result = this.mergeResult(globalResult, localResult, nodeData.name, event);
-    await this.updateExecution(executionId, args);
+    await this.putExecution(executionId, args);
 
     // we evaluate if this node exports this particular event
     const exporting = nodeData.exports?.find(e => e.event === event);
@@ -163,7 +179,7 @@ export class WorkflowExecutionsService {
 
     trigger.id = resumableId;
 
-    await this.systemTriggerService.createTrigger(SystemTrigger.fromTriggerDefinition(trigger, {
+    await this.systemTriggerService.putTrigger(resumableId, SystemTrigger.fromTriggerDefinition(trigger, {
       createdBy: this.user?.email || 'system',
       workflowId: workflow.id,
       active: true
@@ -230,5 +246,20 @@ export class WorkflowExecutionsService {
     await this.keyValueService.update(exec.id, {
       value: JSON.stringify(props),
     })
+  }
+
+  async putExecution(executionId: string, props: NextNodeOrExecutionArgs) {
+    const exec = await this.keyValueService.findByKey(`${this.KEY_PREFIX}::${executionId}`);
+    if (exec) {
+      await this.keyValueService.update(exec.id, {
+        value: JSON.stringify(props),
+      })
+    } else {
+      await this.keyValueService.create({
+        key: `${this.KEY_PREFIX}::${executionId}`,
+        value: JSON.stringify(props),
+        createdBy: this.user?.email || 'system'
+      })
+    }
   }
 }
