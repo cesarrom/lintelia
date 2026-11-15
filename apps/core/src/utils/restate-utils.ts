@@ -1,4 +1,4 @@
-import { NodeData } from "@repo/fintivio";
+import type { NodeData } from "@repo/fintivio/schemas";
 import { type ObjectContext, type VirtualObjectDefinition } from '@restatedev/restate-sdk/fetch';
 import * as restate from "@restatedev/restate-sdk/fetch";
 

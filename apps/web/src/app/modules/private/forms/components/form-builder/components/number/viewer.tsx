@@ -25,7 +25,7 @@ export function NumberViewer({
     ? useController({
         name: config.propertyName,
         control,
-        defaultValue: value !== undefined ? value : '',
+        defaultValue: value,
         rules: {
           required: config.required ? 'This field is required' : false,
           min: config.validation?.min !== undefined 
@@ -60,7 +60,8 @@ export function NumberViewer({
     const newValue = e.target.value === '' ? undefined : parseFloat(e.target.value);
     
     if (isUsingReactHookForm && controllerResult) {
-      controllerResult.field.onChange(e.target.value);
+      // Store numbers (the values schema expects a number), keep '' while the field is empty.
+      controllerResult.field.onChange(newValue === undefined || Number.isNaN(newValue) ? undefined : newValue);
     } else if (onChange) {
       onChange(newValue as number);
     }
@@ -80,8 +81,8 @@ export function NumberViewer({
         id={id}
         name={config.propertyName}
         type="number"
-        value={isUsingReactHookForm && controllerResult 
-          ? controllerResult.field.value 
+        value={isUsingReactHookForm && controllerResult
+          ? (controllerResult.field.value ?? '')
           : (value !== undefined ? value : '')}
         onChange={handleChange}
         onBlur={isUsingReactHookForm && controllerResult ? controllerResult.field.onBlur : onBlur}

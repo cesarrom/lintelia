@@ -10,3 +10,12 @@ dist-ssr
 .cache
 server/dist
 public/dist
+.data/
+restate-data/
+registry-missing.txt
+
+# e2e artefacts
+apps/e2e/test-results/
+apps/e2e/playwright-report/
+.build/
+apps/e2e/.auth/

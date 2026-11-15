@@ -1,0 +1,54 @@
+# Run per related party (foreach in kyb.yaml): the party joins through their invitation, verifies their identity
+# with Didit, and the result is recorded on the party.
+schemaVersion: "1"
+name: Party identity verification
+description: A related party joins and verifies their identity
+version: 1
+caseTitle: "Identity verification ({{input.role}})"
+triggers: []
+inputs:
+  - { id: partyId, name: partyId, type: string, required: true }
+  - { id: role, name: role, type: string, required: true }
+steps:
+  - id: start
+    name: Start
+    type: start
+    events:
+      - { name: finished, outputs: [], next: [joined] }
+  - id: joined
+    name: Party joins
+    type: parties.wait
+    config: { party: "{{input.partyId}}", timeout: P14D }
+    events:
+      - { name: joined, outputs: [], next: [kyc] }
+      - { name: expired, outputs: [], next: [declined] }
+  - id: kyc
+    name: Verify identity
+    type: "connector:didit/kyc.verify"
+    config:
+      connection: ${DIDIT}
+      input: { email: "{{case.applicant.email}}" }
+    events:
+      - { name: approved, outputs: [], next: [verified] }
+      - { name: in_review, outputs: [], next: [verified] }
+      - { name: declined, outputs: [], next: [declined] }
+      - { name: expired, outputs: [], next: [declined] }
+  - id: verified
+    name: Record verification
+    type: parties.update
+    config: { party: "{{input.partyId}}", status: completed, data: { verification: "{{steps.kyc.status}}" } }
+    events:
+      - { name: done, outputs: [], next: [done] }
+  - id: declined
+    name: Record failure
+    type: parties.update
+    config: { party: "{{input.partyId}}", status: declined, data: { verification: declined } }
+    events:
+      - { name: done, outputs: [], next: [done] }
+  - id: done
+    name: Done
+    type: case.decision
+    config: { status: completed }
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }

@@ -1,3 +1,4 @@
+import { Access, Require } from "../auth/access";
 import { LogsService } from "../services/logs.service";
 import { Scope, Inject, Controller, Get, Post, Patch, Req, Res, type RawBodyRequest, Param } from "@nestjs/common";
 import type { HonoRequest } from "hono/request";
@@ -26,6 +27,7 @@ export class LogHandler {
     return filter;
   }
 
+  @Require('audit:read')
   @Get()
   async getLogs(@Res() ctx: Context): Promise<void> {
     const url = new URL(this.requestProxy.url);
@@ -38,31 +40,7 @@ export class LogHandler {
     return;
   }
 
-  @Get('/:logId')
-  async getLog(@Res() ctx: Context, @Param('logId') logId: string): Promise<void> {
-    assert(logId, 'logId parameter is required');
-    try {
-      const log = await this.logsService.getById(logId);
-      if (!log) {
-        ctx.res = new Response(JSON.stringify({ error: 'Log not found' }), {
-          headers: { 'Content-Type': 'application/json' },
-          status: 404
-        });
-      } else {
-        ctx.res = new Response(JSON.stringify({ ...log }), {
-          headers: { 'Content-Type': 'application/json' },
-          status: 200
-        });
-      }
-    } catch (error: any) {
-      ctx.res = new Response(JSON.stringify({ error: error.message || 'Failed to get log' }), {
-        headers: { 'Content-Type': 'application/json' },
-        status: 500
-      });
-    }
-    return;
-  }
-
+  @Require('workspace:read')
   @Post()
   async createLog(@Res() ctx: Context): Promise<void> {
     const data: CreateLogRequest = await this.requestProxy.json();
@@ -81,6 +59,7 @@ export class LogHandler {
     return;
   }
 
+  @Require('audit:read')
   @Patch('/:logId/acknowledge')
   async acknowledgeLog(@Res() ctx: Context, @Param('logId') logId: string): Promise<void> {
     assert(logId, 'logId parameter is required');
@@ -102,6 +81,7 @@ export class LogHandler {
     return;
   }
 
+  @Require('audit:read')
   @Get('/analytics')
   async getLogsAnalytics(@Res() ctx: Context): Promise<void> {
     const url = new URL(this.requestProxy.url);
@@ -121,6 +101,7 @@ export class LogHandler {
     return;
   }
 
+  @Require('audit:read')
   @Get('/top-users')
   async getTopUsers(@Res() ctx: Context): Promise<void> {
     const url = new URL(this.requestProxy.url);
@@ -140,6 +121,7 @@ export class LogHandler {
     return;
   }
 
+  @Require('audit:read')
   @Get('/top-sources')
   async getTopSources(@Res() ctx: Context): Promise<void> {
     const url = new URL(this.requestProxy.url);
@@ -159,6 +141,7 @@ export class LogHandler {
     return;
   }
 
+  @Require('audit:read')
   @Get('/trends')
   async getLogsTrend(@Res() ctx: Context): Promise<void> {
     const url = new URL(this.requestProxy.url);
@@ -171,6 +154,33 @@ export class LogHandler {
       });
     } catch (error: any) {
       ctx.res = new Response(JSON.stringify({ error: error.message || 'Failed to get logs trend' }), {
+        headers: { 'Content-Type': 'application/json' },
+        status: 500
+      });
+    }
+    return;
+  }
+
+  // Registered last: the router matches in registration order, so '/:logId' must not shadow the static paths above.
+  @Require('audit:read')
+  @Get('/:logId')
+  async getLog(@Res() ctx: Context, @Param('logId') logId: string): Promise<void> {
+    assert(logId, 'logId parameter is required');
+    try {
+      const log = await this.logsService.getById(logId);
+      if (!log) {
+        ctx.res = new Response(JSON.stringify({ error: 'Log not found' }), {
+          headers: { 'Content-Type': 'application/json' },
+          status: 404
+        });
+      } else {
+        ctx.res = new Response(JSON.stringify({ ...log }), {
+          headers: { 'Content-Type': 'application/json' },
+          status: 200
+        });
+      }
+    } catch (error: any) {
+      ctx.res = new Response(JSON.stringify({ error: error.message || 'Failed to get log' }), {
         headers: { 'Content-Type': 'application/json' },
         status: 500
       });

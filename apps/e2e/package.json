@@ -1,0 +1,22 @@
+{
+  "name": "e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:api": "playwright test --project=api",
+    "test:ui": "playwright test --project=ui",
+    "test:flow": "playwright test --grep",
+    "report": "playwright show-report",
+    "flow-status": "node scripts/flow-status.mjs",
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.2",
+    "@types/node": "^22.15.3",
+    "postgres": "^3.4.5",
+    "typescript": "5.8.2",
+    "pdf-lib": "^1.17.1"
+  }
+}

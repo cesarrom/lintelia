@@ -1,0 +1,38 @@
+# PTY-01: an application with co-applicants; a party check runs for each of them (foreach → party-check.yaml).
+schemaVersion: "1"
+name: Joint application
+description: Co-applicants are each checked by the same team member
+version: 1
+triggers: []
+inputs:
+  - { id: email, name: email, type: string, required: true }
+steps:
+  - id: start
+    name: Start
+    type: start
+    events:
+      - { name: finished, outputs: [], next: [parties] }
+  - id: parties
+    name: Co-applicants
+    type: parties.collect
+    config: { title: Who applies with you?, roles: [co_applicant], minimum: { co_applicant: 2 } }
+    events:
+      - { name: collected, outputs: [], next: [checks] }
+      - { name: expired, outputs: [], next: [end] }
+  - id: checks
+    name: Check every co-applicant
+    type: foreach
+    config:
+      items: "= steps.parties.parties"
+      workflowId: ${PARTY_CHECK}
+      inputs: { partyId: "= item.id", role: "= item.role" }
+    events:
+      - { name: completed, outputs: [], next: [end] }
+      - { name: failed, outputs: [], next: [end] }
+  - id: end
+    name: Done
+    type: case.decision
+    config: { status: completed }
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }

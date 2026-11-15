@@ -1,0 +1,50 @@
+# SCN-05 / CMP-01: sanctions/PEP screening; potential matches go to compliance for adjudication.
+schemaVersion: "1"
+name: Onboarding with AML screening
+description: Screening hits are adjudicated by compliance
+version: 1
+triggers: []
+inputs:
+  - { id: email, name: email, type: string, required: true }
+  - { id: fullName, name: fullName, type: string, required: true }
+steps:
+  - id: start
+    name: Start
+    type: start
+    events:
+      - { name: finished, outputs: [], next: [screen] }
+  - id: screen
+    name: Screening
+    type: "connector:screening/screening.check"
+    config:
+      connection: ${SCREENING}
+      lists: [sanctions, pep, adverse_media]
+      input: { name: "{{input.fullName}}" }
+    events:
+      - { name: clear, outputs: [], next: [approve] }
+      - { name: potential_match, outputs: [], next: [adjudicate] }
+  - id: adjudicate
+    name: Adjudicate screening hit
+    type: review
+    config:
+      title: Potential screening match
+      kind: screening_hit
+      assignTo: { role: compliance_officer }
+      sla: PT4H
+    events:
+      - { name: review_approved, outputs: [], next: [approve] }
+      - { name: review_rejected, outputs: [], next: [reject] }
+  - id: approve
+    name: Approve
+    type: case.decision
+    config: { status: approved, notifyApplicant: true }
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }
+  - id: reject
+    name: Reject
+    type: case.decision
+    config: { status: rejected, notifyApplicant: false, addFlags: [suspicious_activity_report] }
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }

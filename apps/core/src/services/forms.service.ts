@@ -172,10 +172,9 @@ export class FormsService extends AbstractService {
   async list(search?: string): Promise<Form[]> {
     try {
       const forms = await this.db.select().from(sysForms).where(
-        or(
-          ilike(sysForms.name, `%${search}%`),
-          ilike(sysForms.description, `%${search}%`)
-        )
+        search
+          ? or(ilike(sysForms.name, `%${search}%`), ilike(sysForms.description, `%${search}%`))
+          : undefined
       )
       .orderBy(desc(sysForms.createdAt))
       .execute();

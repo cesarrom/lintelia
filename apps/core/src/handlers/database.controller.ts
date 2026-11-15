@@ -1,3 +1,4 @@
+import { Access, Require } from "../auth/access";
 import { DatabaseService as DBService } from "../services/database.service";
 import { type DatabaseNodeConfig, GetTablesResponse } from "@repo/fintivio/schemas";
 import { LogsService } from "../services/logs.service";
@@ -21,6 +22,7 @@ export class DatabaseHandler {
     @Inject(REQUEST_PROXY) private requestProxy: AppRequest,
   ) { }
 
+  @Require('workspace:read')
   @Get('/tables')
   async listTables(@Res() ctx: Context): Promise<void> {
     const result = await this.dbService.listTables(this.db);
@@ -31,6 +33,7 @@ export class DatabaseHandler {
     return;
   }
 
+  @Require('workspace:read')
   @Get('/schemas/:tableName')
   async getTableSchema(@Res() ctx: Context, @Param('tableName') tableName: string): Promise<void> {
     assert(tableName, 'tableName parameter is required');
@@ -43,6 +46,7 @@ export class DatabaseHandler {
     return;
   }
 
+  @Require('workspace:read')
   @Post('/execute-query')
   async executeQuery(@Res() ctx: Context): Promise<void> {
     const config: DatabaseNodeConfig = await this.requestProxy.json();
@@ -149,6 +153,7 @@ export class DatabaseHandler {
     return;
   }
 
+  @Require('workspace:read')
   @Post('/schemas/:tableName')
   async createTableSchema(@Res() ctx: Context, @Param('tableName') tableName: string): Promise<void> {
     

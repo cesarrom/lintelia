@@ -1,9 +1,8 @@
 import { sysSystemTriggers } from '../entities/tenants';
 import Mustache from 'mustache';
-import { env } from '../constants';
-import { v4 as uuid } from 'uuid';
 import { AbstractService } from './service';
 import { eq, inArray, sql } from 'drizzle-orm';
+import { CasesService } from './cases.service';
 import { WebService } from './web.service';
 import { Log, SystemTrigger, type Tenant } from '@repo/fintivio/schemas';
 import { TENANT_CONNECTION } from '../injector/tokens/tenant-connection.token';
@@ -18,8 +17,9 @@ export class SystemTriggersService extends AbstractService {
 
   constructor(
     @Inject(TENANT_CONNECTION) private db: TenantDatabase,
+    @Inject(TENANT) private tenantValueService: Tenant,
+    @Inject(CasesService) private readonly cases: CasesService,
     @Inject(WebService) private webService: WebService,
-    @Inject(TENANT) private tenantValueService: Tenant
   ) { super(); }
 
   async findTriggerById(triggerId: string): Promise<SystemTrigger | null> {
@@ -42,7 +42,8 @@ export class SystemTriggersService extends AbstractService {
 
   async swapTriggersForWorkflow(oldTriggerIds: string[], newTriggers: SystemTrigger[]) {
     return this.db.transaction(async (tdb) => {
-      await tdb.delete(sysSystemTriggers).where(inArray(sysSystemTriggers.id, oldTriggerIds)).returning().execute();
+      if (oldTriggerIds.length) await tdb.delete(sysSystemTriggers).where(inArray(sysSystemTriggers.id, oldTriggerIds)).returning().execute();
+      if (!newTriggers.length) return undefined;
       const [result] = await tdb.insert(sysSystemTriggers).values(newTriggers).returning().execute();
       return result;
     });
@@ -125,42 +126,22 @@ export class SystemTriggersService extends AbstractService {
     }
   }
 
+  /**
+   * A matching log pattern starts a case on the trigger's workflow (its published version), as the system. Resuming
+   * a waiting execution belonged to the legacy node engine, which is no longer reachable (it carried user tokens into
+   * the Restate journal).
+   */
   async executeTrigger(trigger: SystemTrigger, inputs: Record<string, unknown>): Promise<void> {
-    const tenant = this.tenantValueService;
-    const executionId = uuid();
-    const token = await this.webService.getSessionJWT();
-
-    if (trigger.action.type === 'INVOKE') {
-      await fetch(`${env.RESTATE_ENDPOINT}/workflow/${executionId}/trigger`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          variables: inputs,
-          workflowId: trigger.workflowId,
-          token: token!,
-          domain: tenant?.domain,
-        }),
-      });
-    } else if (trigger.action.type === 'RESUME') {
-      await fetch(`${env.RESTATE_ENDPOINT}/workflow/${executionId}/resume`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          resumableId: trigger.id,
-          result: inputs,
-          token: token!,
-          domain: tenant?.domain,
-          workflowId: trigger.workflowId,
-        }),
-      });
-    } else {
-      throw new Error('Invalid trigger action type');
+    if (trigger.action.type !== 'INVOKE') {
+      console.warn(`System trigger ${trigger.id}: ${trigger.action.type} is not supported by the case engine`);
+      return;
     }
+    await this.cases.start({
+      workflowId: String(trigger.workflowId), data: inputs, source: `trigger:${trigger.name}`,
+      initiatedBy: { type: 'system', id: null, email: `trigger:${trigger.name}` },
+    });
   }
+
 
   // Service methods now accept TriggerDefinition
   async createTrigger(definition: SystemTrigger): Promise<SystemTrigger> {

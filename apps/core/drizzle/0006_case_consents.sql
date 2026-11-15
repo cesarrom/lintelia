@@ -1,0 +1,1 @@
+ALTER TABLE "cases" ADD COLUMN "consents" jsonb DEFAULT '[]'::jsonb NOT NULL;

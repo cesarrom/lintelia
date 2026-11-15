@@ -167,25 +167,25 @@ export function WorkflowProvider({
 
   const updateEdges = useCallback((newEdges: Edge[]) => {
     const newNodes = nodes.map(node => {
-      const newNode = node;
+      const newNode = { ...node, data: { ...node.data } };
 
       newNode.data.events = node.data.events.map(event => {
         return {
           ...event,
-          next: newEdges.filter(edge => edge.source === node.id && edge.sourceHandle?.includes('-' + event.name)).map(edge => edge.target)
+          next: newEdges.filter(edge => edge.source === node.id && edge.sourceHandle === `${node.id}-${event.name}`).map(edge => edge.target)
         }
       });
 
       return newNode;
     });
     setEdges(newEdges);
+    setNodes(ensureStartNode(newNodes));
     setState(prev => {
-      const newYaml = workflowToYaml(prev.workflow as WorkflowSchema, newNodes, newEdges, prev.triggers);
+      const newYaml = workflowToYaml(prev.workflow as WorkflowSchema, ensureStartNode(newNodes), newEdges, prev.triggers);
       notifyChange(newYaml);
       return { ...prev, yaml: newYaml, isDirty: true };
     });
-    updateNodes(newNodes);
-  }, [setEdges, nodes, notifyChange, updateNodes]);
+  }, [setEdges, setNodes, nodes, notifyChange]);
 
   const updateTriggers = useCallback((newTriggers: TriggerDefinition[]) => {
     setState(prev => {

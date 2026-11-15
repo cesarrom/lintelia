@@ -1,0 +1,44 @@
+# REV-*, SUP-*, SCN-06/07: one human review routed to reviewers.
+# ${AUTHORITY} is `standard` or `high` (four-eyes); ${SLA} an ISO-8601 duration.
+schemaVersion: "1"
+name: Manual review
+description: Every application is reviewed by the onboarding team
+version: 1
+triggers: []
+inputs:
+  - { id: email, name: email, type: string, required: true }
+steps:
+  - id: start
+    name: Start
+    type: start
+    events:
+      - { name: finished, outputs: [], next: [review] }
+  - id: review
+    name: Onboarding review
+    type: review
+    config:
+      title: Review application
+      items: []
+      assignTo: { role: reviewer }
+      strategy: queue
+      authority: ${AUTHORITY}
+      sla: ${SLA}
+      escalateTo: { role: senior_reviewer }
+      requireCommentOnReject: true
+    events:
+      - { name: review_approved, outputs: [], next: [approve] }
+      - { name: review_rejected, outputs: [], next: [reject] }
+  - id: approve
+    name: Approve
+    type: case.decision
+    config: { status: approved, notifyApplicant: true }
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }
+  - id: reject
+    name: Reject
+    type: case.decision
+    config: { status: rejected, notifyApplicant: true }
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }

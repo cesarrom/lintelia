@@ -91,9 +91,7 @@ export function ImageViewer({
       return;
     }
 
-    const ext = file.name.split('.').pop();
-    const key = `${ref.current}.${ext}`;
-    await putFile(file);
+    const { key } = await putFile(file);
     updateFieldValue(key);
   }, [config, handleFileError, updateFieldValue]);
 

@@ -4,15 +4,10 @@ import LogsDashboard from './components/logs-dashboard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSearchParams } from 'react-router';
 import { useLogsGetLogs } from '@/lib/services/logs.hooks';
-import { AuditManagement } from '@descope/react-sdk';
-import { useTenant } from '@/lib/providers/TenantProvider';
-import { useTheme } from '@/lib/providers/ThemeProvider';
 
 
 export default function LogsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { tenant } = useTenant();
-  const { theme } = useTheme();
   const filter = searchParams ? {
     startDate: searchParams.get('startDate') ? new Date(searchParams.get('startDate')!) : undefined,
     endDate: searchParams.get('endDate') ? new Date(searchParams.get('endDate')!) : undefined,
@@ -39,15 +34,6 @@ export default function LogsPage() {
       <Tabs defaultValue={activeView} className="space-y-4">
         <div className="flex justify-between items-center">
           <TabsList>
-            {tenant ? (
-              <TabsTrigger value="audit" asChild>
-                <a onClick={() => setSearchParams(params => {
-                  const newParams = new URLSearchParams(params);
-                  newParams.set('view', 'audit');
-                  return newParams;
-                })}>Audit</a>
-              </TabsTrigger>
-            ) : null}
             <TabsTrigger value="analytics" asChild>
               <a onClick={() => setSearchParams(params => {
                 const newParams = new URLSearchParams(params);
@@ -68,14 +54,6 @@ export default function LogsPage() {
         </div>
 
         <LogsFilter />
-
-        <TabsContent value="audit" className="space-y-4">
-          <AuditManagement
-            widgetId="access-key-management-widget"
-            tenant={tenant.domain}
-            theme={theme}
-          />
-        </TabsContent>
 
         <TabsContent value="analytics" className="space-y-4">
           <LogsDashboard initialFilter={filter} />

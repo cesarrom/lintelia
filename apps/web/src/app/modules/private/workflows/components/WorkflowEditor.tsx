@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -9,11 +9,21 @@ import ReactFlow, {
   Connection,
   ReactFlowInstance,
   Edge,
+  applyEdgeChanges,
+  applyNodeChanges,
+  type EdgeChange,
+  type NodeChange,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
 import { Button } from '@/components/ui/button';
-import { Save, FileEdit, Play } from 'lucide-react';
+import { Save, FileEdit, Play, LayoutGrid, ShieldCheck, Rocket } from 'lucide-react';
+import { toast } from 'sonner';
+import { CatalogContext, useComponentCatalog } from './catalog/catalog';
+import { ComponentNode, UnknownNode } from './catalog/ComponentNode';
+import { Palette } from './catalog/Palette';
+import { autoLayout } from './catalog/layout';
+import { apiErrorDetails, apiErrorMessage, useApiMutation } from '@/lib/services/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,73 +31,44 @@ import { Label } from "@/components/ui/label";
 import { WorkflowProvider, useWorkflow } from './WorkflowContext';
 import { RunWorkflowDialog } from './RunWorkflowDialog';
 import { YamlActions } from './yaml/YamlActions';
-import { databaseNode } from './nodes/database';
-import { decisionTableNode } from './nodes/decision-table';
-import { formNode } from './nodes/form';
-import { emailNode } from './nodes/email';
-import { workflowNode } from './nodes/workflows';
-import { conditionalNode } from './nodes/conditional';
-import { documentExtractorNode } from './nodes/document-extractor';
-import { identityValidationNode } from './nodes/identity-validation';
-import { startNode } from './nodes/start';
-import { endNode } from './nodes/end';
-import { TriggerSidebarButton } from './nodes/TriggersSidebar';
-import { fetchUserNode } from './nodes/fetch-user';
 import { useTheme } from '@/lib/providers/ThemeProvider';
 import { NodeData } from '@repo/fintivio/schemas';
-import { iteratorNode } from './nodes/iterator';
-import { mapperNode } from './nodes/mapper';
-import { proofOfLifeNode } from './nodes/proof-of-life';
-import { wizardNode } from './nodes/wizard';
-import { schedulerNode } from './nodes/scheduler';
-import { reviewNode } from './nodes/reviews';
-import { yamlToWorkflow } from '@repo/fintivio/utilities';
 
-// Available node types and their definitions
-const nodeDefinitions = {
-  start: startNode,
-  database: databaseNode,
-  decisionTable: decisionTableNode,
-  form: formNode,
-  email: emailNode,
-  workflow: workflowNode,
-  conditional: conditionalNode,
-  iterator: iteratorNode,
-  mapper: mapperNode,
-  proofOfLife: proofOfLifeNode,
-  identityValidation: identityValidationNode,
-  documentExtractor: documentExtractorNode,
-  wizard: wizardNode,
-  scheduler: schedulerNode,
-  review: reviewNode,
-  end: endNode,
-  fetchUser: fetchUserNode,
-} as const;
 
-// Map node types to their React components for ReactFlow
-const nodeTypes = Object.fromEntries(
-  Object.entries(nodeDefinitions).map(([type, def]) => [type, def.node])
-);
-
-function WorkflowEditorContent() {
+function WorkflowEditorContent({ workflowId }: { workflowId?: string }) {
   const {
     yaml,
     workflow,
     nodes,
     edges,
-    triggers,
     isDirty,
     isSaving,
     updateNodes,
     updateEdges,
-    updateTriggers,
     saveWorkflow,
     onNodesChange,
     onEdgesChange,
     updateWorkflow,
   } = useWorkflow();
 
+  const { data: catalogList = [] } = useComponentCatalog();
+  const catalog = useMemo(() => new Map(catalogList.map((c) => [c.type, c])), [catalogList]);
+  const catalogKey = catalogList.map((c) => c.type).join('|');
+  // React Flow wants a stable nodeTypes object: rebuild only when the set of component types changes.
+  const nodeTypes = useMemo(() => ({
+    ...Object.fromEntries(catalogList.map((c) => [c.type, ComponentNode])),
+    unknown: UnknownNode,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [catalogKey]);
+  const displayedNodes = useMemo(() => (catalogList.length
+    ? nodes.map((n) => (n.type && n.type in nodeTypes ? n : { ...n, type: 'unknown' }))
+    : []), [nodes, nodeTypes, catalogList.length]);
+  const [validationErrors, setValidationErrors] = useState<string[] | null>(null);
+  const validate = useApiMutation<void, { errors: string[] }>(({ axios, url }) => axios.get(url(`/workflows/${workflowId}/validation`)));
+  const publish = useApiMutation<void, { version: number }>(({ axios, url }) => axios.post(url(`/workflows/${workflowId}/publish`)), [['workflows']]);
+
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const fitted = useRef(false);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const { theme } = useTheme();
   const [isEditingDescription, setIsEditingDescription] = useState(false);
@@ -109,7 +90,7 @@ function WorkflowEditorContent() {
   const handleConnect = useCallback(
     (connection: Connection) => {
       if (isValidConnection(connection)) {
-        const newEdge = { ...connection, id: `${connection.source}-${connection.target}` };
+        const newEdge = { ...connection, id: `${connection.sourceHandle ?? connection.source}-${connection.target}` };
         updateEdges([...edges, newEdge as Edge]);
       }
     },
@@ -152,6 +133,58 @@ function WorkflowEditorContent() {
     [reactFlowInstance, createNode]
   );
 
+  // Fit the graph once the catalogue (and so the nodes) are rendered.
+  void useEffect; void fitted;
+
+  /** Add a step next to the selected step (or below the last one), from the palette. */
+  const addStep = useCallback((data: NodeData) => {
+    const anchor = nodes.find((n) => n.selected) ?? nodes[nodes.length - 1];
+    const position = anchor ? { x: anchor.position.x + 380, y: anchor.position.y } : { x: 100, y: 100 };
+    createNode(data, position);
+  }, [nodes, createNode]);
+
+  /** Deletions and finished drags change the YAML (steps removed, positions saved). */
+  const handleNodesChange = useCallback((changes: NodeChange[]) => {
+    onNodesChange(changes);
+    const structural = changes.some((c) => c.type === 'remove' || (c.type === 'position' && c.dragging === false));
+    if (!structural) return;
+    const next = applyNodeChanges(changes, nodes);
+    const removed = new Set(changes.filter((c) => c.type === 'remove').map((c) => (c as { id: string }).id));
+    if (removed.size) updateEdges(edges.filter((e) => !removed.has(e.source) && !removed.has(e.target)));
+    updateNodes(next);
+  }, [onNodesChange, nodes, edges, updateNodes, updateEdges]);
+
+  const handleEdgesChange = useCallback((changes: EdgeChange[]) => {
+    if (changes.some((c) => c.type === 'remove')) updateEdges(applyEdgeChanges(changes, edges));
+    else onEdgesChange(changes);
+  }, [onEdgesChange, updateEdges, edges]);
+
+  const tidyUp = useCallback(async () => {
+    updateNodes(await autoLayout(nodes, edges));
+    setTimeout(() => reactFlowInstance?.fitView({ padding: 0.2 }), 50);
+  }, [nodes, edges, updateNodes, reactFlowInstance]);
+
+  const runValidation = useCallback(async () => {
+    if (isDirty) await saveWorkflow();
+    try {
+      setValidationErrors((await validate.mutateAsync()).errors);
+    } catch (error) {
+      toast.error(apiErrorMessage(error));
+    }
+  }, [isDirty, saveWorkflow, validate]);
+
+  const runPublish = useCallback(async () => {
+    try {
+      const result = await publish.mutateAsync();
+      setValidationErrors(null);
+      toast.success(`Published as version ${result.version}`);
+    } catch (error) {
+      const details = apiErrorDetails(error);
+      if (details.length) setValidationErrors(details);
+      else toast.error(apiErrorMessage(error));
+    }
+  }, [publish]);
+
   // Handle workflow save
   const handleSave = useCallback(async () => {
     if (!reactFlowInstance) return;
@@ -164,54 +197,29 @@ function WorkflowEditorContent() {
     setIsEditingDescription(false);
   }, [updateWorkflow, tempDescription]);
 
+  // "Run": start a case on the published version with the given inputs (the case engine; drafts cannot run).
+  const startCase = useApiMutation<Record<string, unknown>, { caseId: string; reference: string }>(({ axios, url }, inputs) => axios.post(url(`/workflows/${workflowId ?? workflow.id}/executions`), { inputs }));
   const handleRunWorkflow = useCallback(async (payload: Record<string, unknown>) => {
     try {
-      const data = yamlToWorkflow(yaml);
-      const response = await fetch(`/api/workflows/${data.workflow.id}/run`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to run workflow');
-      }
+      const started = await startCase.mutateAsync((payload.inputs ?? payload.variables ?? payload) as Record<string, unknown>);
+      toast.success(`Case ${started.reference} started`);
     } catch (error) {
-      console.error('Error running workflow:', error);
-      throw error;
+      toast.error(apiErrorMessage(error));
     }
-  }, [yaml]);
+  }, [startCase]);
 
   return (
-    <div className="h-screen w-full flex flex-col">
+    <CatalogContext.Provider value={catalog}>
+    <div className="h-screen w-full flex">
+      {/* Component palette (catalogue) */}
+      <aside className="w-64 shrink-0 overflow-y-auto border-r bg-muted/20 p-2">
+        <Palette components={catalogList} onAdd={addStep} />
+      </aside>
       {/* Main Editor Area */}
-      <div className="flex-1">
-        <div ref={reactFlowWrapper} className="h-full w-full">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={handleConnect}
-            onInit={setReactFlowInstance}
-            onDrop={handleDrop}
-            onDragOver={(e) => {
-              e.preventDefault();
-              e.dataTransfer.dropEffect = 'move';
-            }}
-            nodeTypes={nodeTypes}
-            className={theme === 'dark' ? 'react-flow-dark' : ''}
-            fitView
-            nodesDraggable
-            nodesConnectable
-            elementsSelectable
-            proOptions={{ hideAttribution: true }}
-          >
+      <div className="flex-1 min-w-0 flex flex-col">
             {/* Workflow Header */}
-            <Panel position="top-center" className="border-b backdrop-blur">
-              <div className="flex items-center justify-between px-4 py-4">
+            <div className="border-b bg-background">
+              <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                 <div className="flex-1 space-y-1">
                   <div className="flex items-center gap-2">
                     <Input
@@ -241,11 +249,21 @@ function WorkflowEditorContent() {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
+                  <Button variant="outline" size="icon" title="Tidy up the layout" aria-label="Tidy up the layout" onClick={tidyUp}>
+                    <LayoutGrid className="h-4 w-4" />
+                  </Button>
+                  {workflowId && (
+                    <Button variant="outline" size="sm" onClick={runValidation} disabled={validate.isPending}>
+                      <ShieldCheck className="mr-1 h-4 w-4" />Validate
+                    </Button>
+                  )}
+                  {workflowId && (
+                    <Button size="sm" onClick={runPublish} disabled={publish.isPending || isDirty}
+                      title={isDirty ? 'Save first' : 'Publish the saved draft as a new version'}>
+                      <Rocket className="mr-1 h-4 w-4" />Publish
+                    </Button>
+                  )}
                   <YamlActions />
-                  <TriggerSidebarButton
-                    triggers={triggers}
-                    updateTriggers={updateTriggers}
-                  />
                   <Button
                     variant="outline"
                     size="icon"
@@ -266,29 +284,51 @@ function WorkflowEditorContent() {
                   </Button>
                 </div>
               </div>
-            </Panel>
+            </div>
 
-            {/* Node Toolbar */}
-            <Panel position="top-left" className="flex gap-2">
-              <div className="flex flex-col gap-2 bg-background/95 p-4 rounded-lg shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                {Object.entries(nodeDefinitions)
-                  .filter(([type]) => !['start'].includes(type))
-                  .map(([type, def]) => {
-                    const Button = def.toolbar;
-                    return (
-                      <Button
-                        key={type}
-                      />
-                    );
-                  })}
-              </div>
-            </Panel>
+        <div ref={reactFlowWrapper} className="flex-1 min-h-0 w-full">
+          {!catalogList.length ? <div className="p-6 text-sm text-muted-foreground">Loading components…</div> : (
+          <ReactFlow
+            nodes={displayedNodes}
+            edges={edges}
+            onNodesChange={handleNodesChange}
+            onEdgesChange={handleEdgesChange}
+            onConnect={handleConnect}
+            onInit={setReactFlowInstance}
+            onDrop={handleDrop}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+            }}
+            nodeTypes={nodeTypes}
+            className={theme === 'dark' ? 'react-flow-dark' : ''}
+            fitView
+            fitViewOptions={{ padding: 0.1 }}
+            minZoom={0.2}
+            nodesDraggable
+            nodesConnectable
+            elementsSelectable
+            proOptions={{ hideAttribution: true }}
+          >
+            {/* Validation results */}
+            {validationErrors && (
+              <Panel position="bottom-center" className="max-w-2xl">
+                <div className={`rounded-lg border p-3 text-sm shadow-lg ${validationErrors.length ? 'border-red-300 bg-red-50 text-red-900' : 'border-emerald-300 bg-emerald-50 text-emerald-900'}`} data-testid="validation-result">
+                  <div className="flex items-center justify-between gap-4">
+                    <strong>{validationErrors.length ? `${validationErrors.length} problem(s) prevent publishing` : 'Ready to publish: no problems found'}</strong>
+                    <button className="text-xs underline" onClick={() => setValidationErrors(null)}>close</button>
+                  </div>
+                  {validationErrors.length > 0 && <ul className="mt-2 list-disc pl-5">{validationErrors.map((e) => <li key={e}>{e}</li>)}</ul>}
+                </div>
+              </Panel>
+            )}
 
             {/* ReactFlow UI Components */}
             <Controls />
             <MiniMap />
             <Background />
           </ReactFlow>
+          )}
         </div>
       </div>
 
@@ -327,16 +367,19 @@ function WorkflowEditorContent() {
         yaml={yaml}
       />}
     </div>
+    </CatalogContext.Provider>
   );
 }
 
 export type WorkflowEditorProps = {
+  workflowId?: string;
   initialYaml?: string;
   onSave?: (yaml: string) => Promise<void>;
   onChange?: (yaml: string) => void;
 }
 
 export default function WorkflowEditor({
+  workflowId,
   initialYaml,
   onSave,
   onChange,
@@ -347,7 +390,7 @@ export default function WorkflowEditor({
       onSave={onSave}
       onChange={onChange}
     >
-      <WorkflowEditorContent />
+      <WorkflowEditorContent workflowId={workflowId} />
     </WorkflowProvider>
   );
 } 

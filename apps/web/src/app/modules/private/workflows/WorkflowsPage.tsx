@@ -1,254 +1,186 @@
-'use client';
+import { useState } from 'react';
+import { useNavigate } from 'react-router';
+import { toast } from 'sonner';
+import { LayoutTemplate, MoreHorizontal, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { EmptyState, PageContainer, PageHeader, formatDate } from '@/components/app/page';
+import { useAuth } from '@/lib/auth/AuthContext';
+import { apiErrorDetails, apiErrorMessage, useApiMutation, useApiQuery } from '@/lib/services/api';
+import { RunWorkflowDialog } from './components/RunWorkflowDialog';
 
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { MoreHorizontal, Plus } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { formatDistanceToNow } from "date-fns";
-import { useState } from "react";
-import { RunWorkflowDialog } from "./components/RunWorkflowDialog";
-import { ConfirmDialog } from "./components/ConfirmDialog";
-import { useSession } from "@descope/react-sdk";
-import { Link } from "@/components/ui/link";
-import { useWorkflowList, useWorkflowLoad, useWorkflowSetStatus, useWorkflowStart } from "@/lib/services/workflow.hooks";
-import { useTenant } from "@/lib/providers/TenantProvider";
-
-interface StatusChangeConfirmation {
-  workflowId: string;
-  workflowName: string;
-  fromStatus: 'draft' | 'active' | 'archived';
-  toStatus: 'draft' | 'active' | 'archived';
+interface WorkflowRow {
+  id: string;
+  name: string;
+  description: string;
+  status: 'draft' | 'active' | 'archived';
+  yaml: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  activeVersion: number | null;
+  startOn: string[];
 }
 
-export default function WorkflowsPage() {
-  const session = useSession();
-  const { domain } = useTenant();
-  const [runWorkflowId, setRunWorkflowId] = useState<string | null>(null);
+interface WorkflowTemplate {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+}
 
-  const { data: workflows = [], refetch } = useWorkflowList();
-  const { data: runningWorkflowRef } = useWorkflowLoad({ workflowId: runWorkflowId! }, { enabled: !!runWorkflowId });
+/** Ready-made workflows (loan pre-approval, suspicious activity...) to start from. */
+function TemplateGallery({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const navigate = useNavigate();
+  const { data: templates = [] } = useApiQuery<WorkflowTemplate[]>(['workflow-templates'], '/workflow-templates', { enabled: open });
+  const use = useApiMutation<string, { id: string }>(({ axios, url }, id) => axios.post(url(`/workflow-templates/${id}/use`)), [['workflows']]);
 
-  const { mutateAsync: run } = useWorkflowStart();
-  const { mutateAsync: setStatus } = useWorkflowSetStatus();
-
-  const runningWorkflow = runWorkflowId ? runningWorkflowRef : undefined;
-
-  const [statusChange, setStatusChange] = useState<StatusChangeConfirmation | null>(null);
-  const handleStatusChange = async (workflowId: string, status: 'draft' | 'active' | 'archived') => {
-    const workflow = workflows.find(w => w.id === workflowId);
-    if (!workflow) return;
-
-    setStatusChange({
-      workflowId,
-      workflowName: workflow.name,
-      fromStatus: workflow.status!,
-      toStatus: status,
-    });
-  };
-
-  const handleConfirmStatusChange = async () => {
-    if (!statusChange) return;
-    await setStatus({
-      workflowId: statusChange.workflowId,
-      status: statusChange.toStatus
-    });
-    refetch();
-  };
-
-  const getStatusChangeMessage = (fromStatus: string, toStatus: string) => {
-    if (fromStatus === 'draft' && toStatus === 'active') {
-      return 'Activating this workflow will make it available for execution. Are you sure you want to continue?';
+  const onUse = async (template: WorkflowTemplate) => {
+    try {
+      const workflow = await use.mutateAsync(template.id);
+      toast.success(`Draft "${template.name}" created`);
+      onOpenChange(false);
+      navigate(`/app/workflows?created=${workflow.id}`);
+    } catch (e) {
+      toast.error(apiErrorMessage(e));
     }
-    if (fromStatus === 'active' && toStatus === 'archived') {
-      return 'Archiving this workflow will stop all its triggers and prevent future executions. Are you sure you want to continue?';
-    }
-    if (fromStatus === 'archived' && toStatus === 'draft') {
-      return 'Restoring this workflow will allow you to edit it again. Are you sure you want to continue?';
-    }
-    return 'Are you sure you want to change the status of this workflow?';
   };
-
-  const getStatusChangeTitle = (fromStatus: string, toStatus: string) => {
-    if (fromStatus === 'draft' && toStatus === 'active') return 'Activate Workflow';
-    if (fromStatus === 'active' && toStatus === 'archived') return 'Archive Workflow';
-    if (fromStatus === 'archived' && toStatus === 'draft') return 'Restore Workflow';
-    return 'Change Workflow Status';
-  };
-
-  const handleRunWorkflow = async (workflowId: string) => {
-    setRunWorkflowId(workflowId);
-  };
-
-  const handleRunWorkflowWithInputs = async (inputs: Record<string, unknown>) => {
-    if (!runningWorkflow) return;
-    await run({ variables: inputs, yaml: runningWorkflow.yaml, token: session.sessionToken, domain, workflowId: runWorkflowId!, result: {} });
-  };
-
-  if (!domain) return null;
 
   return (
-    <div className="container mx-auto py-10">
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>Workflows</CardTitle>
-              <CardDescription>
-                Manage your workflow automations
-              </CardDescription>
-            </div>
-            <Link href="/workflows/new" groups={['navigation', 'workflows']}>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Create Workflow
-              </Button>
-            </Link>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center py-4">
-            <Input
-              placeholder="Filter workflows..."
-              className="max-w-sm"
-            />
-          </div>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created By</TableHead>
-                  <TableHead>Created At</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Start from a template</DialogTitle>
+          <DialogDescription>Templates are created as drafts: review them, adapt them, then publish.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 md:grid-cols-3">
+          {templates.map((t) => (
+            <Card key={t.id} className="flex flex-col" data-testid="workflow-template" data-template={t.id}>
+              <CardHeader className="pb-2">
+                <Badge variant="secondary" className="w-fit">{t.category}</Badge>
+                <CardTitle className="text-base">{t.name}</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-1 flex-col justify-between gap-4">
+                <p className="text-sm text-muted-foreground">{t.description}</p>
+                <Button size="sm" onClick={() => onUse(t)} disabled={use.isPending}>Use template</Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * Workflows: drafts are edited freely; publishing validates the draft and freezes it as a new immutable version that
+ * new cases use (running cases keep theirs).
+ */
+export default function WorkflowsPage() {
+  const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  const { data: workflows = [], isLoading } = useApiQuery<WorkflowRow[]>(['workflows', 'list'], '/workflows');
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [publishErrors, setPublishErrors] = useState<{ name: string; errors: string[] } | null>(null);
+  const [running, setRunning] = useState<WorkflowRow | null>(null);
+  const publish = useApiMutation<string, { version: number }>(({ axios, url }, id) => axios.post(url(`/workflows/${id}/publish`)), [['workflows']]);
+  const startCase = useApiMutation<{ id: string; inputs: Record<string, unknown> }, { caseId: string; reference: string }>(
+    ({ axios, url }, { id, inputs }) => axios.post(url(`/workflows/${id}/executions`), { inputs }), [['cases']],
+  );
+
+  const onPublish = async (workflow: WorkflowRow) => {
+    setPublishErrors(null);
+    try {
+      const result = await publish.mutateAsync(workflow.id);
+      toast.success(`${workflow.name} published as version ${result.version}`);
+    } catch (e) {
+      const errors = apiErrorDetails(e);
+      if (errors.length) setPublishErrors({ name: workflow.name, errors });
+      else toast.error(apiErrorMessage(e));
+    }
+  };
+
+  const onStart = async (inputs: Record<string, unknown>) => {
+    if (!running) return;
+    const kase = await startCase.mutateAsync({ id: running.id, inputs });
+    toast.success(`Case ${kase.reference} opened`);
+    navigate(`/app/cases/${kase.caseId}`);
+  };
+
+  return (
+    <PageContainer>
+      <PageHeader
+        title="Workflows"
+        description="How cases are processed: automatic steps, reviews routed to roles, requests to clients and decisions"
+        actions={hasPermission('workflows:manage') && (
+          <>
+            <Button variant="outline" onClick={() => setGalleryOpen(true)}><LayoutTemplate className="mr-2 h-4 w-4" />New from template</Button>
+            <Button onClick={() => navigate('/app/workflows/new')}><Plus className="mr-2 h-4 w-4" />Blank workflow</Button>
+          </>
+        )}
+      />
+
+      {publishErrors && (
+        <Alert variant="destructive" data-testid="publish-errors">
+          <AlertTitle>{publishErrors.name} cannot be published yet</AlertTitle>
+          <AlertDescription><ul className="list-disc pl-5">{publishErrors.errors.map((e) => <li key={e}>{e}</li>)}</ul></AlertDescription>
+        </Alert>
+      )}
+
+      {!isLoading && workflows.length === 0 ? <EmptyState>No workflows yet. Start from a template.</EmptyState> : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Starts on</TableHead>
+                <TableHead>Published</TableHead>
+                <TableHead>Updated</TableHead>
+                <TableHead className="w-[50px]" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {workflows.map((w) => (
+                <TableRow key={w.id} data-testid="workflow-row" data-workflow-name={w.name}>
+                  <TableCell>
+                    <div className="font-medium">{w.name}</div>
+                    <div className="text-xs text-muted-foreground line-clamp-2 max-w-xl">{w.description}</div>
+                  </TableCell>
+                  <TableCell className="text-sm">{w.startOn?.length ? w.startOn.join(', ') : 'Form, API or manual'}</TableCell>
+                  <TableCell data-testid="workflow-version">
+                    {w.activeVersion ? <Badge>v{w.activeVersion}</Badge> : <Badge variant="secondary">Draft</Badge>}
+                  </TableCell>
+                  <TableCell className="text-sm whitespace-nowrap">{formatDate(w.updatedAt ?? w.createdAt)}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0" aria-label={`Actions for ${w.name}`}><MoreHorizontal className="h-4 w-4" /></Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => navigate(`/app/workflows/${w.id}`)}>{hasPermission('workflows:manage') ? 'Edit' : 'View'}</DropdownMenuItem>
+                        {hasPermission('workflows:publish') && <DropdownMenuItem onClick={() => onPublish(w)}>Publish</DropdownMenuItem>}
+                        {hasPermission('cases:create') && w.activeVersion && !w.startOn?.length && (
+                          <DropdownMenuItem onClick={() => setRunning(w)}>Start a case</DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {workflows.map((workflow) => (
-                  <TableRow key={workflow.id}>
-                    <TableCell className="font-medium">
-                      {workflow.name}
-                    </TableCell>
-                    <TableCell>{workflow.description}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          workflow.status === "active"
-                            ? "default"
-                            : workflow.status === "draft"
-                              ? "secondary"
-                              : "destructive"
-                        }
-                      >
-                        {workflow.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{workflow.createdBy}</TableCell>
-                    <TableCell>
-                      {formatDistanceToNow(new Date(workflow.createdAt!), { addSuffix: true })}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            className="h-8 w-8 p-0"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            <Link href={`/app/workflows/${workflow.id}`} groups={['navigation', 'workflows']} className="w-full h-full flex items-start justify-start">
-                              <span className="text-start">Edit</span>
-                            </Link>
-                          </DropdownMenuItem>
-                          {workflow.status === "active" && (
-                            <DropdownMenuItem
-                              onClick={() => handleRunWorkflow(workflow.id!)}
-                            >
-                              Run
-                            </DropdownMenuItem>
-                          )}
-                          {workflow.status === "draft" && (
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleStatusChange(workflow.id!, "active")
-                              }
-                            >
-                              Activate
-                            </DropdownMenuItem>
-                          )}
-                          {workflow.status === "active" && (
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleStatusChange(workflow.id!, "archived")
-                              }
-                            >
-                              Archive
-                            </DropdownMenuItem>
-                          )}
-                          {workflow.status === "archived" && (
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleStatusChange(workflow.id!, "draft")
-                              }
-                            >
-                              Restore to Draft
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {runningWorkflow && runningWorkflow.yaml && (
-        <RunWorkflowDialog
-          open={!!runningWorkflow}
-          onOpenChange={(open) => !open && setRunWorkflowId(null)}
-          workflowId={runningWorkflow?.id || ''}
-          yaml={runningWorkflow?.yaml || ''}
-          onRun={handleRunWorkflowWithInputs}
-        />
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
-      {statusChange && (
-        <ConfirmDialog
-          open={!!statusChange}
-          onOpenChange={(open) => !open && setStatusChange(null)}
-          title={getStatusChangeTitle(statusChange.fromStatus, statusChange.toStatus)}
-          description={getStatusChangeMessage(statusChange.fromStatus, statusChange.toStatus)}
-          onConfirm={handleConfirmStatusChange}
-        />
+      <TemplateGallery open={galleryOpen} onOpenChange={setGalleryOpen} />
+      {running && (
+        <RunWorkflowDialog open onOpenChange={(open) => !open && setRunning(null)} workflowId={running.id} yaml={running.yaml} onRun={onStart} />
       )}
-    </div>
+    </PageContainer>
   );
 }

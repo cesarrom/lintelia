@@ -1,16 +1,22 @@
 import { Module } from '@nestjs/common';
-import { AUTH_PROVIDER } from './injector/tokens/auth.token';
+import { APP_GUARD } from '@nestjs/core';
 import { ENV_PROVIDER } from './injector/tokens/env.token';
-import { GLOBAL_CONNECTION_PROVIDER } from './injector/tokens/global-connection.token';
+import { DATABASES_PROVIDER, DatabasesLifecycle } from './injector/tokens/databases.token';
+import { PLATFORM_CONNECTION_PROVIDER } from './injector/tokens/platform-connection.token';
+import { AUTH_CONTEXT_PROVIDER } from './injector/tokens/auth-context.token';
 import { TENANT_PROVIDER } from './injector/tokens/tenant.token';
 import { TENANT_CONNECTION_PROVIDER } from './injector/tokens/tenant-connection.token';
 import { USER_PROVIDER } from './injector/tokens/user.token';
+import { EMAIL_PROVIDER_FACTORY } from './providers/email.provider';
+import { STORAGE_PROVIDER_FACTORY } from './providers/storage.provider';
+import { IdentityService } from './auth/identity.service';
+import { AccessGuard } from './auth/access';
+import { TenantDirectory } from './services/tenant-directory.service';
 
 import { DatabaseService } from "./services/database.service";
 import { DomainsService } from "./services/domains.service";
 import { EmailTemplatesService } from "./services/email-templates.service";
 import { EmailsService } from "./services/emails.service";
-import { EnvironmentsService } from "./services/environments.service";
 import { FilesService } from "./services/files.service";
 import { FormsService } from "./services/forms.service";
 import { InvitationsService } from "./services/invitations.service";
@@ -25,77 +31,77 @@ import { UsersService } from "./services/users.service";
 import { WebService } from "./services/web.service";
 import { WorkflowExecutionsService } from "./services/workflow-executions.service";
 import { WorkflowsService } from "./services/workflows.service";
-import { ConnectionService } from "./services/connection.service";
 
-import { WorkflowService } from "./services/restate/workflow";
-import { SchedulerService } from "./services/restate/scheduler";
-import { ConditionalService } from "./services/restate/conditional";
-import { DecisionTableService } from "./services/restate/decision-table";
-import { DocumentExtractorService } from "./services/restate/document-extractor";
-import { IteratorService } from "./services/restate/iterator";
-import { MapperService } from "./services/restate/mapper";
-import { DatabaseService as DatabaseServiceRestate } from "./services/restate/database";
-import { FormService } from "./services/restate/form";
-import { IdentityValidationService } from "./services/restate/identity-validation";
-import { ApiService } from "./services/restate/api";
-import { ProofOfLifeService } from "./services/restate/proof-of-life";
-import { WizardService } from "./services/restate/wizard";
-import { EmailService } from "./services/restate/email";
-import { EndService } from "./services/restate/end";
-import { LogService } from "./services/restate/logs";
-import { ReviewService } from "./services/restate/reviews";
-import { RoleService } from "./services/restate/roles";
-import { UserService } from "./services/restate/users";
-import { SystemService } from "./services/restate/system";
-import { TenantService } from "./services/restate/tenant";
-import { AuthService } from "./services/restate/auth";
 
 import { AuthHandler } from './handlers/auth.controller';
 import { DatabaseHandler } from './handlers/database.controller';
 import { FormHandler } from './handlers/form.controller';
 import { LogHandler } from './handlers/logs.controller';
-import { ProofOfLifeHandler } from './handlers/proof-of-life.controller';
 import { ReviewHandler } from './handlers/reviews.controller';
 import { RoleHandler } from './handlers/roles.controller';
 import { SystemHandler } from './handlers/system.controller';
 import { TenantHandler } from './handlers/tenant.controller';
 import { UserHandler } from './handlers/users.controller';
-import { DocusealHanlder } from './handlers/docuseal.controller';
 import { WorkflowHandler } from './handlers/workflow.controller';
+import { FilesHandler } from './handlers/files.controller';
+import { HealthHandler } from './handlers/health.controller';
+import { CatalogHandler } from './handlers/catalog.controller';
+import { AuditHandler } from './handlers/audit.controller';
+import { AuditWriter } from './services/audit.writer';
+import { SystemRolesSync } from './services/system-roles.sync';
+import { ENGINE_PROVIDERS } from './engine/providers';
 import { RestateHandler } from './handlers/restate.controller';
+import { CasesHandler } from './handlers/cases.controller';
+import { TasksHandler } from './handlers/tasks.controller';
+import { ClientsHandler } from './handlers/clients.controller';
+import { PortalHandler } from './handlers/portal.controller';
+import { PublicFormsHandler } from './handlers/public.controller';
+import { WorkflowTemplatesHandler } from './handlers/workflow-templates.controller';
+import { CasesService } from './services/cases.service';
+import { TasksService, ClientTasksService } from './services/tasks.service';
+import { WorkflowLifecycleService } from './services/workflow-lifecycle.service';
+import { PublicFormsService } from './services/public-forms.service';
+import { EventsService } from './services/events.service';
+import { ClientsService } from './services/clients.service';
+import { DataRequestsService } from './services/data-requests.service';
+import { PlatformStaffService } from './services/platform-staff.service';
+import { SupportAccessService } from './services/support-access.service';
+import { PlatformAuditWriter } from './services/platform-audit.writer';
+import { PlatformHandler, SupportAccessHandler } from './handlers/platform.controller';
+import { WorkflowComponentsHandler } from './handlers/workflow-components.controller';
+import { ConnectorComponentsService } from './integrations/connector-components.service';
+import { ConnectorRegistry } from './integrations/registry';
+import { ConnectorInvoker } from './integrations/connector-invoker';
+import { ConnectorApiService } from './integrations/connector-api.service';
+import { InstallationsService } from './integrations/installations.service';
+import { ChildCases } from './engine/child-cases';
+import { IntegrationsHandler } from './handlers/integrations.controller';
+import { ConnectorApiHandler, WellKnownHandler } from './handlers/connector-api.controller';
+import { DataRequestsHandler, MyDataRequestsHandler } from './handlers/data-requests.controller';
+import { ApiClientsHandler, OAuthHandler } from './handlers/api-clients.controller';
+import { ApiClientsService } from './api-clients/api-clients.service';
+import { WebhooksHandler, WebhookEventsHandler } from './handlers/webhooks.controller';
+import { WebhooksService } from './webhooks/webhooks.service';
+import { WebhookStore } from './webhooks/webhook-store';
+import { EventsHandler } from './handlers/events.controller';
+import { UploadsHandler, UploadTargetHandler, BlobsHandler, CaseFilesHandler } from './handlers/uploads.controller';
+import { UploadsService } from './files/uploads.service';
+import { FileStore } from './files/file-store';
+import { SecurityHandler } from './handlers/security.controller';
+import { SsoHandler, SsoAuthHandler, PlatformSsoHandler } from './handlers/sso.controller';
+import { SsoService } from './auth/sso/sso.service';
+import { SSO_BROKER, WorkOsSsoBroker } from './auth/sso/broker';
+import { DirectorySync } from './auth/sso/directory-sync';
+import { PartiesService } from './services/parties.service';
+import { DomainsHandler } from './handlers/domains.controller';
+import { CustomDomainsService } from './services/custom-domains.service';
 import { REQUEST_PROXY_PROVIDER } from './injector/tokens/request-proxy.token';
-
-const RESTATE_SERVICES = [
-  WorkflowService,
-  SchedulerService,
-  ConditionalService,
-  DecisionTableService,
-  DocumentExtractorService,
-  IteratorService,
-  MapperService,
-  DatabaseServiceRestate,
-  FormService,
-  IdentityValidationService,
-  ApiService,
-  ProofOfLifeService,
-  WizardService,
-  EmailService,
-  EndService,
-  LogService,
-  ReviewService,
-  RoleService,
-  UserService,
-  SystemService,
-  TenantService,
-  AuthService,
-];
 
 const SERVICES = [
   DatabaseService,
   DomainsService,
   EmailTemplatesService,
   EmailsService,
-  EnvironmentsService,
   FilesService,
   FormsService,
   InvitationsService,
@@ -110,7 +116,23 @@ const SERVICES = [
   WebService,
   WorkflowExecutionsService,
   WorkflowsService,
-  ConnectionService,
+  CasesService,
+  TasksService,
+  ClientTasksService,
+  WorkflowLifecycleService,
+  PublicFormsService,
+  EventsService,
+  ClientsService,
+  DataRequestsService,
+  PlatformStaffService,
+  SupportAccessService,
+  ConnectorComponentsService,
+  InstallationsService,
+  ApiClientsService,
+  WebhooksService,
+  UploadsService,
+  PartiesService,
+  CustomDomainsService,
 ];
 
 const HANDLERS = [
@@ -118,7 +140,6 @@ const HANDLERS = [
   DatabaseHandler,
   FormHandler,
   LogHandler,
-  ProofOfLifeHandler,
   ReviewHandler,
   RoleHandler,
   SystemHandler,
@@ -126,7 +147,38 @@ const HANDLERS = [
   UserHandler,
   WorkflowHandler,
   RestateHandler,
-  DocusealHanlder,
+  FilesHandler,
+  HealthHandler,
+  CatalogHandler,
+  AuditHandler,
+  CasesHandler,
+  TasksHandler,
+  ClientsHandler,
+  PortalHandler,
+  PublicFormsHandler,
+  WorkflowTemplatesHandler,
+  DataRequestsHandler,
+  MyDataRequestsHandler,
+  PlatformHandler,
+  SupportAccessHandler,
+  WorkflowComponentsHandler,
+  IntegrationsHandler,
+  ConnectorApiHandler,
+  WellKnownHandler,
+  ApiClientsHandler,
+  OAuthHandler,
+  WebhooksHandler,
+  WebhookEventsHandler,
+  EventsHandler,
+  UploadsHandler,
+  UploadTargetHandler,
+  BlobsHandler,
+  CaseFilesHandler,
+  SecurityHandler,
+  SsoHandler,
+  SsoAuthHandler,
+  PlatformSsoHandler,
+  DomainsHandler,
 ];
 
 export const HANDLERS_MAP = {
@@ -134,7 +186,6 @@ export const HANDLERS_MAP = {
   databases: DatabaseHandler,
   forms: FormHandler,
   logs: LogHandler,
-  proofOfLife: ProofOfLifeHandler,
   reviews: ReviewHandler,
   roles: RoleHandler,
   system: SystemHandler,
@@ -147,15 +198,34 @@ export const HANDLERS_MAP = {
   controllers: [...HANDLERS],
   providers: [
     ENV_PROVIDER,
-    GLOBAL_CONNECTION_PROVIDER,
-    TENANT_CONNECTION_PROVIDER,
-    TENANT_PROVIDER,
-    USER_PROVIDER,
-    AUTH_PROVIDER,
+    DATABASES_PROVIDER,
+    DatabasesLifecycle,
+    PLATFORM_CONNECTION_PROVIDER,
+    EMAIL_PROVIDER_FACTORY,
+    STORAGE_PROVIDER_FACTORY,
+    TenantDirectory,
+    AuditWriter,
+    PlatformAuditWriter,
+    ConnectorRegistry,
+    ConnectorInvoker,
+    ConnectorApiService,
+    ChildCases,
+    WebhookStore,
+    FileStore,
+    IdentityService,
+    { provide: SSO_BROKER, useClass: WorkOsSsoBroker },
+    SsoService,
+    DirectorySync,
+    SystemRolesSync,
+    ...ENGINE_PROVIDERS,
+    { provide: APP_GUARD, useClass: AccessGuard },
+    // request-scoped context
     REQUEST_PROXY_PROVIDER,
+    AUTH_CONTEXT_PROVIDER,
+    TENANT_PROVIDER,
+    TENANT_CONNECTION_PROVIDER,
+    USER_PROVIDER,
     ...SERVICES,
-    ...RESTATE_SERVICES,
   ],
 })
 export class AppModule { }
-

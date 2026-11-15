@@ -1,0 +1,18 @@
+{
+  "name": "@connector/documenso",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Fintivio connector: electronic signatures with Documenso.",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "check-types": "tsc --noEmit -p ."
+  },
+  "fintivio": {
+    "connector": "documenso"
+  },
+  "dependencies": {
+    "@repo/connector-sdk": "*"
+  }
+}

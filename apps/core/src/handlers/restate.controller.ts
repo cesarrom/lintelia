@@ -1,99 +1,83 @@
 import * as restate from "@restatedev/restate-sdk/fetch";
-import { WorkflowService } from "../services/restate/workflow";
-import { SchedulerService } from "../services/restate/scheduler";
-import { ConditionalService } from "../services/restate/conditional";
-import { DecisionTableService } from "../services/restate/decision-table";
-import { DocumentExtractorService } from "../services/restate/document-extractor";
-import { IteratorService } from "../services/restate/iterator";
-import { MapperService } from "../services/restate/mapper";
-import { DatabaseService } from "../services/restate/database";
-import { FormService } from "../services/restate/form";
-import { IdentityValidationService } from "../services/restate/identity-validation";
-import { ApiService } from "../services/restate/api";
-import { ProofOfLifeService } from "../services/restate/proof-of-life";
-import { WizardService } from "../services/restate/wizard";
-import { EmailService } from "../services/restate/email";
-import { EndService } from "../services/restate/end";
-import { LogService } from "../services/restate/logs";
-import { ReviewService } from "../services/restate/reviews";
-import { RoleService } from "../services/restate/roles";
-import { RestateService } from "../services/restate/restate.abstract.service";
-import { UserService } from "../services/restate/users";
-import { SystemService } from "../services/restate/system";
-import { TenantService } from "../services/restate/tenant";
-import { AuthService } from "../services/restate/auth";
-import { All, Controller, Inject, Res, Scope } from '@nestjs/common';
+import { All, Controller, Inject, Req, Res, type OnModuleInit } from '@nestjs/common';
+import { ModuleRef } from "@nestjs/core";
 import type { Context } from "hono";
-import { type AppRequest, REQUEST_PROXY } from "../injector/tokens/request-proxy.token";
-@Controller({
-  path: '/restate',
-  scope: Scope.REQUEST
-})
-export class RestateHandler {
-  fetch: (req: Request) => Promise<Response>;
+import type { HonoRequest } from "hono/request";
+import { Public } from "../auth/access";
+import { env } from "../constants";
+import { createCaseRunner } from "../engine/case-runner";
+import { CASE_REPOSITORY } from "../engine/engine.client";
+import { NOTIFIER } from "../engine/providers";
+import { AuditWriter, setEventSink } from "../services/audit.writer";
+import { TenantDirectory } from "../services/tenant-directory.service";
+import { ConnectorRegistry } from "../integrations/registry";
+import { ConnectorInvoker } from "../integrations/connector-invoker";
+import { connectorComponentResolver } from "../integrations/connector-components";
+import { registerComponentResolver } from "../engine/components";
+import { ChildCases } from "../engine/child-cases";
+import { WebhookStore } from "../webhooks/webhook-store";
+import { createWebhookRunner } from "../webhooks/webhook-runner";
+import { FileStore } from "../files/file-store";
+import { createIntakeRunner } from "../files/intake-runner";
 
-  constructor(
-    @Inject(DatabaseService) databaseService: DatabaseService,
-    @Inject(FormService) formService: FormService,
-    @Inject(LogService) logService: LogService,
-    @Inject(ProofOfLifeService) proofOfLifeService: ProofOfLifeService,
-    @Inject(ReviewService) reviewService: ReviewService,
-    @Inject(RoleService) roleService: RoleService,
-    @Inject(UserService) userService: UserService,
-    @Inject(SystemService) systemService: SystemService,
-    @Inject(TenantService) tenantService: TenantService,
-    @Inject(WorkflowService) workflowService: WorkflowService,
-    @Inject(ApiService) apiService: ApiService,
-    @Inject(ConditionalService) conditionalService: ConditionalService,
-    @Inject(DecisionTableService) decisionTableService: DecisionTableService,
-    @Inject(DocumentExtractorService) documentExtractorService: DocumentExtractorService,
-    @Inject(EmailService) emailService: EmailService,
-    @Inject(EndService) endService: EndService,
-    @Inject(IdentityValidationService) identityValidationService: IdentityValidationService,
-    @Inject(IteratorService) iteratorService: IteratorService,
-    @Inject(MapperService) mapperService: MapperService,
-    @Inject(SchedulerService) schedulerService: SchedulerService,
-    @Inject(WizardService) wizardService: WizardService,
-    @Inject(AuthService) authService: AuthService,
-    @Inject(REQUEST_PROXY) private readonly requestProxy: AppRequest,
-  ) {
+/**
+ * Restate deployment endpoint (`/restate`), registered with the Restate server. It serves the durable parts of the
+ * platform, all driven by the API with signed calls (`x-fintivio-signature`), never by end users:
+ *  - `caseRun`: the case engine (one workflow per case);
+ *  - `webhooks`: outbound webhook dispatch and deliveries;
+ *  - `fileIntake`: the upload intake pipeline.
+ * The legacy node engine (services/restate/*, driven through the ingress with user tokens in its payloads) was
+ * removed (docs/architecture/identity.md §Durable workflow identity).
+ *
+ * The HTTP route itself is public: only the Restate server should reach it. In deployed environments configure
+ * RESTATE_IDENTITY_KEYS so request signatures are verified, and keep the Restate ingress private.
+ */
+@Public()
+@Controller({ path: '/restate' })
+export class RestateHandler implements OnModuleInit {
+  private fetchHandler!: (req: Request) => Promise<Response>;
+
+  constructor(@Inject(ModuleRef) private readonly moduleRef: ModuleRef) { }
+
+  async onModuleInit() {
     const endpoint = restate.endpoint();
+    if (env.RESTATE_IDENTITY_KEYS.length) {
+      endpoint.withIdentityV1(...env.RESTATE_IDENTITY_KEYS);
+    }
+    const get = <T>(token: unknown) => this.moduleRef.get<T>(token as never, { strict: false });
+    const audit = get<AuditWriter>(AuditWriter);
+    const directory = get<TenantDirectory>(TenantDirectory);
 
-    RestateService.bindAll(
-      endpoint,
-      databaseService,
-      formService,
-      logService,
-      proofOfLifeService,
-      reviewService,
-      roleService,
-      userService,
-      systemService,
-      tenantService,
-      workflowService,
-      apiService,
-      conditionalService,
-      decisionTableService,
-      documentExtractorService,
-      emailService,
-      endService,
-      identityValidationService,
-      iteratorService,
-      mapperService,
-      schedulerService,
-      wizardService,
-      authService,
-    );
+    // The case engine: its handlers are ingress-public but verify the API's signature (see createCaseRunner).
+    const registry = get<ConnectorRegistry>(ConnectorRegistry);
+    const invoker = get<ConnectorInvoker>(ConnectorInvoker);
+    const childCases = get<ChildCases>(ChildCases);
+    registerComponentResolver(connectorComponentResolver((id) => registry.manifest(id)));
+    endpoint.bind(createCaseRunner({
+      repository: get(CASE_REPOSITORY),
+      audit,
+      notifier: get(NOTIFIER),
+      directory,
+      services: {
+        invokeConnector: (input) => invoker.invoke(input),
+        startChildCase: (input) => childCases.start(input),
+        notifyParent: (tenantId, childCaseId, signal) => childCases.notifyParent(tenantId, childCaseId, signal),
+      },
+    }));
 
-    const { fetch } = endpoint.handler();
+    // Outbound webhooks: the durable dispatcher, fed by the audit writer's outbox events.
+    const webhookStore = get<WebhookStore>(WebhookStore);
+    endpoint.bind(createWebhookRunner({ store: webhookStore, audit, notifier: get(NOTIFIER), loadTenant: (tenantId) => directory.findById(tenantId) }));
+    setEventSink((tenantId, eventId) => webhookStore.dispatch(tenantId, eventId));
 
-    this.fetch = fetch;
+    // File intake (scan → sanitise → rescan) for uploads.
+    endpoint.bind(createIntakeRunner({ store: get<FileStore>(FileStore), audit }));
+
+    this.fetchHandler = endpoint.handler().fetch;
   }
 
   @All('/*')
-  async any(@Res() ctx: Context) {
-    const res = await this.fetch(this.requestProxy);
-    ctx.res = res;
-    return;
+  async any(@Req() req: HonoRequest, @Res() ctx: Context) {
+    ctx.res = await this.fetchHandler(req.raw);
   }
 }

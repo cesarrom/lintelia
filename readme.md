@@ -1,40 +1,135 @@
-# Turborepo kitchen sink starter
+# Fintivio
 
-This Turborepo starter is maintained by the Turborepo core team.
+Multi-tenant onboarding and KYC workflow platform for financial institutions.
 
-This example also shows how to use [Workspace Configurations](https://turborepo.com/docs/core-concepts/monorepos/configuring-workspaces).
+- **Platform staff** (us) onboard financial institutions (tenants).
+- **Tenants** configure their operation: flows (workflows), forms, roles, users, branding, domains.
+- **Clients** (the institutions' end users) go through those flows.
 
-## Using this example
+| Path | What |
+| --- | --- |
+| `apps/core` | API: NestJS on Hono, served by Bun. Durable workflow execution on [Restate](RESTATE.md) (`/restate`). |
+| `apps/web` | Vite + React app (platform staff app, tenant back-office, client-facing forms). |
+| `packages/fintivio` | Shared Drizzle schema (entities + RLS policies), zod schemas, workflow utilities. |
+| `packages/connector-sdk` | Build connectors: manifest, signed core requests, core client, encrypted secrets, settings pages. |
+| `integrations/*` | Connectors (separate services with their own databases): smtp-mailer, postgres-datasource, didit, documenso, screening. |
+| `fake-services/*` | Local stand-ins for vendors (WorkOS, OIDC IdP, Didit, Documenso, mailbox, webhook receiver, scanner, sanitiser). |
+| `apps/e2e` | Playwright suite (API and UI journeys per persona and flow). |
+| `dev/`, `scripts/stack.ts` | The one-command local stack. |
 
-Run the following command:
+## Quick start
+
+Requirements: [Bun](https://bun.sh) 1.3.x (`npm i -g bun@1.3.14` works offline against the npm registry), a normal
+(non-root) user. No Docker: Postgres, Redis, Restate, the connectors and every fake vendor run as local processes.
 
 ```sh
-npx create-turbo@latest -e kitchen-sink
+bun run stack            # installs, creates .env files, starts everything, migrates, seeds, registers connectors
 ```
 
-## What's inside?
+`bun run stack --detach` runs it in the background; then `bun run stack:status`, `bun run stack:logs [service]`,
+`bun run stack:restart <service>`, `bun run stack:stop`; `bun run stack:reset` wipes local state; `bun run stack:doctor`
+checks the machine; `bun run stack:test [-- <playwright args>]` runs the e2e suite against it. Services, ports and
+dependencies: [dev/stack.config.ts](dev/stack.config.ts), [dev/ports.json](dev/ports.json); logs in `.data/stack/logs/`.
+Demo data helpers (`bun run demo:workflows`, `demo:case`, `demo:token`, `demo:files`) and every local credential are in
+[TESTING.md](TESTING.md).
 
-This Turborepo includes the following packages and apps:
+| Service | URL | What |
+| --- | --- | --- |
+| Back office, portal, platform console | http://localhost:3001, http://demo-bank.localhost:3001 | web app (Vite) |
+| API | http://localhost:8000 | NestJS on Hono (Bun); Restate endpoint `/restate` |
+| Mailbox | http://localhost:8025 | every e-mail the stack sends (SMTP :1025), with a REST API for tests |
+| Connectors | :4101 smtp-mailer, :4102 didit, :4103 documenso, :4104 postgres-datasource, :4105 screening | separate services, own databases |
+| Fakes | :9300 WorkOS, :9400 OIDC IdP, :9401 Didit, :9402 Documenso, :9404 webhook receiver, :9407 screening, :9408 DNS, :9501 scanner, :9502 sanitiser | vendors we cannot reach locally, same APIs |
+| Demo Bank website | http://localhost:4000 | the loan form embedded on a third-party site |
+| Restate admin | http://localhost:9070 | durable executions |
 
-### Apps and Packages
+Seeded accounts (password `fintivio-dev-password`, override with `SEED_PASSWORD`):
 
-- `api`: an [Express](https://expressjs.com/) server
-- `storefront`: a [Next.js](https://nextjs.org/) app
-- `admin`: a [Vite](https://vitejs.dev/) single page app
-- `blog`: a [Remix](https://remix.run/) blog
-- `@repo/eslint-config`: ESLint configurations used throughout the monorepo
-- `@repo/jest-presets`: Jest configurations
-- `@repo/logger`: isomorphic logger (a small wrapper around console.log)
-- `@repo/ui`: a dummy React UI library (which contains `<CounterButton>` and `<Link>` components)
-- `@repo/typescript-config`: tsconfig.json's used throughout the monorepo
+| Where | Account | Role |
+| --- | --- | --- |
+| http://localhost:3001/sign-on | `staff@fintivio.local` | platform staff (`platform_admin`). Staff always use a second factor: `bun run totp` prints the current code (development TOTP secret in `apps/core/scripts/seed.ts`) |
+| http://demo-bank.localhost:3001/sign-on | `admin@demo-bank.test` | Demo Bank administrator |
+| | `compliance@demo-bank.test` | compliance officer / MLRO |
+| | `lead@demo-bank.test`, `senior@demo-bank.test` | senior reviewers (second approvals, investigations) |
+| | `analyst@demo-bank.test` | reviewer (first-line queue) |
+| | `rm@demo-bank.test` | relationship manager (assisted applications, flags clients) |
+| | `designer@demo-bank.test` | flow designer (forms, workflows) |
+| | `integrations@demo-bank.test`, `support@demo-bank.test`, `auditor@demo-bank.test` | integration manager, support agent, auditor |
+| | `client@demo-bank.test` | Demo Bank client (portal; or "Email me a code") |
+| http://acme-credit.localhost:3001/sign-on | `admin@acme-credit.test` | Acme Credit Union administrator |
 
-Each package and app is 100% [TypeScript](https://www.typescriptlang.org/).
+The seeded institutions do not require a second factor for their members (development convenience); new
+institutions do (members enrol an authenticator app on first sign-in).
 
-### Utilities
+Try the journeys (each is an e2e test in `apps/e2e/tests`):
 
-This Turborepo has some additional tools already setup for you:
+1. **Loan pre-approval from the bank's website**: open http://localhost:4000 (Demo Bank's public site with the form
+   embedded). Apply, confirm with the code e-mailed to you (open http://localhost:8025). Up to 10,000 and affordable:
+   pre-approved at once; above: `analyst` decides in *Tasks*; above 50,000: `lead` **and** `senior` must both approve.
+2. **Suspicious activity**: as `rm`, *Clients → Chris Client → Flag suspicious activity*; `analyst` triages, `lead`
+   investigates (can ask the client for documents), `compliance` files the SAR / exits / closes. The client never sees
+   the investigation.
+3. **Connect a system**: as `integrations`, *Integrations → SMTP mailer → Connect*: you land on the connector's own page
+   (host `localhost`, port `1025`, any user/password except `wrong`); back in Fintivio the connection is active and the
+   workflow editor offers "Send e-mail (your server)". Didit, Documenso and PostgreSQL data sources work the same way.
+4. **Identity verification and signature**: a workflow with `connector:didit/kyc.verify` and
+   `connector:documenso/signature.request` steps (see `apps/e2e/fixtures/workflows/retail-account-opening.yaml`): the
+   client verifies and signs inside the portal on the vendors' (fake) pages; decisions arrive by signed webhooks.
+5. **Documents**: a `client.request` step with a `file` item: the client uploads in the portal; files are scanned
+   (EICAR is refused), sanitised (PDF scripts removed) and only then reach the case.
+6. **API clients and webhooks**: *API clients* (OAuth client credentials) and *Webhooks* (Standard Webhooks, retries,
+   delivery log). Webhook deliveries can be watched at http://localhost:9404.
+7. **Single sign-on**: *Settings → Security*: open the Admin Portal (WorkOS emulator), add a domain, "publish" its TXT
+   record with `POST http://localhost:9300/__control/dns`, and connect the fake IdP (register a client with
+   `POST http://localhost:9400/__control/clients`). The e2e helper `apps/e2e/support/sso.ts` does exactly this.
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Jest](https://jestjs.io) test runner for all things JavaScript
-- [Prettier](https://prettier.io) for code formatting
+Each tenant is served on `<tenant>.<BASE_DOMAIN>` (`*.localhost` resolves to 127.0.0.1 in browsers) or on any custom
+host listed in its `allowed_domains`. Server-side code uses `localhost:<port>` (Bun does not resolve `*.localhost`).
+
+Without the stack script, the pieces still start one by one: `bun run db:start`, `bun run redis:start`,
+`bun run restate:serve`, `bun run dev` (see `dev/stack.config.ts` for the commands of the connectors and fakes).
+
+Other commands (run from the repository root or `apps/core`):
+
+```sh
+bun run db:reset        # drop + recreate the dev database, migrate, seed
+bun run db:seed         # (re)seed development data, idempotent
+bun run --cwd apps/core db:generate   # generate a migration after changing packages/fintivio/src/entities
+bun run --cwd apps/core test          # RLS + authentication tests (needs db:start running)
+bun run --cwd apps/core check-types
+bun run totp            # current second-factor code of the seeded staff account
+```
+
+## Tenancy and security model (current)
+
+- **One Postgres database** for platform and tenant data. Every tenant-owned table has a `tenant_id` and a row level
+  security policy declared with Drizzle `pgPolicy` (`packages/fintivio/src/entities/rls.ts`).
+- The API connects as two **restricted roles** (never a superuser, no `BYPASSRLS`):
+  - `fintivio_app`: tenant data. Each statement runs in a transaction that first calls
+    `set_config('app.tenant_id', <tenant>, true)`; without it the policies match nothing.
+  - `fintivio_platform`: tenant directory and staff accounts only; no access to tenant data.
+  The owner role is only used by `scripts/db.ts` to run migrations.
+- Child rows reference parents through composite `(tenant_id, id)` foreign keys, because foreign key checks bypass RLS.
+- **Authentication** is a local provider (`apps/core/src/auth`): users in Postgres, argon2id passwords, 15-minute
+  access tokens backed by server-side sessions in Redis (rotating refresh tokens, revocation, lockout), e-mailed
+  one-time codes for clients. A member/client token is pinned to its tenant; presenting it to another tenant makes the
+  request anonymous. Staff tokens never carry a tenant. Second factor (TOTP + recovery codes) for staff always and for
+  members when the institution requires it (default); single sign-on through the SSO broker (WorkOS; its emulator
+  locally) with enforcement per verified domain and just-in-time accounts; OAuth client credentials for the
+  institutions' systems. See [docs/architecture/identity.md](docs/architecture/identity.md).
+- **Integrations** are connectors: separate services with their own databases and secrets, installed by institutions
+  through the connectors' own pages, contributing workflow steps (docs/architecture/integrations.md).
+- **Authorization**: permission catalogue, system and custom roles (`docs/architecture/authorization.md`). Every route
+  declares `@Require(permission)`, `@RequirePlatform(permission)`, `@Access(kind)` or `@Public()`; undeclared routes
+  are refused. Case scope, segregation of duties and four-eyes are enforced in the services.
+- **Cases and workflows**: published workflow versions run durably on Restate (`caseRun`); see
+  [docs/architecture/cases-and-workflows.md](docs/architecture/cases-and-workflows.md).
+- `apps/core/test` proves the above against the restricted roles (`bun test`).
+
+## Documentation
+
+- [TESTING.md](TESTING.md): how to test everything locally — what changed, start the stack, credentials, validation
+  commands, supporting/demo commands and step-by-step journeys
+- [docs/README.md](docs/README.md): index (personas, flows, architecture, testing, change log)
+- End-to-end suite: `bun run e2e` (stack running), progress per flow: `bun run e2e:status` →
+  [docs/testing/flow-status.md](docs/testing/flow-status.md)

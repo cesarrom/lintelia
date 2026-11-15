@@ -55,3 +55,6 @@ test/**/*.js.map
 #env
 .env.local
 .env.development
+
+# Local runtime data (embedded Postgres, Restate, outbox, files)
+.data/

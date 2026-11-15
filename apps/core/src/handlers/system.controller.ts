@@ -1,3 +1,4 @@
+import { Access, Require } from "../auth/access";
 import type { CreateSystemVariableInput } from "@repo/fintivio/schemas";
 import { Scope, Inject, Controller, Get, Put, Delete, Res, type RawBodyRequest, Param } from "@nestjs/common"; 
 import type { Context } from "hono"; 
@@ -12,6 +13,7 @@ import { type AppRequest, REQUEST_PROXY } from "../injector/tokens/request-proxy
 export class SystemHandler {
   constructor(@Inject(SystemVariablesService) private systemVariablesService: SystemVariablesService, @Inject(REQUEST_PROXY) private readonly requestProxy: AppRequest) { }
 
+  @Require('variables:read')
   @Get()
   async getSystemVariables(@Res() ctx: Context): Promise<void> { 
     try {
@@ -29,6 +31,7 @@ export class SystemHandler {
     return;
   };
 
+  @Require('variables:read')
   @Get('/names')
   async getSystemVariableNames(@Res() ctx: Context): Promise<void> { 
     try {
@@ -51,6 +54,7 @@ export class SystemHandler {
     return;
   };
 
+  @Require('variables:read')
   @Get('/:key')
   async getSystemVariable(@Param('key') key: string, @Res() ctx: Context): Promise<void> { 
     assert(key, 'key parameter is required');
@@ -76,6 +80,7 @@ export class SystemHandler {
     return;
   };
 
+  @Require('variables:manage')
   @Put('/:key')
   async createSystemVariable(@Param('key') key: string, @Res() ctx: Context): Promise<void> { 
     assert(key, 'key parameter is required');
@@ -100,6 +105,7 @@ export class SystemHandler {
     return;
   }
 
+  @Require('variables:manage')
   @Delete('/:key')
   async deleteSystemVariable(@Param('key') key: string, @Res() ctx: Context): Promise<void> { 
     assert(key, 'key parameter is required');

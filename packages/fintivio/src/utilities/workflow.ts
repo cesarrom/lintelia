@@ -82,6 +82,9 @@ export function workflowToYaml(workflow: Workflow, nodes: Node<NodeData>[], edge
     allowedRoles: workflow.allowedRoles,
     allowedUsers: workflow.allowedUsers,
     inputs: workflow.inputs || [],
+    ...(workflow.startOn?.length ? { startOn: workflow.startOn } : {}),
+    ...(workflow.caseTitle ? { caseTitle: workflow.caseTitle } : {}),
+    ...(workflow.clientVisibility ? { clientVisibility: workflow.clientVisibility } : {}),
 
     // Convert triggers
     triggers: triggers,
@@ -96,11 +99,15 @@ export function workflowToYaml(workflow: Workflow, nodes: Node<NodeData>[], edge
         type: nodeData.type,
         description: nodeData.description,
         config: nodeData.config,
-        events: nodeData.events.map(e => ({
-          ...e, next: e.next || edges.filter(edge => edge.source === nodeData.id).map(edge => edge.target)
-        })),
+        // Event targets come from the edges leaving this event's handle (`<step>-<event>`); node data is the fallback.
+        events: nodeData.events.map(e => {
+          const fromEdges = edges.filter(edge => edge.source === nodeData.id && edge.sourceHandle === `${nodeData.id}-${e.name}`).map(edge => edge.target);
+          return { ...e, next: fromEdges.length || !e.next ? fromEdges : e.next };
+        }),
         isTerminal: nodeData.isTerminal,
         exports: nodeData.exports,
+        // Editor layout (ignored by the engine).
+        ui: { x: Math.round(node.position.x), y: Math.round(node.position.y) },
       };
     }),
   };
@@ -116,9 +123,9 @@ export function workflowToYaml(workflow: Workflow, nodes: Node<NodeData>[], edge
 function autoOrganizeNodes(startNode: Node<NodeData>, nodes: Node<NodeData>[], edges: Edge[], visited: Set<string> = new Set()) {
   if (visited.has(startNode.id)) return;
   visited.add(startNode.id);
-  const Offset = 100;
-  const SquareWidth = 300;
-  const SquareHeight = 150;
+  const Offset = 80;
+  const SquareWidth = 320;
+  const SquareHeight = 190;
   const children = edges.filter(edge => edge.source === startNode.id).map(edge => edge.target);
   const childrenXCoord = startNode.position.x + SquareWidth + Offset;
   const startingChildrenYCoord = startNode.position.y;
@@ -135,6 +142,11 @@ function autoOrganizeNodes(startNode: Node<NodeData>, nodes: Node<NodeData>[], e
     autoOrganizeNodes(child, nodes, edges, visited);
   });
 }
+
+const positionOf = (step: unknown, index: number) => {
+  const ui = (step as { ui?: { x?: number; y?: number } }).ui;
+  return ui && typeof ui.x === 'number' && typeof ui.y === 'number' ? { x: ui.x, y: ui.y } : { x: 0, y: index * 160 };
+};
 
 export function yamlToWorkflow(yamlContent: string, options: { id?: string } = {}): {
   workflow: Workflow;
@@ -157,6 +169,9 @@ export function yamlToWorkflow(yamlContent: string, options: { id?: string } = {
     allowedRoles: schema.allowedRoles,
     allowedUsers: schema.allowedUsers,
     inputs: schema.inputs || [],
+    startOn: schema.startOn,
+    caseTitle: schema.caseTitle,
+    clientVisibility: schema.clientVisibility,
   };
 
   // Convert to triggers
@@ -169,7 +184,7 @@ export function yamlToWorkflow(yamlContent: string, options: { id?: string } = {
       return {
         id: step.id,
         type: step.type,
-        position: { x: 0, y: index * 100 },
+        position: positionOf(step, index),
         data: {
           id: step.id,
           type: step.type,
@@ -177,8 +192,9 @@ export function yamlToWorkflow(yamlContent: string, options: { id?: string } = {
           description: step.description || '',
           inputs: [],
           events: [{
-            name: 'started',
-            outputs: schema.inputs.map(input => ({
+            // Keep the step's own event name (templates use `finished`), so edges keep matching their handle.
+            name: step.events[0]?.name ?? 'finished',
+            outputs: (schema.inputs ?? []).map(input => ({
               name: input.name,
               type: input.type,
               description: input.description,
@@ -194,7 +210,7 @@ export function yamlToWorkflow(yamlContent: string, options: { id?: string } = {
     return {
       id: step.id,
       type: step.type,
-      position: { x: 0, y: index * 100 },
+      position: positionOf(step, index),
       data: {
         id: step.id,
         type: step.type,
@@ -222,9 +238,10 @@ export function yamlToWorkflow(yamlContent: string, options: { id?: string } = {
     )
   );
 
+  // Saved positions win; workflows without them (templates, hand-written YAML) are laid out automatically.
   const startNode = nodes.find(node => node.type === 'start');
-
-  autoOrganizeNodes(startNode!, nodes, edges);
+  const hasLayout = schema.steps.some((step) => (step as { ui?: unknown }).ui);
+  if (!hasLayout && startNode) autoOrganizeNodes(startNode, nodes, edges);
 
   return {
     workflow,

@@ -5,9 +5,11 @@ import { ComponentCategory } from './schemas';
 interface FormToolbarProps {
   onDragStart?: (event: DragStartEvent) => void;
   onDragEnd?: (event: DragEndEvent) => void;
+  /** Add a component by clicking it (drag and drop remains available). */
+  onAdd?: (type: string) => void;
 }
 
-export function FormToolbar({ onDragStart, onDragEnd }: FormToolbarProps) {
+export function FormToolbar({ onDragStart, onDragEnd, onAdd }: FormToolbarProps) {
   const categories: Record<ComponentCategory, string> = {
     input: 'Input Fields',
     layout: 'Layout',
@@ -28,11 +30,23 @@ export function FormToolbar({ onDragStart, onDragEnd }: FormToolbarProps) {
             <h3 className="text-sm font-medium text-muted-foreground">{label}</h3>
             <div className="space-y-2">
               {components.map((component) => (
-                <component.Toolbar
+                <div
                   key={component.type}
-                  onDragStart={onDragStart}
-                  onDragEnd={onDragEnd}
-                />
+                  data-component-type={component.type}
+                  title={`Add ${component.label}`}
+                  onClick={() => onAdd?.(component.type)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      onAdd?.(component.type);
+                    }
+                  }}
+                >
+                  <component.Toolbar
+                    onDragStart={onDragStart}
+                    onDragEnd={onDragEnd}
+                  />
+                </div>
               ))}
             </div>
           </div>

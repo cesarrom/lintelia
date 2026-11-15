@@ -11,13 +11,13 @@ const API_BASE_URL = import.meta.env.VITE_FILES_API_BASE_URL;
  * Corresponds to the `PUT /object` endpoint.
  */
 export const useFilesPutObject = () => {
-  const { axios, ready } = useAxios({ skipBodyModification: true });
+  const { axios } = useAxios({ skipBodyModification: true });
   return useMutation<
-    { success: boolean }, // Expected response type
-    Error,                 // Error type
-    File                   // Variables type (input to mutationFn)
+    { success: boolean; key: string }, // the server generates the object key; store it to fetch the file later
+    Error,
+    File
   >({
-    mutationFn: async (file: File): Promise<{ success: boolean }> => {
+    mutationFn: async (file: File): Promise<{ success: boolean; key: string }> => {
       if (!axios) {
         throw new Error('Axios is not ready');
       }

@@ -1,13 +1,12 @@
 import { z } from 'zod';
 import { createSelectSchema } from 'drizzle-zod';
-import { environments } from '../entities/global/environment.entity.js';
 import { tenants } from '../entities/global/tenant.entity.js';
-
-export const environmentSchema = createSelectSchema(environments);
-
-export type Environment = z.infer<typeof environmentSchema>;
+import { platformUsers } from '../entities/global/platform-user.entity.js';
 
 export const tenantSchema = createSelectSchema(tenants);
 
 export type Tenant = z.infer<typeof tenantSchema>
 
+export const platformUserSchema = createSelectSchema(platformUsers).omit({ passwordHash: true });
+
+export type PlatformUser = z.infer<typeof platformUserSchema>

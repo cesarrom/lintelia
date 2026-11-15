@@ -41,7 +41,7 @@ export enum EntityType {
  */
 export interface BaseEventData {
   // The ID of the tenant this event belongs to
-  tenantId: number;
+  tenantId: string;
   // The user who triggered the event (if applicable)
   userId?: string;
   // Additional metadata

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import WorkflowEditor from './components/WorkflowEditor';
 import { useParams } from 'react-router';
@@ -9,8 +9,7 @@ import { useWorkflowLoad, useWorkflowSave } from '@/lib/services/workflow.hooks'
 export default function ExistingWorkflowPage() {
   const { workflowId } = useParams<{ workflowId: string }>();
   const { data: workflow, refetch, error: fetchError } = useWorkflowLoad({ workflowId: workflowId! });
-  console.log({workflow, workflowId});
-  const { mutate: save, error: saveError } = useWorkflowSave();
+  const { mutateAsync: save, error: saveError } = useWorkflowSave();
   const error = fetchError || saveError;
   const state = useMemo(() => ({
     yaml: workflow?.yaml,
@@ -18,11 +17,11 @@ export default function ExistingWorkflowPage() {
   }), [workflow, error])
 
   const handleSave = async (yaml: string) => {
-    save({
+    await save({
       workflowId: workflowId!,
       yaml,
     });
-    refetch();
+    await refetch();
   };
 
   if (state.error) {
@@ -45,6 +44,7 @@ export default function ExistingWorkflowPage() {
   return (
     <WorkflowEditor
       key={workflowId}
+      workflowId={workflowId}
       initialYaml={state.yaml}
       onSave={handleSave}
     />

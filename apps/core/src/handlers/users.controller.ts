@@ -1,3 +1,4 @@
+import { Access, Require } from "../auth/access";
 import { UsersService } from "../services/users.service";
 import type { InviteUserInput } from "@repo/fintivio/schemas";
 import { Scope, Inject, Controller, Get, Post, Put, Patch, Req, Res, type RawBodyRequest, Param } from "@nestjs/common";
@@ -5,6 +6,7 @@ import type { HonoRequest } from "hono/request";
 import type { Context } from "hono";
 import assert from 'assert';
 import { type AppRequest, REQUEST_PROXY } from "../injector/tokens/request-proxy.token";
+import { json, jsonError } from "../http/respond";
 
 @Controller({
   path: '/users',
@@ -16,6 +18,7 @@ export class UserHandler {
     @Inject(REQUEST_PROXY) private readonly requestProxy: AppRequest
   ) { }
 
+  @Require('members:read')
   @Get()
   async getUsers(@Res() ctx: Context): Promise<void> {
     try {
@@ -25,15 +28,12 @@ export class UserHandler {
         status: 200
       });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to get users';
-      ctx.res = new Response(JSON.stringify({ error: message }), {
-        headers: { 'Content-Type': 'application/json' },
-        status: 500
-      });
+      jsonError(ctx, error, 'Failed to get users');
     }
     return;
   }
 
+  @Require('members:read')
   @Get('/:userId')
   async getUser(@Param('userId') userId: string, @Res() ctx: Context): Promise<void> {
     assert(userId, 'userId parameter is required');
@@ -51,15 +51,12 @@ export class UserHandler {
         });
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to get user';
-      ctx.res = new Response(JSON.stringify({ error: message }), {
-        headers: { 'Content-Type': 'application/json' },
-        status: 500
-      });
+      jsonError(ctx, error, 'Failed to get user');
     }
     return;
   }
 
+  @Require('members:invite')
   @Post()
   async inviteUser(@Res() ctx: Context): Promise<void> {
     try {
@@ -68,20 +65,15 @@ export class UserHandler {
       assert(data.email, 'email is required');
 
       const success = await this.usersService.inviteUser(data);
-      ctx.res = new Response(JSON.stringify({ success }), {
-        headers: { 'Content-Type': 'application/json' },
-        status: 200
-      });
+      json(ctx, { success });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to invite user';
-      ctx.res = new Response(JSON.stringify({ error: message }), {
-        headers: { 'Content-Type': 'application/json' },
-        status: 500
-      });
+      // Validation errors (e.g. unknown role) carry a 4xx status; anything else is a server error.
+      jsonError(ctx, error, 'Failed to invite user');
     }
     return;
   }
 
+  @Require('members:update')
   @Put('/:userId')
   async updateUserRoles(@Param('userId') userId: string, @Res() ctx: Context): Promise<void> {
     assert(userId, 'userId parameter is required');
@@ -95,15 +87,12 @@ export class UserHandler {
         status: 200
       });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to update user roles';
-      ctx.res = new Response(JSON.stringify({ error: message }), {
-        headers: { 'Content-Type': 'application/json' },
-        status: 500
-      });
+      jsonError(ctx, error, 'Failed to update user roles');
     }
     return;
   }
 
+  @Require('members:deactivate')
   @Patch('/:userId/deactivate')
   async deactivateUser(@Param('userId') userId: string, @Res() ctx: Context): Promise<void> {
     assert(userId, 'userId parameter is required');
@@ -114,15 +103,12 @@ export class UserHandler {
         status: 200
       });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to deactivate user';
-      ctx.res = new Response(JSON.stringify({ error: message }), {
-        headers: { 'Content-Type': 'application/json' },
-        status: 500
-      });
+      jsonError(ctx, error, 'Failed to deactivate user');
     }
     return;
   }
 
+  @Require('members:deactivate')
   @Patch('/:userId/activate')
   async activateUser(@Param('userId') userId: string, @Res() ctx: Context): Promise<void> {
     assert(userId, 'userId parameter is required');
@@ -133,15 +119,12 @@ export class UserHandler {
         status: 200
       });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to activate user';
-      ctx.res = new Response(JSON.stringify({ error: message }), {
-        headers: { 'Content-Type': 'application/json' },
-        status: 500
-      });
+      jsonError(ctx, error, 'Failed to activate user');
     }
     return;
   }
 
+  @Require('members:deactivate')
   @Patch('/:userId/reset-password')
   async resetUserPassword(@Param('userId') userId: string, @Res() ctx: Context): Promise<void> {
     assert(userId, 'userId parameter is required');
@@ -152,11 +135,7 @@ export class UserHandler {
         status: 200
       });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to reset user password';
-      ctx.res = new Response(JSON.stringify({ error: message }), {
-        headers: { 'Content-Type': 'application/json' },
-        status: 500
-      });
+      jsonError(ctx, error, 'Failed to reset user password');
     }
     return;
   }

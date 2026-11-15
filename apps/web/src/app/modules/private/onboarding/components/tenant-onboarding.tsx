@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,7 @@ import { OnboardingData, OnboardingDataSchema, onboardingDefaultValues } from ".
 import { CreateTenant, CreateTenantResponse } from "@repo/fintivio/schemas";
 import { useTenantCreateTenant } from "@/lib/services/tenant.hooks";
 import { useFilesPutObject } from "@/lib/services/files.hooks";
+import { toast } from "sonner";
 
 export function TenantOnboardingPage() {
   const [sending, startTransition] = React.useTransition();
@@ -36,25 +37,28 @@ export function TenantOnboardingPage() {
     }
   };
 
-  const goToDashboard = useCallback(() => {
-    const [currentSchema] = window.location.href.split('://');
-    window.location.href = `${currentSchema}://${tenant!.domain}.${window.location.host}/dashboard`;
+  // Staff are not members of the tenants they create: show the result and where the institution signs in.
+  const tenantSignOnUrl = useCallback(() => {
+    const { protocol, host } = window.location;
+    return `${protocol}//${tenant!.domain}.${host}/sign-on`;
   }, [tenant]);
-
-  useEffect(() => {
-    if (tenant && !tenant?.cnameRecords?.length) {
-      goToDashboard();
-    }
-  }, [tenant, goToDashboard]);
 
   if (tenant) {
     return (
       <div className="container max-w-4xl mx-auto p-6 sm:p-8 md:p-10 bg-background text-foreground">
         <div className="space-y-8">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">DNS Configuration Required</h1>
-            <p className="text-muted-foreground mb-6">Please set up the following CNAME records for your domain:</p>
+            <h1 className="text-3xl font-bold text-foreground">{tenant.name} is ready</h1>
+            <p className="text-muted-foreground">
+              Sign-in address: <a className="underline" href={tenantSignOnUrl()}>{tenantSignOnUrl()}</a>
+            </p>
+            {!!tenant.invitations?.length && (
+              <p className="text-muted-foreground">Invitations sent to: {tenant.invitations.join(', ')}</p>
+            )}
           </div>
+          {!!tenant.cnameRecords?.length && (
+          <>
+          <p className="text-muted-foreground">Custom domains need these DNS records:</p>
           <div className="bg-muted p-6 rounded-lg">
             {tenant?.cnameRecords?.map((record, index) => (
               <div key={record.Name + index} className="mb-4 last:mb-0">
@@ -64,9 +68,11 @@ export function TenantOnboardingPage() {
               </div>
             ))}
           </div>
+          </>
+          )}
           <div className="flex justify-end">
-            <Button onClick={goToDashboard}>
-              Go to Dashboard
+            <Button onClick={() => setTenant(null)}>
+              Onboard another institution
             </Button>
           </div>
         </div>
@@ -78,16 +84,13 @@ export function TenantOnboardingPage() {
     <form onSubmit={form.handleSubmit(async (values) => {
       startTransition(async () => {
         try {
-          const logoUrl = values.logo.name!;
-          const individualContractUrl = values.individualContract.name!;
-          const coApplicantContractUrl = values.coApplicantContract.name!;
-          const businessContractUrl = values.businessContract.name!;
-
-          await Promise.all([
-            uploadFile(values.logo),
-            uploadFile(values.individualContract),
-            uploadFile(values.coApplicantContract),
-            uploadFile(values.businessContract),
+          // Files are optional; the API returns the object key each one is stored under.
+          const upload = async (file?: File) => (file ? (await uploadFile(file)).key : '');
+          const [logoUrl, individualContractUrl, coApplicantContractUrl, businessContractUrl] = await Promise.all([
+            upload(values.logo),
+            upload(values.individualContract),
+            upload(values.coApplicantContract),
+            upload(values.businessContract),
           ]);
 
           Object.assign(values, { logoUrl, individualContractUrl, coApplicantContractUrl, businessContractUrl, logo: undefined, individualContract: undefined, coApplicantContract: undefined, businessContract: undefined });
@@ -100,6 +103,9 @@ export function TenantOnboardingPage() {
           console.error(e);
         }
       });
+    }, (errors) => {
+      console.warn('Onboarding form is invalid', errors);
+      toast.error(`Please review: ${Object.keys(errors).join(', ')}`);
     })} className="container max-w-4xl mx-auto p-6 sm:p-8 md:p-10">
       <div className="space-y-8">
         <div>

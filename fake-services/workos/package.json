@@ -1,0 +1,9 @@
+{
+  "name": "@fake/workos",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "WorkOS API emulator (SSO broker subset: organizations, domains, connections, Admin Portal, SSO authorize/token).",
+  "scripts": { "dev": "bun --watch src/index.ts", "start": "bun src/index.ts" },
+  "dependencies": { "@repo/fake-kit": "*", "hono": "^4.7.8", "jose": "^6.0.0" }
+}

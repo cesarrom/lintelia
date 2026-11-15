@@ -1,7 +1,6 @@
 import { FormsService } from "../services/forms.service";
-import { env } from "../constants";
 import { type User, type UpdateFormRequest, type SubmitFormAnswersRequest, type GenerateFormAIRequest, type CreateFormRequest, type CreateTestFormInstanceRequest, type Tenant } from "@repo/fintivio/schemas";
-import OpenAI from 'openai';
+import { openaiClient } from '../clients/vendors';
 import { LogsService } from "../services/logs.service";
 import { prompts } from "../prompts/prompt";
 import { USER } from "../injector/tokens/user.token";
@@ -11,10 +10,10 @@ import type { Context } from "hono";
 import assert from 'assert';
 import { TENANT } from "../injector/tokens/tenant.token";
 import { type AppRequest, REQUEST_PROXY } from "../injector/tokens/request-proxy.token";
+import { Access, Require } from "../auth/access";
+import { PublicFormsService } from "../services/public-forms.service";
+import { handle } from "../http/respond";
 
-const openai = new OpenAI({
-  apiKey: env.OPENAI_API_KEY,
-});
 
 @Controller({
   path: '/forms',
@@ -27,8 +26,35 @@ export class FormHandler {
     @Inject(USER) private user: User,
     @Inject(TENANT) private tenant: Tenant,
     @Inject(REQUEST_PROXY) private requestProxy: AppRequest,
+    @Inject(PublicFormsService) private publicForms: PublicFormsService,
   ) { }
 
+  /** Publication state and embed snippets of a form. */
+  @Require('forms:read')
+  @Get('/:formId/publication')
+  async publication(@Param('formId') formId: string, @Res() ctx: Context): Promise<void> {
+    await handle(ctx, () => this.publicForms.publication(formId), 'Failed to load the publication');
+  }
+
+  /** Publish: link to a published workflow and the sites allowed to embed it; returns the embed snippets. */
+  @Require('forms:publish')
+  @Post('/:formId/publish')
+  async publish(@Param('formId') formId: string, @Res() ctx: Context): Promise<void> {
+    await handle(ctx, async () => this.publicForms.publish(formId, await this.requestProxy.json()), 'Failed to publish the form');
+  }
+
+  @Require('forms:publish')
+  @Post('/:formId/unpublish')
+  async unpublish(@Param('formId') formId: string, @Res() ctx: Context): Promise<void> {
+    await handle(ctx, () => this.publicForms.unpublish(formId), 'Failed to unpublish the form');
+  }
+
+  /** Clients (end users) may only see and answer form instances issued to them. */
+  private clientMayAccess(instance: { submittedBy: string }) {
+    return this.user.kind !== 'client' || instance.submittedBy === this.user.userId;
+  }
+
+  @Require('forms:manage')
   @Post('/ai-generate')
   async generateFormWithAI(@Res() ctx: Context): Promise<void> {
     const { prompt, existingConfig }: GenerateFormAIRequest = await this.requestProxy.json();
@@ -46,7 +72,7 @@ export class FormHandler {
     }
 
     try {
-      const chatCompletion = await openai.chat.completions.create({
+      const chatCompletion = await openaiClient().chat.completions.create({
         messages: messages as any,
         model: 'gpt-4-turbo-preview',
         temperature: 0.7,
@@ -67,6 +93,7 @@ export class FormHandler {
     return;
   }
 
+  @Require('forms:manage')
   @Post()
   async createForm(@Res() ctx: Context): Promise<void> {
     const data: CreateFormRequest = await this.requestProxy.json();
@@ -81,6 +108,7 @@ export class FormHandler {
     return;
   }
 
+  @Require('forms:manage')
   @Put()
   async updateForm(@Res() ctx: Context): Promise<void> {
     const { data, id }: UpdateFormRequest = await this.requestProxy.json();
@@ -92,6 +120,7 @@ export class FormHandler {
     return;
   }
 
+  @Require('forms:read')
   @Get()
   async listForms(@Res() ctx: Context): Promise<void> {
     const url = new URL(this.requestProxy.url);
@@ -104,6 +133,8 @@ export class FormHandler {
     return;
   }
 
+  @Require('forms:read')
+  @Access('client')
   @Get('/:formId')
   async getFormById(@Res() ctx: Context, @Param('formId') formId: string): Promise<void> {
     assert(formId, 'formId parameter is required');
@@ -115,6 +146,7 @@ export class FormHandler {
     return;
   }
 
+  @Require('forms:read')
   @Get('/:formId/instances')
   async getFormInstances(@Res() ctx: Context, @Param('formId') formId: string): Promise<void> {
     assert(formId, 'formId parameter is required');
@@ -126,12 +158,14 @@ export class FormHandler {
     return;
   }
 
+  @Require('forms:read')
+  @Access('client')
   @Get('/instances/:instanceId')
   async getFormInstance(@Res() ctx: Context, @Param('instanceId') instanceId: string): Promise<void> {
     assert(instanceId, 'instanceId parameter is required');
     try {
       const instance = await this.formsService.getInstance(instanceId);
-      if (!instance) {
+      if (!instance || !this.clientMayAccess(instance)) {
         ctx.res = new Response(JSON.stringify({ error: 'Form instance not found' }), {
           headers: { 'Content-Type': 'application/json' },
           status: 404
@@ -151,6 +185,7 @@ export class FormHandler {
     return;
   }
 
+  @Require('forms:manage')
   @Post('/:formId/instances')
   async createTestFormInstance(@Res() ctx: Context, @Param('formId') formId: string): Promise<void> {
     assert(formId, 'formId parameter is required');
@@ -175,6 +210,8 @@ export class FormHandler {
     return;
   }
 
+  @Require('forms:read')
+  @Access('client')
   @Post('/instances/:instanceId/answers')
   async submitFormAnswers(@Res() ctx: Context, @Param('instanceId') instanceId: string): Promise<void> {
     assert(instanceId, 'instanceId parameter is required');
@@ -183,7 +220,7 @@ export class FormHandler {
     try {
       const instance = await this.formsService.getInstance(instanceId);
 
-      if (!instance) {
+      if (!instance || !this.clientMayAccess(instance)) {
         ctx.res = new Response(JSON.stringify({ error: 'Form instance not found' }), {
           headers: { 'Content-Type': 'application/json' },
           status: 404
@@ -226,6 +263,7 @@ export class FormHandler {
     return;
   }
 
+  @Require('forms:read')
   @Get('/instances/:instancesId/answers')
   async getAnswers(@Res() ctx: Context, @Param('instancesId') instancesId: string): Promise<void> {
     assert(instancesId, 'instancesId parameter is required');

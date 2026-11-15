@@ -1,0 +1,74 @@
+# SCN-01/02/03/06/08: retail current account opening.
+# Connector components: didit/kyc.verify and documenso/signature.request (client steps), case.decision; review with routing + SLA.
+schemaVersion: "1"
+name: Retail account opening
+description: Identity verification, manual review when inconclusive, agreement signature
+version: 1
+triggers: []
+inputs:
+  - { id: email, name: email, type: string, required: true }
+  - { id: fullName, name: fullName, type: string, required: true }
+steps:
+  - id: start
+    name: Start
+    type: start
+    events:
+      - { name: finished, outputs: [], next: [kyc] }
+  - id: kyc
+    name: Verify identity
+    type: "connector:didit/kyc.verify"
+    config:
+      connection: ${DIDIT}
+      input: { email: "{{case.applicant.email}}", fullName: "{{input.fullName}}" }
+      remindAfter: ${REMIND_AFTER}
+      expiresAfter: ${EXPIRES_AFTER}
+    events:
+      - { name: approved, outputs: [], next: [sign] }
+      - { name: declined, outputs: [], next: [reject] }
+      - { name: in_review, outputs: [], next: [review] }
+      - { name: expired, outputs: [], next: [expire] }
+  - id: review
+    name: KYC review
+    type: review
+    config:
+      title: Inconclusive identity verification
+      assignTo: { role: reviewer }
+      sla: PT24H
+      escalateTo: { role: senior_reviewer }
+      requireCommentOnReject: true
+    events:
+      - { name: review_approved, outputs: [], next: [sign] }
+      - { name: review_rejected, outputs: [], next: [reject] }
+  - id: sign
+    name: Sign account agreement
+    type: "connector:documenso/signature.request"
+    config:
+      connection: ${DOCUMENSO}
+      templateId: retail-account-agreement
+      documentKind: signed_agreement
+      input: { signerEmail: "{{case.applicant.email}}", signerName: "{{input.fullName}}" }
+    events:
+      - { name: signed, outputs: [], next: [approve] }
+      - { name: declined, outputs: [], next: [reject] }
+      - { name: expired, outputs: [], next: [expire] }
+  - id: approve
+    name: Approve
+    type: case.decision
+    config: { status: approved, notifyApplicant: true }
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }
+  - id: expire
+    name: Expire
+    type: case.decision
+    config: { status: expired, notifyApplicant: true }
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }
+  - id: reject
+    name: Reject
+    type: case.decision
+    config: { status: rejected, notifyApplicant: true }
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }

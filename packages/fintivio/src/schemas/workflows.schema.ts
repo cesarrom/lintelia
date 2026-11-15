@@ -528,6 +528,8 @@ export type StepYaml = z.infer<typeof stepYamlSchema>;
 export const workflowInputYamlSchema = typeDefinitionSchema.and(z.object({
   id: z.string(),
   name: z.string(),
+  /** Human label (forms, "start a case" dialogs); defaults to the name. */
+  label: z.string().optional(),
   description: z.string().optional(),
   required: z.boolean()
 }));
@@ -546,7 +548,13 @@ export const workflowYamlSchema = z.object({
   allowedUsers: z.array(z.string()).optional(),
   triggers: z.array(triggerDefinitionSchema),
   inputs: z.array(workflowInputYamlSchema),
-  steps: z.array(stepYamlSchema)
+  steps: z.array(stepYamlSchema),
+  /** Platform events that start this workflow (case engine), e.g. `client.flagged`. */
+  startOn: z.array(z.string()).optional(),
+  /** Title of the cases it creates, e.g. `Loan pre-approval: {{input.fullName}}`. */
+  caseTitle: z.string().optional(),
+  /** `requests_only`: applicants only see requests addressed to them, never the case (investigations). */
+  clientVisibility: z.enum(['full', 'requests_only']).optional(),
 });
 
 export type WorkflowYaml = z.infer<typeof workflowYamlSchema>;
@@ -560,7 +568,10 @@ export const WorkflowSchema = z.object({
   version: z.number(),
   allowedRoles: z.array(z.string()).optional(),
   allowedUsers: z.array(z.string()).optional(),
-  inputs: z.array(workflowInputYamlSchema)
+  inputs: z.array(workflowInputYamlSchema),
+  startOn: z.array(z.string()).optional(),
+  caseTitle: z.string().optional(),
+  clientVisibility: z.enum(['full', 'requests_only']).optional(),
 });
 
 export type WorkflowSchema = z.infer<typeof WorkflowSchema>;

@@ -1,0 +1,80 @@
+schemaVersion: "1"
+name: Personal loan pre-approval
+description: Estimates what an applicant can borrow, pre-approves small affordable loans and routes the rest to credit review (four-eyes above 50,000)
+version: 1
+caseTitle: "Loan pre-approval: {{input.fullName}} ({{input.amount}})"
+triggers: []
+inputs:
+  - { id: fullName, name: fullName, label: Full name, type: string, required: true }
+  - { id: email, name: email, label: E-mail, type: string, required: true }
+  - { id: amount, name: amount, label: Loan amount, type: number, required: true }
+  - { id: annualIncome, name: annualIncome, label: Annual income, type: number, required: true }
+  - { id: termMonths, name: termMonths, label: Term (months), type: number, required: false }
+steps:
+  - id: start
+    name: Start
+    type: start
+    events:
+      - { name: finished, outputs: [], next: [estimate] }
+  - id: estimate
+    name: Estimate
+    type: calculate
+    config:
+      outputs:
+        term: "$number(input.termMonths) > 0 ? $number(input.termMonths) : 36"
+        monthlyPayment: "$round($number(input.amount) * (1 + 0.089 * (($number(input.termMonths) > 0 ? $number(input.termMonths) : 36) / 12)) / ($number(input.termMonths) > 0 ? $number(input.termMonths) : 36), 2)"
+        maxMonthlyPayment: "$round($number(input.annualIncome) / 12 * 0.35, 2)"
+        maxAmount: "$round($number(input.annualIncome) * 0.8)"
+    events:
+      - { name: done, outputs: [], next: [affordable] }
+  - id: affordable
+    name: Affordable?
+    type: conditional
+    config:
+      expression: "steps.estimate.monthlyPayment <= steps.estimate.maxMonthlyPayment and $number(input.amount) <= steps.estimate.maxAmount"
+    events:
+      - { name: "true", outputs: [], next: [small] }
+      - { name: "false", outputs: [], next: [decline] }
+  - id: small
+    name: Small loan?
+    type: conditional
+    config:
+      expression: "$number(input.amount) <= 10000"
+    events:
+      - { name: "true", outputs: [], next: [preapprove] }
+      - { name: "false", outputs: [], next: [credit_review] }
+  - id: credit_review
+    name: Credit review
+    type: review
+    config:
+      title: "Credit review: {{input.fullName}} requests {{input.amount}}"
+      description: "Monthly payment {{steps.estimate.monthlyPayment}} vs. affordable {{steps.estimate.maxMonthlyPayment}}"
+      kind: credit_review
+      assignTo: { role: "= $number(input.amount) > 50000 ? 'senior_reviewer' : 'reviewer'" }
+      authority: "= $number(input.amount) > 50000 ? 'high' : 'standard'"
+      sla: PT24H
+      escalateTo: { role: senior_reviewer }
+      requireCommentOnReject: true
+    events:
+      - { name: review_approved, outputs: [], next: [preapprove] }
+      - { name: review_rejected, outputs: [], next: [decline] }
+  - id: preapprove
+    name: Pre-approve
+    type: case.decision
+    config:
+      status: approved
+      outcome: pre_approved
+      message: "Good news {{input.fullName}}: you are pre-approved for a loan of {{input.amount}} (estimated monthly payment {{steps.estimate.monthlyPayment}}). A loan officer will contact you to finalise the offer."
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }
+  - id: decline
+    name: Decline
+    type: case.decision
+    config:
+      status: rejected
+      outcome: not_pre_approved
+      message: "Thank you {{input.fullName}}. Based on the information provided we cannot pre-approve a loan of {{input.amount}} at this time."
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }

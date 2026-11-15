@@ -3,9 +3,11 @@ import CreateFormButton from './components/create-form-button';
 import FormsFilter from './components/forms-filter';
 import { useFormListForms } from '@/lib/services/form.hooks';
 import { useSearchParams } from "react-router";
+import { useAuth } from '@/lib/auth/AuthContext';
 
 export default function FormsPage() {
   const [searchParams] = useSearchParams();
+  const { hasPermission } = useAuth();
   const { data: forms = [] } = useFormListForms({ search: searchParams.get('search') || undefined });
 
   return (
@@ -14,10 +16,10 @@ export default function FormsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Forms</h1>
           <p className="text-muted-foreground mt-2">
-            Create and manage forms for data collection
+            Build forms, publish them on your website and route every submission into a workflow
           </p>
         </div>
-        <CreateFormButton />
+        {hasPermission('forms:manage') && <CreateFormButton />}
       </div>
 
       <div className="space-y-4">

@@ -17,16 +17,6 @@ export interface CreateFormAnswersInput {
   answers: Record<string, any>;
 }
 
-export interface DocusealTokenRequest {
-  external_id: string;
-  name: string;
-  document_urls: string[];
-}
-
-export interface DocusealTokenResponse {
-  token: string;
-}
-
 export interface CreateFormInput {
   name: string;
   description?: string;
@@ -234,8 +224,9 @@ export interface UpdateSystemVariableInput {
 
 export type CreateTenant = Omit<
   Tenant,
-  'id' | 'databaseId' | 'databaseName' | 'databaseUrl' | 'databaseAuthToken' | 'createdAt' | 'updatedAt'
+  'id' | 'status' | 'createdAt' | 'updatedAt'
 > & {
+  /** People invited when the tenant is created. The first `admin` invitee becomes the tenant's administrator. */
   invitee: Array<{ email: string; role: string }>;
 };
 
@@ -380,7 +371,9 @@ export type RequestAdditionalDataRequest = {
 };
 
 export type CreateTenantResponse = Tenant & {
-  cnameRecords: CNAMERecordResponse[]
+  cnameRecords: CNAMERecordResponse[];
+  /** E-mails that were sent an invitation. */
+  invitations?: string[];
 }
 
 // --- AuthService DTOs ---

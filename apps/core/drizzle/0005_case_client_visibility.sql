@@ -1,0 +1,1 @@
+ALTER TABLE "cases" ADD COLUMN "client_visibility" varchar(16) DEFAULT 'full' NOT NULL;

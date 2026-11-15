@@ -1,0 +1,9 @@
+{
+  "name": "@fake/didit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local stand-in for Didit identity verification: sessions, decisions, hosted page, signed webhooks.",
+  "scripts": { "dev": "bun --watch src/index.ts", "start": "bun src/index.ts" },
+  "dependencies": { "@repo/fake-kit": "*", "hono": "^4.7.8" }
+}

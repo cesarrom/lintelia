@@ -7,4 +7,7 @@ export * from './shared.schema'
 export * from './tenants.schema'
 export * from './workflow-events.schema'
 export * from './workflows.schema'
+export * from './authorization.schema'
+export * from './components.schema'
+export * from './connectors.schema'
 // @endindex

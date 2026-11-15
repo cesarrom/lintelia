@@ -1,91 +1,68 @@
-'use client';
-import { createContext, useContext, ReactNode, useMemo } from 'react';
-import { useSession, useUser } from '@descope/react-sdk';
+import { createContext, useContext, type ReactNode } from 'react';
+import type { Tenant, User } from '@repo/fintivio/schemas';
+import { useAuthActions, useSession, useUser } from './session';
 import { useTenant } from '../providers/TenantProvider';
-import { Tenant } from '@repo/fintivio/schemas';
 
-type User = ReturnType<typeof useUser>['user'];
-
+/**
+ * Who is signed in and what they may do. Permissions come from the API (effective permissions of the member's roles,
+ * or `platform.*` permissions for staff; clients have none). The UI only hides what the API would refuse anyway.
+ */
 export interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: User | null;
+  kind: User['kind'] | null;
   tenant: Tenant | null;
   permissions: string[];
-  isSuperAdmin: boolean;
+  roles: string[];
   isAdmin: boolean;
+  /** True when the user holds at least one of the permissions. */
   hasPermission: (permission: string | string[]) => boolean;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AP = ({ children }: { children: ReactNode }) => {
+function AuthProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, isSessionLoading } = useSession();
   const { user, isUserLoading } = useUser();
-  const navigate = (url: string) => {
-    window.location.href = url;
-  }
+  const { logout } = useAuthActions();
   const { tenant, isLoading: isTenantLoading } = useTenant();
-  // const { data: roles = [], isLoading: isRolesLoading } = useRolesGetRoles({ userId: user?.userId, enabled: !isUserLoading });
-  const permissions = user?.userTenants?.flatMap(t => t.tenantId === tenant?.domain ? t.roleNames || [] : []) || [];
 
+  const permissions = user?.permissions ?? [];
+  const roles = user?.userTenants?.flatMap((t) => t.roleNames ?? []) ?? [];
+
+  const hasPermission = (required: string | string[]) => {
+    const list = Array.isArray(required) ? required : [required];
+    return list.some((permission) => permissions.includes(permission));
+  };
 
   const handleLogout = async () => {
-    navigate('/sign-out');
+    const home = user?.kind === 'client' ? '/sign-on?client=1' : '/sign-on';
+    await logout();
+    window.location.href = home;
   };
 
-  const hasPermission = (requiredPermissions: string | string[]): boolean => {
-    const permissionsToCheck = Array.isArray(requiredPermissions)
-      ? requiredPermissions
-      : [requiredPermissions];
-
-    // Super admin has all permissions
-    if (permissions.includes('super_admin')) {
-      return true;
-    }
-
-    // Admin has all permissions except super_admin specific ones
-    if (permissions.includes('admin')) {
-      return !permissionsToCheck.includes('super_admin');
-    }
-
-    // Check if user has any of the required permissions
-    return permissionsToCheck.some(permission => permissions.includes(permission));
-  };
-
-  const value = {
+  const value: AuthContextType = {
     isAuthenticated,
     isLoading: isSessionLoading || isUserLoading || isTenantLoading,
-    user: user || null,
-    tenant: tenant || null,
+    user: user ?? null,
+    kind: user?.kind ?? null,
+    tenant: tenant ?? null,
     permissions,
-    isSuperAdmin: permissions.includes('super_admin'),
-    isAdmin: permissions.includes('admin'),
+    roles,
+    isAdmin: roles.includes('admin'),
     hasPermission,
     logout: handleLogout,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+}
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (context === undefined) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
 
-const WrappedAuthProvider = ({ children }: React.PropsWithChildren) => {
-  return (
-    
-      <AP>
-        {children}
-      </AP>
-  )
-}
-
-export {
-  WrappedAuthProvider as AuthProvider
-}
+export { AuthProvider };

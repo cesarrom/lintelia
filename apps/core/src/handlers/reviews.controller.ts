@@ -1,3 +1,4 @@
+import { Access, Require } from "../auth/access";
 import type { User, GetReviewsRequest, UpdateReviewsRequest, ApproveReviewRequest, RejectReviewRequest, RequestAdditionalDataRequest, CreateReviewRequest, ReviewStatus } from "@repo/fintivio/schemas";
 import { ReviewsService } from "../services/reviews.service";
 import { USER } from "../injector/tokens/user.token";
@@ -26,6 +27,7 @@ export class ReviewHandler {
     return filter;
   }
 
+  @Require('tasks:work')
   @Post()
   async createReview(@Res() ctx: Context): Promise<void> {
     assert(this.user, 'User not authenticated');
@@ -48,6 +50,7 @@ export class ReviewHandler {
     return;
   }
 
+  @Require('cases:read')
   @Get()
   async getReviews(@Res() ctx: Context): Promise<void> {
     try {
@@ -67,6 +70,7 @@ export class ReviewHandler {
     return;
   }
 
+  @Require('cases:read')
   @Get('/assignees/:assigneeId')
   async getAssignedReviews(@Res() ctx: Context, @Param('assigneeId') assigneeId: string): Promise<void> {
     assert(assigneeId, 'assigneeId parameter is required');
@@ -85,6 +89,7 @@ export class ReviewHandler {
     return;
   }
 
+  @Require('cases:read')
   @Get('/:reviewId')
   async getReview(@Res() ctx: Context, @Param('reviewId') reviewId: string): Promise<void> {
     assert(reviewId, 'reviewId parameter is required');
@@ -110,6 +115,7 @@ export class ReviewHandler {
     return;
   }
 
+  @Require('tasks:assign')
   @Patch('/:reviewId/assignees/:assigneeId') 
   async assignReview(@Res() ctx: Context, @Param('reviewId') reviewId: string): Promise<void> {
     assert(reviewId, 'reviewId parameter is required');
@@ -129,6 +135,7 @@ export class ReviewHandler {
     return;
   }
 
+  @Require('tasks:work')
   @Put('/:reviewId')
   async updateReview(@Res() ctx: Context, @Param('reviewId') reviewId: string): Promise<void> {
     assert(reviewId, 'reviewId parameter is required');
@@ -151,6 +158,7 @@ export class ReviewHandler {
     return;
   }
 
+  @Require('tasks:work')
   @Patch('/:reviewId/approve')
   async approveReview(@Res() ctx: Context, @Param('reviewId') reviewId: string): Promise<void> {
     assert(reviewId, 'reviewId parameter is required');
@@ -177,6 +185,7 @@ export class ReviewHandler {
     return;
   }
 
+  @Require('tasks:work')
   @Patch('/:reviewId/reject') 
   async rejectReview(@Res() ctx: Context, @Param('reviewId') reviewId: string): Promise<void> {
     assert(reviewId, 'reviewId parameter is required');
@@ -205,6 +214,7 @@ export class ReviewHandler {
     return;
   }
 
+  @Require('tasks:work')
   @Post('/:reviewId/additional-data')
   async requestAdditionalData(@Res() ctx: Context, @Param('reviewId') reviewId: string): Promise<void> {
     assert(reviewId, 'reviewId parameter is required');

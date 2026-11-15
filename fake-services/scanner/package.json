@@ -1,0 +1,9 @@
+{
+  "name": "@fake/scanner",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local malware scanner: flags the EICAR test file (stands in for ClamAV / cloud-native scanning).",
+  "scripts": { "dev": "bun --watch src/index.ts", "start": "bun src/index.ts" },
+  "dependencies": { "@repo/fake-kit": "*", "hono": "^4.7.8" }
+}

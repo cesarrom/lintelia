@@ -2,7 +2,7 @@ import { sysFormAnswers, sysFormInstances, sysForms, sysReviews } from "../entit
 import { LogsService } from "./logs.service";
 import { v4 as uuid } from 'uuid';
 import { AbstractService } from "./service";
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { WebService } from "./web.service";
 import { CreateReviewInput, GetReviewsRequest, Review, ReviewsFilter, UpdateReviewInput } from "@repo/fintivio/schemas";
 import { TENANT_CONNECTION } from "../injector/tokens/tenant-connection.token";
@@ -209,26 +209,16 @@ export class ReviewsService extends AbstractService {
     return review;
   }
 
-  async list(filter?: GetReviewsRequest): Promise<Review[]> {
-    let q = sql`1 = 1`;
+  async list(filter?: ReviewsFilter | GetReviewsRequest): Promise<Review[]> {
     try {
-      if (filter?.status) {
-        q = q.append(sql` AND status = ${filter.status}`);
-      }
+      const conditions = [
+        filter?.status ? eq(sysReviews.status, filter.status as typeof sysReviews.$inferSelect.status) : undefined,
+        filter?.assignedTo ? eq(sysReviews.assignedTo, filter.assignedTo) : undefined,
+        filter?.fromDate ? gte(sysReviews.createdAt, new Date(filter.fromDate)) : undefined,
+        filter?.toDate ? lte(sysReviews.createdAt, new Date(filter.toDate)) : undefined,
+      ];
 
-      if (filter?.assignedTo) {
-        q = q.append(sql` AND assignedTo = ${filter.assignedTo}`);
-      }
-
-      if (filter?.fromDate) {
-        q = q.append(sql` AND createdAt >= ${filter.fromDate}`);
-      }
-
-      if (filter?.toDate) {
-        q = q.append(sql` AND createdAt <= ${filter.toDate}`);
-      }
-
-      const reviews = await this.db.select().from(sysReviews).where(q).execute();
+      const reviews = await this.db.select().from(sysReviews).where(and(...conditions)).execute();
 
       await this.logs.info('Listed reviews', {
         category: 'review',

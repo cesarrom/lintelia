@@ -101,139 +101,8 @@ export type Permission = {
   category: string;
 };
 
-// Categories help organize permissions in the UI
-export const PERMISSION_CATEGORIES = [
-  'Workflows',
-  'Users',
-  'Roles',
-  'Logs',
-  'Forms',
-  'Reviews',
-  'System',
-] as const;
 
-export type PermissionCategory = typeof PERMISSION_CATEGORIES[number];
-
-// All available permissions in the system
-export const PERMISSIONS: Permission[] = [
-  // Workflow permissions
-  {
-    id: 'workflows:view',
-    name: 'View Workflows',
-    description: 'Can view workflows',
-    category: 'Workflows',
-  },
-  {
-    id: 'workflows:manage',
-    name: 'Manage Workflows',
-    description: 'Can create, edit, and delete workflows',
-    category: 'Workflows',
-  },
-  {
-    id: 'workflows:execute',
-    name: 'Execute Workflows',
-    description: 'Can execute workflows',
-    category: 'Workflows',
-  },
-
-  // User permissions
-  {
-    id: 'users:view',
-    name: 'View Users',
-    description: 'Can view users',
-    category: 'Users',
-  },
-  {
-    id: 'users:manage',
-    name: 'Manage Users',
-    description: 'Can create, edit, and delete users',
-    category: 'Users',
-  },
-
-  // Role permissions
-  {
-    id: 'roles:view',
-    name: 'View Roles',
-    description: 'Can view roles',
-    category: 'Roles',
-  },
-  {
-    id: 'roles:manage',
-    name: 'Manage Roles',
-    description: 'Can create, edit, and delete roles',
-    category: 'Roles',
-  },
-
-  // Log permissions
-  {
-    id: 'logs:view',
-    name: 'View Logs',
-    description: 'Can view logs',
-    category: 'Logs',
-  },
-  {
-    id: 'logs:manage',
-    name: 'Manage Logs',
-    description: 'Can manage logs',
-    category: 'Logs',
-  },
-
-  // Form permissions
-  {
-    id: 'forms:view',
-    name: 'View Forms',
-    description: 'Can view forms',
-    category: 'Forms',
-  },
-  {
-    id: 'forms:manage',
-    name: 'Manage Forms',
-    description: 'Can create, edit, and delete forms',
-    category: 'Forms',
-  },
-
-  // Review permissions
-  {
-    id: 'reviews:view',
-    name: 'View Reviews',
-    description: 'Can view reviews',
-    category: 'Reviews',
-  },
-  {
-    id: 'reviews:manage',
-    name: 'Manage Reviews',
-    description: 'Can create, edit, and delete reviews',
-    category: 'Reviews',
-  },
-
-  // System permissions
-  {
-    id: 'admin',
-    name: 'Administrator',
-    description: 'Full access to all features',
-    category: 'System',
-  },
-  {
-    id: 'super_admin',
-    name: 'Super Administrator',
-    description: 'Unrestricted access to all features and settings',
-    category: 'System',
-  },
-];
-
-// Helper function to get permissions by category
-export const getPermissionsByCategory = (category: PermissionCategory): Permission[] => {
-  return PERMISSIONS.filter(permission => permission.category === category);
-};
-
-// Helper function to check if a permission exists
-export const permissionExists = (permissionId: string): boolean => {
-  return PERMISSIONS.some(permission => permission.id === permissionId);
-};
-
-// Default permissions for new roles
-export const DEFAULT_PERMISSIONS: string[] = ['workflows:view', 'forms:view', 'reviews:view']; 
-
+// Permissions and system roles live in authorization.schema.ts (the catalogue).
 export type Role = {
   id: string;
   name: string;
@@ -244,56 +113,26 @@ export type Role = {
   updatedAt: Date;
 };
 
-// System roles that cannot be deleted
-export const SYSTEM_ROLES: Omit<Role, 'createdAt' | 'updatedAt'>[] = [
-  {
-    id: 'super_admin',
-    name: 'Super Administrator',
-    description: 'Has unrestricted access to all features and settings',
-    permissions: ['super_admin'],
-    isSystem: true,
-  },
-  {
-    id: 'admin',
-    name: 'Administrator',
-    description: 'Has access to all features',
-    permissions: ['admin'],
-    isSystem: true,
-  },
-  {
-    id: 'user',
-    name: 'User',
-    description: 'Regular user with limited permissions',
-    permissions: ['workflows:view', 'forms:view', 'reviews:view'],
-    isSystem: true,
-  },
-];
-
-// Helper function to check if a role is a system role
-export const isSystemRole = (roleId: string): boolean => {
-  return SYSTEM_ROLES.some(role => role.id === roleId);
-};
-
-// Helper function to get all permissions for a role
-export const getRolePermissions = (role: Role): string[] => {
-  return role.permissions;
-};
-
-// Helper function to check if a role has a specific permission
-export const roleHasPermission = (role: Role, permissionId: string): boolean => {
-  // Super admin has all permissions
-  if (role.permissions.includes('super_admin')) {
-    return true;
-  }
-  
-  // Admin has all permissions except super_admin specific ones
-  if (role.permissions.includes('admin')) {
-    return permissionId !== 'super_admin';
-  }
-  
-  return role.permissions.includes(permissionId);
-}; 
-
-import { type UserResponse } from "@descope/core-js-sdk";
-
-export type User = UserResponse;
+/**
+ * The authenticated principal as seen by services (replaces the Descope `UserResponse` the code used before).
+ * `kind` tells platform staff apart from tenant members and tenant clients.
+ */
+export interface User {
+  userId: string;
+  /** `api_client`: an institution's system using OAuth client credentials (docs/plans/04). */
+  kind: 'staff' | 'member' | 'client' | 'api_client';
+  email: string;
+  name?: string;
+  givenName?: string;
+  familyName?: string;
+  picture?: string;
+  status: string;
+  loginIds: string[];
+  createTime: number;
+  /** Tenant memberships with role keys. Platform staff have none. */
+  userTenants: Array<{ tenantId: string; tenantName?: string; roleNames: string[] }>;
+  /** Effective permissions (tenant permissions for members, `platform.*` for staff, none for clients). */
+  permissions: string[];
+  /** Platform role keys (staff only). */
+  platformRoles?: string[];
+}

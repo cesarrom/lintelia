@@ -1,15 +1,14 @@
 import { useEffect } from 'react';
-import { useDescope } from '@descope/react-sdk';
 import { useNavigate } from 'react-router';
+import { useAuthActions } from '@/lib/auth/session';
 
 export default function SignOutPage() {
-  const navigate = useNavigate()
-  const descope = useDescope();
+  const navigate = useNavigate();
+  const { logout } = useAuthActions();
 
   useEffect(() => {
-    descope.logout();
-    navigate('/sign-on');
-  }, [descope, navigate]);
+    void logout().then(() => navigate('/sign-on'));
+  }, [logout, navigate]);
 
   return null;
 }

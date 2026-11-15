@@ -1,33 +1,21 @@
-import formData from 'form-data';
-import Mailgun from 'mailgun.js';
-import { env } from '../constants';
-import { type IMailgunClient } from 'mailgun.js/Interfaces';
 import { LogsService } from './logs.service';
 import { AbstractService } from './service';
 import assert from 'assert';
 import { Injectable, Inject, Scope } from "@nestjs/common";
 import { TENANT } from '../injector/tokens/tenant.token';
 import type { Tenant, SendEmailRequest, SendTemplateRequest } from '@repo/fintivio/schemas';
+import { EMAIL_PROVIDER, type EmailProvider } from '../providers/email.provider';
 
 @Injectable({
   scope: Scope.REQUEST
 })
 export class EmailsService extends AbstractService {
-  private mailgun: Mailgun;
-  private domain: string;
-  private client: IMailgunClient;
-
   constructor(
     @Inject(TENANT) private tenantValueService: Tenant,
-    @Inject(LogsService) private logs: LogsService
+    @Inject(LogsService) private logs: LogsService,
+    @Inject(EMAIL_PROVIDER) private readonly provider: EmailProvider,
   ) {
     super();
-    this.mailgun = new Mailgun(formData);
-    this.client = this.mailgun.client({
-      username: env.SMTP_USER,
-      key: env.SMTP_PASS,
-    });
-    this.domain = env.SMTP_HOST;
   }
 
   async sendEmail(options: SendEmailRequest) {
@@ -43,8 +31,8 @@ export class EmailsService extends AbstractService {
         }
       });
 
-      const response = await this.client.messages.create(this.domain, {
-        from: env.EMAIL_FROM,
+      const response = await this.provider.send({
+        tenant: this.tenantValueService?.domain,
         to: options.to,
         subject: options.subject,
         text: options.text,

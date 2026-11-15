@@ -1,283 +1,196 @@
-import { type AppAuth } from "../clients/auth.client";
-import { AUTH } from "../injector/tokens/auth.token";
-import { TENANT } from "../injector/tokens/tenant.token";
-import { LogsService } from "./logs.service";
-import { AbstractService } from "./service";
-import { AuthRole, Permission, PERMISSIONS, Role, UserInput, UserRoleInput, type Tenant } from "@repo/fintivio/schemas";
 import { Injectable, Inject, Scope } from "@nestjs/common";
+import { and, asc, eq, inArray, ne } from "drizzle-orm";
+import { TENANT_PERMISSION_CATALOG, TENANT_PERMISSION_IDS, resolvePermissions, type Permission, type Role, type Tenant, type User, type UserInput, type UserRoleInput } from "@repo/fintivio/schemas";
+import { AbstractService } from "./service";
+import { TENANT } from "../injector/tokens/tenant.token";
+import { TENANT_CONNECTION } from "../injector/tokens/tenant-connection.token";
+import { USER } from "../injector/tokens/user.token";
+import type { TenantDatabase } from "../clients/database.client";
+import { roles, userRoles, users } from "../entities";
+import { AuditWriter } from "./audit.writer";
+import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "../http/errors";
 
+type RoleRow = typeof roles.$inferSelect;
+
+/** Effective permissions of a role row: system roles from the catalogue, custom roles from the database. */
+export const rolePermissions = (row: Pick<RoleRow, 'key' | 'isSystem' | 'permissions'>) => resolvePermissions([row]);
+
+const toRole = (row: RoleRow): Role => ({
+  // Roles are referenced by key (workflow routing, invitations, SSO mappings), so the key is the public id.
+  id: row.key,
+  name: row.name,
+  description: row.description,
+  permissions: rolePermissions(row),
+  isSystem: row.isSystem,
+  createdAt: row.createdAt,
+  updatedAt: row.updatedAt,
+});
+
+export const roleKeyFromName = (name: string) => name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
+/**
+ * Roles of the current tenant and their assignment (docs/architecture/authorization.md). Escalation rules: custom
+ * roles only use catalogue permissions; nobody creates, changes or assigns a role with permissions they do not hold;
+ * nobody changes their own roles; the last administrator keeps the admin role.
+ */
 @Injectable({
   scope: Scope.REQUEST
 })
 export class RolesService extends AbstractService {
   constructor(
-    @Inject(AUTH) private _auth: AppAuth,
-    @Inject(LogsService) private logs: LogsService,
-    @Inject(TENANT) private tenantValueService: Tenant
+    @Inject(TENANT_CONNECTION) private readonly db: TenantDatabase,
+    @Inject(TENANT) private readonly tenant: Tenant,
+    @Inject(USER) private readonly user: User | null,
+    @Inject(AuditWriter) private readonly audit: AuditWriter,
   ) {
     super();
   }
 
-  // Role Management Methods
-  async createRole(data: { name: string; description: string; permissions: string[] }): Promise<Role> {
-    const { name, description, permissions } = data;
-    const roleId = name.toLowerCase().replace(/\s+/g, '_');
+  private get actor() {
+    return { type: this.user?.kind ?? 'system', id: this.user?.userId, email: this.user?.email };
+  }
 
-    try {
-      // Create role in auth provider
-      await this._auth.management.role.create(
-        roleId,
-        description,
-        permissions,
-        this.tenantValueService.domain
-      );
+  /** The caller may only hand out permissions they hold themselves. */
+  private assertCanGrant(permissions: string[]) {
+    const held = new Set(this.user?.permissions ?? []);
+    const missing = permissions.filter((permission) => !held.has(permission));
+    if (missing.length) throw new ForbiddenError(`You cannot grant permissions you do not hold: ${missing.join(', ')}`);
+  }
 
-      await this.logs.info('Role created', {
-        category: 'security',
-        source: 'RolesService',
-        metadata: {
-          roleId,
-          roleName: name,
-          permissions,
-          tenant: this.tenantValueService.domain
-        }
-      });
+  private validatePermissions(permissions: unknown): string[] {
+    if (!Array.isArray(permissions)) throw new BadRequestError('permissions must be a list');
+    const unknown = permissions.filter((permission) => !TENANT_PERMISSION_IDS.includes(permission));
+    if (unknown.length) throw new BadRequestError(`Unknown permission(s): ${unknown.join(', ')}`);
+    return [...new Set(permissions as string[])];
+  }
 
-      return {
-        id: roleId,
-        name,
-        description,
-        permissions,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-    } catch (error) {
-      await this.logs.error('Failed to create role', {
-        category: 'security',
-        source: 'RolesService',
-        metadata: {
-          roleId,
-          roleName: name,
-          permissions,
-          tenant: this.tenantValueService.domain,
-          error: error instanceof Error ? error.message : String(error)
-        }
-      });
-      throw error;
-    }
+  async createRole(data: { name: string; description?: string; permissions: string[] }): Promise<Role> {
+    const key = roleKeyFromName(data.name ?? '');
+    if (!key) throw new BadRequestError('Role name is required');
+    const permissions = this.validatePermissions(data.permissions ?? []);
+    this.assertCanGrant(permissions);
+    const [existing] = await this.db.select({ id: roles.id }).from(roles).where(eq(roles.key, key));
+    if (existing) throw new ConflictError(`A role with key ${key} already exists`);
+
+    const [row] = await this.db.insert(roles).values({ key, name: data.name.trim(), description: data.description ?? '', permissions }).returning();
+    await this.audit.record(this.tenant.id, this.actor, 'role.created', { type: 'role', id: key, name: row.name }, { permissions });
+    return toRole(row);
   }
 
   async updateRole(roleId: string, data: { name?: string; description?: string; permissions?: string[] }): Promise<Role | null> {
-    const { name, description, permissions } = data;
-
-    try {
-      // Update role in auth provider
-      if (permissions) {
-        await this._auth.management.role.update(
-          roleId,
-          name || roleId,
-          description,
-          permissions,
-          this.tenantValueService.domain
-        );
-      }
-
-      // Get updated role
-      const role = await this.getRole(roleId);
-      if (!role) {
-        await this.logs.warning('Role update attempted on non-existent role', {
-          category: 'security',
-          source: 'RolesService',
-          metadata: {
-            roleId,
-            tenant: this.tenantValueService.domain
-          }
-        });
-        return null;
-      }
-
-      await this.logs.info('Role updated', {
-        category: 'security',
-        source: 'RolesService',
-        metadata: {
-          roleId,
-          roleName: name,
-          updatedFields: Object.keys(data),
-          tenant: this.tenantValueService.domain
-        }
-      });
-
-      return {
-        ...role,
-        ...data,
-        updatedAt: new Date(),
-      };
-    } catch (error) {
-      await this.logs.error('Failed to update role', {
-        category: 'security',
-        source: 'RolesService',
-        metadata: {
-          roleId,
-          roleName: name,
-          tenant: this.tenantValueService.domain,
-          error: error instanceof Error ? error.message : String(error)
-        }
-      });
-      throw error;
+    const [current] = await this.db.select().from(roles).where(eq(roles.key, roleId));
+    if (!current) return null;
+    if (current.isSystem) throw new ForbiddenError('System roles cannot be changed; create a custom role instead');
+    const changes: Partial<RoleRow> = {};
+    if (data.name !== undefined) changes.name = data.name.trim();
+    if (data.description !== undefined) changes.description = data.description;
+    if (data.permissions !== undefined) {
+      changes.permissions = this.validatePermissions(data.permissions);
+      this.assertCanGrant([...changes.permissions, ...current.permissions]);
     }
+    const [row] = await this.db.update(roles).set(changes).where(eq(roles.key, roleId)).returning();
+    await this.audit.record(this.tenant.id, this.actor, 'role.updated', { type: 'role', id: roleId }, { fields: Object.keys(changes) });
+    return toRole(row);
   }
 
   async deleteRole(roleId: string): Promise<boolean> {
-    try {
-      // Delete role from auth provider
-      await this._auth.management.role.delete(roleId, this.tenantValueService.domain);
-
-      await this.logs.info('Role deleted', {
-        category: 'security',
-        source: 'RolesService',
-        metadata: {
-          roleId,
-          tenant: this.tenantValueService.domain
-        }
-      });
-
-      return true;
-    } catch (error) {
-      await this.logs.error('Failed to delete role', {
-        category: 'security',
-        source: 'RolesService',
-        metadata: {
-          roleId,
-          tenant: this.tenantValueService.domain,
-          error: error instanceof Error ? error.message : String(error)
-        }
-      });
-      return false;
-    }
+    const [current] = await this.db.select().from(roles).where(eq(roles.key, roleId));
+    if (!current) return false;
+    if (current.isSystem) throw new ForbiddenError('System roles cannot be deleted');
+    this.assertCanGrant(current.permissions);
+    await this.db.delete(roles).where(eq(roles.key, roleId));
+    await this.audit.record(this.tenant.id, this.actor, 'role.deleted', { type: 'role', id: roleId });
+    return true;
   }
 
   async getRole(roleId: string): Promise<Role | null> {
-    try {
-      // Since there's no direct 'load' method, we'll search for the role
-      const roles = await this.listRoles();
-      return roles.find(role => role.id === roleId) || null;
-    } catch (error) {
-      console.error('Failed to get role:', error);
-      return null;
-    }
+    const [row] = await this.db.select().from(roles).where(eq(roles.key, roleId)).limit(1);
+    return row ? toRole(row) : null;
   }
 
   async listRoles(): Promise<Role[]> {
-    try {
-      const response = await this._auth.management.role.search({
-        tenantIds: [this.tenantValueService.domain]
-      });
-
-      if (!response.data) return [];
-
-      return (response.data as AuthRole[]).map(role => ({
-        id: role.name,
-        name: role.name,
-        description: role.description || '',
-        permissions: role.permissionNames || [],
-        createdAt: new Date(role.createdAt || Date.now()),
-        updatedAt: new Date(role.updatedAt || Date.now()),
-      }));
-    } catch (error) {
-      console.error('Failed to list roles:', error);
-      return [];
-    }
+    const rows = await this.db.select().from(roles).orderBy(asc(roles.name));
+    return rows.map(toRole);
   }
 
   async listPermissions(): Promise<Permission[]> {
-    return PERMISSIONS;
+    return TENANT_PERMISSION_CATALOG;
   }
 
-  // User Role Methods
-  async createUserRole({ userId, roleId, tenantId }: UserRoleInput) {
-    const actualTenantId = tenantId || this.tenantValueService.domain;
-    try {
-      // Add role in auth provider
-      await this._auth.management.user.addTenantRoles(userId, actualTenantId, [roleId]);
-
-      await this.logs.info('User role assigned', {
-        category: 'security',
-        source: 'RolesService',
-        userId,
-        metadata: {
-          roleId,
-          tenant: actualTenantId
-        }
-      });
-
-      return true;
-    } catch (error) {
-      await this.logs.error('Failed to assign user role', {
-        category: 'security',
-        source: 'RolesService',
-        userId,
-        metadata: {
-          roleId,
-          tenant: tenantId,
-          error: error instanceof Error ? error.message : String(error)
-        }
-      });
-      throw error;
-    }
+  private async roleRows(keys: string[]) {
+    if (!keys.length) return [];
+    const rows = await this.db.select().from(roles).where(inArray(roles.key, keys));
+    const missing = keys.filter((key) => !rows.some((row) => row.key === key));
+    if (missing.length) throw new BadRequestError(`Unknown role(s): ${missing.join(', ')}`);
+    return rows;
   }
 
-  async deleteUserRole({ roleId, userId, tenantId }: UserRoleInput) {
-    const actualTenantId = tenantId || this.tenantValueService.domain;
-    try {
-      await this._auth.management.user.removeTenantRoles(userId, actualTenantId, [roleId]);
-
-      await this.logs.info('User role removed', {
-        category: 'security',
-        source: 'RolesService',
-        userId,
-        metadata: {
-          roleId,
-          tenant: tenantId
-        }
-      });
-
-      return true;
-    } catch (error) {
-      await this.logs.error('Failed to remove user role', {
-        category: 'security',
-        source: 'RolesService',
-        userId,
-        metadata: {
-          roleId,
-          tenant: tenantId,
-          error: error instanceof Error ? error.message : String(error)
-        }
-      });
-      throw error;
-    }
+  /** Check the caller may assign these roles (used for invitations too). */
+  async assertCanAssign(roleKeys: string[]) {
+    const rows = await this.roleRows(roleKeys);
+    this.assertCanGrant(resolvePermissions(rows));
+    return rows;
   }
 
-  private async getUserAndTenant({ userId, tenantId }: UserInput) {
-    const actualTenantId = tenantId || this.tenantValueService.domain;
-    const { data: user } = await this._auth.management.user.loadByUserId(userId);
-
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    const tenants = user.userTenants?.filter(tenant => tenant.tenantId === actualTenantId) || [];
-
-    if (!tenants.length) {
-      return { user }
-    }
-
-    const [tenant] = tenants;
-
-    return { user, tenant };
+  private async assertNotLastAdmin(userId: string) {
+    const [adminRole] = await this.db.select().from(roles).where(and(eq(roles.key, 'admin'), eq(roles.isSystem, true)));
+    if (!adminRole) return;
+    const admins = await this.db.select({ userId: userRoles.userId }).from(userRoles)
+      .innerJoin(users, and(eq(users.id, userRoles.userId), eq(users.tenantId, userRoles.tenantId)))
+      .where(and(eq(userRoles.roleId, adminRole.id), eq(users.status, 'active'), ne(users.id, userId)));
+    const isAdmin = (await this.db.select().from(userRoles).where(and(eq(userRoles.roleId, adminRole.id), eq(userRoles.userId, userId)))).length > 0;
+    if (isAdmin && admins.length === 0) throw new ConflictError('The last administrator cannot lose the admin role or be deactivated');
   }
 
-  async getRolesByUserId(params: UserInput): Promise<string[]> {
-    const { tenant } = await this.getUserAndTenant(params);
-    return tenant?.roleNames || [];
+  /** Used before deactivating a member. */
+  async assertCanRemoveMember(userId: string) {
+    if (userId === this.user?.userId) throw new ForbiddenError('You cannot deactivate yourself');
+    await this.assertNotLastAdmin(userId);
+  }
+
+  async createUserRole({ userId, roleId }: UserRoleInput) {
+    if (userId === this.user?.userId) throw new ForbiddenError('You cannot change your own roles');
+    const [role] = await this.assertCanAssign([roleId]);
+    await this.db.insert(userRoles).values({ userId, roleId: role.id }).onConflictDoNothing();
+    await this.audit.record(this.tenant.id, this.actor, 'member.role_assigned', { type: 'user', id: userId }, { role: roleId });
+    return true;
+  }
+
+  async deleteUserRole({ roleId, userId }: UserRoleInput) {
+    if (userId === this.user?.userId) throw new ForbiddenError('You cannot change your own roles');
+    const [role] = await this.db.select().from(roles).where(eq(roles.key, roleId)).limit(1);
+    if (!role) return false;
+    this.assertCanGrant(rolePermissions(role));
+    if (roleId === 'admin') await this.assertNotLastAdmin(userId);
+    await this.db.delete(userRoles).where(and(eq(userRoles.userId, userId), eq(userRoles.roleId, role.id)));
+    await this.audit.record(this.tenant.id, this.actor, 'member.role_removed', { type: 'user', id: userId }, { role: roleId });
+    return true;
+  }
+
+  /** Replace the roles of a user with the given role keys. */
+  async setUserRoles(userId: string, roleKeys: string[]) {
+    if (userId === this.user?.userId) throw new ForbiddenError('You cannot change your own roles');
+    const [target] = await this.db.select({ id: users.id }).from(users).where(eq(users.id, userId));
+    if (!target) throw new NotFoundError('User not found');
+    const next = await this.assertCanAssign(roleKeys);
+    const currentRows = await this.db.select({ key: roles.key, isSystem: roles.isSystem, permissions: roles.permissions }).from(userRoles)
+      .innerJoin(roles, and(eq(roles.id, userRoles.roleId), eq(roles.tenantId, userRoles.tenantId))).where(eq(userRoles.userId, userId));
+    // Removing roles is also a grant decision: you cannot strip permissions you do not hold yourself.
+    this.assertCanGrant(resolvePermissions(currentRows.filter((r) => !roleKeys.includes(r.key))));
+    if (currentRows.some((r) => r.key === 'admin') && !roleKeys.includes('admin')) await this.assertNotLastAdmin(userId);
+
+    await this.db.transaction(async (tx) => {
+      await tx.delete(userRoles).where(eq(userRoles.userId, userId));
+      if (next.length) await tx.insert(userRoles).values(next.map((r) => ({ userId, roleId: r.id })));
+    });
+    await this.audit.record(this.tenant.id, this.actor, 'member.roles_changed', { type: 'user', id: userId }, { from: currentRows.map((r) => r.key), to: roleKeys });
+  }
+
+  async getRolesByUserId({ userId }: UserInput): Promise<string[]> {
+    const rows = await this.db.select({ key: roles.key }).from(userRoles)
+      .innerJoin(roles, and(eq(roles.id, userRoles.roleId), eq(roles.tenantId, userRoles.tenantId)))
+      .where(eq(userRoles.userId, userId));
+    return rows.map((r) => r.key);
   }
 }
+

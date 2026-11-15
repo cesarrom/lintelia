@@ -6,7 +6,8 @@ import { ReactNode, useState } from 'react';
 import { ThemeProvider } from './ThemeProvider';
 import { TenantProvider } from './TenantProvider';
 import { AuthProvider as AP } from '../auth/AuthContext';
-import { AuthProvider } from '@descope/react-sdk';
+import { SessionProvider } from '../auth/session';
+import { Toaster } from '@/components/ui/sonner';
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
@@ -20,7 +21,7 @@ export function Providers({ children }: { children: ReactNode }) {
   }));
 
   return (
-    <AuthProvider projectId={import.meta.env.VITE_DESCOPE_PROJECT_ID as string}>
+    <SessionProvider>
       <JotaiProvider>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
@@ -28,10 +29,11 @@ export function Providers({ children }: { children: ReactNode }) {
               <AP>
                 {children}
               </AP>
+              <Toaster richColors closeButton />
             </TenantProvider>
           </ThemeProvider>
         </QueryClientProvider>
       </JotaiProvider>
-    </AuthProvider>
+    </SessionProvider>
   );
 } 

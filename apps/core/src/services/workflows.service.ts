@@ -1,3 +1,4 @@
+import { UnprocessableError } from '../http/errors';
 import { sysWorkflows } from '../entities/tenants';
 import { sysWorkflowTriggers } from '../entities/tenants';
 import { LogsService } from './logs.service';
@@ -29,7 +30,7 @@ export class WorkflowsService extends AbstractService {
         userId: data.createdBy,
         metadata: { yaml: data.yaml }
       });
-      throw new Error('Invalid workflow YAML');
+      throw new UnprocessableError('Invalid workflow YAML');
     }
 
     // Parse YAML to extract metadata
@@ -96,7 +97,7 @@ export class WorkflowsService extends AbstractService {
           yaml: data.yaml
         }
       });
-      throw new Error('Invalid workflow YAML');
+      throw new UnprocessableError('Invalid workflow YAML');
     }
 
     // Parse YAML to extract metadata

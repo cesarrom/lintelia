@@ -1,0 +1,21 @@
+{
+  "name": "@fake/mailbox",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local mailbox: SMTP server + web inbox + REST API (like Mailpit/MailDev).",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts"
+  },
+  "dependencies": {
+    "@repo/fake-kit": "*",
+    "hono": "^4.7.8",
+    "mailparser": "3.6.9",
+    "smtp-server": "^3.13.6"
+  },
+  "devDependencies": {
+    "@types/mailparser": "^3.4.5",
+    "@types/smtp-server": "^3.5.10"
+  }
+}

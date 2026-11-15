@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FormEngine } from './form-engine';
 import { registry } from './registry';
 import {
@@ -74,9 +74,25 @@ interface FormBuilderProps {
   initialConfig?: FormConfig;
   onSave?: (config: FormConfig) => void;
   onCancel?: () => void;
+  /** Called on every change (the surrounding dialog persists the form). */
+  onChange?: (config: FormConfig) => void;
+  /** Hide the builder's own Save/Cancel buttons (when embedded in a dialog that has them). */
+  embedded?: boolean;
 }
 
-export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProps) {
+/** A fresh component of `type` with its schema defaults and a unique property name. */
+function newComponent(type: string, existing: FormComponentConfig[]): FormComponentConfig | null {
+  const component = registry.get(type);
+  if (!component) return null;
+  const taken = new Set(existing.map((c) => (c.config as { propertyName?: string }).propertyName).filter(Boolean));
+  let index = existing.filter((c) => c.type === type).length + 1;
+  while (taken.has(`${type}${index}`)) index += 1;
+  const parsed = component.getConfigSchema().safeParse({ type, propertyName: `${type}${index}`, label: component.label, required: false });
+  if (!parsed.success) return null;
+  return { id: uuid(), type, config: parsed.data } as FormComponentConfig;
+}
+
+export function FormBuilder({ initialConfig, onSave, onCancel, onChange, embedded = false }: FormBuilderProps) {
   const [config, setConfig] = useState<FormConfig>(() => ({
     id: initialConfig?.id || uuid(),
     name: initialConfig?.name || 'New Form',
@@ -85,7 +101,20 @@ export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProp
     components: initialConfig?.components || [],
   }));
   const { mutateAsync: generateFormWithAI } = useFormGenerateFormWithAI();
-  const [activeId, setActiveId] = useState<string | null>(null);
+  useEffect(() => {
+    onChange?.(config);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config]);
+
+  /** Click (or keyboard) alternative to dragging a component onto the canvas. */
+  const addComponent = (type: string) => {
+    const created = newComponent(type, config.components);
+    if (!created) return;
+    setConfig((prev) => ({ ...prev, components: [...prev.components, created] }));
+    setSelectedId(created.id);
+    setShowSettings(false);
+  };
+  const [, setActiveId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -228,17 +257,17 @@ export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProp
         <div className="flex flex-col h-[calc(95vh-8rem)]">
           <div className="flex flex-1 gap-4 p-6 overflow-hidden">
             {/* Components Toolbar */}
-            <div className="w-64 flex-none rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden flex flex-col">
-              <div className="p-4 font-semibold border-b">Components</div>
+            <div role="region" aria-label="Components" className="w-64 flex-none rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden flex flex-col">
+              <div className="p-4 font-semibold border-b">Components <span className="block text-xs font-normal text-muted-foreground">Click or drag to add</span></div>
               <ScrollArea className="flex-1">
                 <div className="space-y-2 p-4">
-                  <FormToolbar />
+                  <FormToolbar onAdd={addComponent} />
                 </div>
               </ScrollArea>
             </div>
 
             {/* Form Canvas */}
-            <div className="flex-1 rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden flex flex-col">
+            <div role="region" aria-label="Form canvas" className="flex-1 rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden flex flex-col">
               <div className="flex h-14 items-center justify-between border-b px-4 flex-none">
                 <div className="flex items-center gap-4">
                   <h2 className="text-lg font-semibold">{config.name}</h2>
@@ -253,14 +282,16 @@ export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProp
                     <Settings2 className="h-4 w-4" />
                   </Button>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" onClick={onCancel}>
-                    Cancel
-                  </Button>
-                  <Button onClick={() => onSave?.(config)}>
-                    Save Form
-                  </Button>
-                </div>
+                {!embedded && (
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={onCancel}>
+                      Cancel
+                    </Button>
+                    <Button onClick={() => onSave?.(config)}>
+                      Save Form
+                    </Button>
+                  </div>
+                )}
               </div>
               <ScrollArea className="flex-1">
                 <div className="p-4">
@@ -276,7 +307,7 @@ export function FormBuilder({ initialConfig, onSave, onCancel }: FormBuilderProp
             </div>
 
             {/* Properties Panel */}
-            <div className="w-80 flex-none rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden flex flex-col">
+            <div role="region" aria-label="Properties" className="w-80 flex-none rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden flex flex-col">
               <div className="flex h-14 items-center justify-between border-b px-4 flex-none">
                 <div className="font-semibold">
                   {showSettings ? 'Form Settings' : 'Properties'}

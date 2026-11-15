@@ -1,6 +1,8 @@
 import { pgTable, uuid, varchar, text, timestamp, pgEnum, jsonb } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm'; // Import sql for default values
 import { EvidenceItem, ReviewItem, reviewStatusValuesSchema } from '../../schemas/shared.schema';
+import { tenantIdColumn } from '../rls';
+import { tenantTable } from './_tenant-table';
 
 
 // Define ENUM values for Drizzle
@@ -8,6 +10,7 @@ export const reviewStatusEnum = pgEnum('review_status', reviewStatusValuesSchema
 
 export const sysReviews = pgTable('sys_reviews', {
   id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: tenantIdColumn(),
   title: varchar('title', { length: 255 }).notNull(), // Assuming max length 255
   description: text('description'), // Nullable
   status: reviewStatusEnum('status').default('pending').notNull(),
@@ -26,4 +29,4 @@ export const sysReviews = pgTable('sys_reviews', {
   dueDate: timestamp('due_date', { mode: 'date', withTimezone: true }), // Nullable
   createdAt: timestamp('created_at', { mode: 'date', withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date', withTimezone: true }).defaultNow().notNull().$onUpdate(() => new Date()),
-});
+}, (table) => tenantTable('sys_reviews', table));
