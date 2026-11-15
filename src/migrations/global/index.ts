@@ -1,1 +1,0 @@
-export * as InitialMigration from './1710000000000-InitialMigration';

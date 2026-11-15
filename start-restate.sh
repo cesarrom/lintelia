@@ -1,1 +1,0 @@
-docker run --rm -it -p 9070:9070 -p 8080:8080 docker.restate.dev/restatedev/restate:latest

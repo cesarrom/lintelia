@@ -1,0 +1,1 @@
+export * from '@repo/fintivio/entities/global';
