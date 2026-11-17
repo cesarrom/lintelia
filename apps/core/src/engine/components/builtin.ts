@@ -1,4 +1,6 @@
 import { PARTY_COMPONENTS } from './parties';
+import { CLIENT_APP_COMPONENTS } from './client-app';
+import { INTEGRATION_COMPONENTS } from './integration';
 import * as restate from '@restatedev/restate-sdk/fetch';
 import type { CaseStatus, TaskOutcome } from '../../entities';
 import { DEFAULT_REVIEW_OUTCOMES, type CaseRow } from '../case-repository';
@@ -186,10 +188,16 @@ const email: EngineComponent = {
 
 const caseUpdate: EngineComponent = {
   definition: {
-    type: 'case.update', version: 1, title: 'Update case', description: 'Sets the risk level, adds flags or changes the title.',
+    type: 'case.update', version: 1, title: 'Update case', description: 'Moves the case to a stage, saves values on it, sets the risk level, adds flags or changes the title.',
     icon: 'FilePen', category: 'case', kind: 'automatic', source: { kind: 'builtin' },
-    configSchema: { type: 'object', properties: { riskLevel: RISK, addFlags: FLAGS, title: text('New title') } },
-    summary: 'Risk {{riskLevel}} · flags {{addFlags}}',
+    configSchema: {
+      type: 'object', properties: {
+        stage: text('Stage', 'a key of the workflow\'s stages, e.g. underwriting'),
+        data: { type: 'object', title: 'Save on the case', description: 'field → value (expressions allowed), merged into the case data', additionalProperties: { type: 'string', 'x-expression': true }, 'x-widget': 'keyValue' },
+        riskLevel: RISK, addFlags: FLAGS, title: text('New title'),
+      },
+    },
+    summary: 'Stage {{stage}} · Risk {{riskLevel}} · flags {{addFlags}}',
     events: { static: ['done'] },
   },
   async execute({ ctx, label, config, tenantId, caseId, deps }) {
@@ -199,9 +207,14 @@ const caseUpdate: EngineComponent = {
       if (config.riskLevel) changes.riskLevel = String(config.riskLevel);
       if (config.title) changes.title = String(config.title);
       if (Array.isArray(config.addFlags)) changes.flags = [...new Set([...current.flags, ...config.addFlags.map(String)])];
+      if (config.data && typeof config.data === 'object') changes.data = { ...current.data, ...(config.data as Record<string, unknown>) };
+      const stage = config.stage ? String(config.stage) : null;
+      if (stage && stage !== current.stage) changes.stage = stage;
       await deps.repository.updateCase(tenantId, caseId, changes);
-      await deps.audit.record(tenantId, WORKFLOW_ACTOR, 'case.updated', { type: 'case', id: caseId }, changes as Record<string, unknown>, caseId);
-      return changes;
+      const { data: _data, ...logged } = changes;
+      await deps.audit.record(tenantId, WORKFLOW_ACTOR, 'case.updated', { type: 'case', id: caseId }, { ...logged, ...(changes.data ? { dataFields: Object.keys(config.data) } : {}) } as Record<string, unknown>, caseId);
+      if (changes.stage) await deps.audit.record(tenantId, WORKFLOW_ACTOR, 'case.stage_changed', { type: 'case', id: caseId, reference: current.reference }, { from: current.stage, to: changes.stage }, caseId);
+      return { ...logged, stage: changes.stage ?? current.stage, ...(changes.data ? { data: config.data } : {}) };
     });
     return { event: 'done', output: updated };
   },
@@ -490,5 +503,5 @@ const clientRequest: EngineComponent = {
 };
 
 export const BUILTIN_COMPONENTS: EngineComponent[] = [
-  start, end, conditional, calculate, dataMap, wait, email, caseUpdate, caseDecision, review, workTask, clientRequest, ...PARTY_COMPONENTS,
+  start, end, conditional, calculate, dataMap, wait, email, caseUpdate, caseDecision, review, workTask, clientRequest, ...PARTY_COMPONENTS, ...CLIENT_APP_COMPONENTS, ...INTEGRATION_COMPONENTS,
 ];

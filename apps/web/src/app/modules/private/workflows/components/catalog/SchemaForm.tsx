@@ -21,6 +21,10 @@ export interface SchemaFormContext {
   workflows?: Array<{ value: string; label: string }>;
   /** Forms of the institution, for `x-widget: form` fields. */
   forms?: Array<{ value: string; label: string }>;
+  /** Options of other `x-widget` pickers, by widget name (client app studio: `source`, `page`, `journey`). */
+  choices?: Record<string, Array<{ value: string; label: string }>>;
+  /** Suggestions for `x-widget: icon` fields. */
+  icons?: string[];
 }
 
 interface FieldProps {
@@ -49,7 +53,7 @@ function StringField({ schema, value, onChange, label, path, required, context }
     : widget === 'role' ? context.roles.map((r) => ({ value: r, label: r }))
       : widget === 'workflow' ? context.workflows
         : widget === 'form' ? context.forms
-        : context.options?.[path];
+        : (widget && context.choices?.[widget]) || context.options?.[path];
 
   let control: React.ReactNode;
   if (options && !(schema['x-expression'] && isExpression(current)) && widget !== 'role') {
@@ -63,14 +67,25 @@ function StringField({ schema, value, onChange, label, path, required, context }
   } else if (widget === 'textarea' || widget === 'expression') {
     control = <Textarea id={id} aria-label={label} rows={widget === 'expression' ? 2 : 4} className={cn(widget === 'expression' && 'font-mono text-xs')}
       value={current} onChange={(e) => onChange(e.target.value)} />;
+  } else if (widget === 'color') {
+    // A colour: the browser's picker next to the hex value (both editable).
+    const valid = /^#[0-9a-fA-F]{6}$/.test(current);
+    control = (
+      <div className="flex items-center gap-2">
+        <input type="color" aria-label={`${label} picker`} value={valid ? current : '#000000'} onChange={(e) => onChange(e.target.value)}
+          className="h-9 w-11 shrink-0 cursor-pointer rounded-md border border-input bg-background p-1" data-testid={`color-${path}`} />
+        <Input id={id} aria-label={label} value={current} placeholder="#RRGGBB" className="font-mono text-xs" onChange={(e) => onChange(e.target.value === '' ? undefined : e.target.value)} />
+      </div>
+    );
   } else {
     control = (
       <>
-        <Input id={id} aria-label={label} value={current} list={widget === 'role' ? `${id}-roles` : undefined}
+        <Input id={id} aria-label={label} value={current} list={widget === 'role' ? `${id}-roles` : widget === 'icon' && context.icons ? `${id}-icons` : undefined}
           placeholder={widget === 'duration' ? 'e.g. PT24H, P3D' : undefined}
           className={cn(isExpression(current) && 'font-mono text-xs')}
           onChange={(e) => onChange(e.target.value === '' ? undefined : e.target.value)} />
         {widget === 'role' && <datalist id={`${id}-roles`}>{context.roles.map((r) => <option key={r} value={r} />)}</datalist>}
+        {widget === 'icon' && context.icons && <datalist id={`${id}-icons`}>{context.icons.map((r) => <option key={r} value={r} />)}</datalist>}
       </>
     );
   }
@@ -183,9 +198,14 @@ function Field(props: FieldProps) {
 export function ObjectFields({ schema, value, onChange, path = '', context }: { schema: JsonSchema; value: unknown; onChange: (value: Record<string, unknown>) => void; path?: string; context: SchemaFormContext }) {
   const current = (value ?? {}) as Record<string, unknown>;
   const required = new Set(schema.required ?? []);
+  // `x-show-if`: properties that only make sense for some values of a sibling (e.g. a field's type).
+  const shown = (property: JsonSchema) => Object.entries(property['x-show-if'] ?? {}).every(([sibling, values]) => {
+    const given = current[sibling] ?? schema.properties?.[sibling]?.default;
+    return values.includes(given);
+  });
   return (
     <div className="space-y-3">
-      {Object.entries(schema.properties ?? {}).map(([key, property]) => (
+      {Object.entries(schema.properties ?? {}).filter(([, property]) => shown(property)).map(([key, property]) => (
         <Field key={key} schema={property} value={current[key]} label={property.title ?? key} required={required.has(key)}
           path={path ? `${path}.${key}` : key} context={context}
           onChange={(next) => {

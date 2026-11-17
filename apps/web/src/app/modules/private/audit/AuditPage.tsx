@@ -39,8 +39,8 @@ export default function AuditPage() {
         actions={hasPermission('audit:export') && <Button variant="outline" onClick={onExport}><Download className="h-4 w-4 mr-2" />Export (JSON Lines)</Button>}
       />
       <Input placeholder="Filter by action, e.g. task.decided" className="max-w-sm" value={action} onChange={(e) => setAction(e.target.value.trim())} />
-      {!isLoading && entries.length === 0 ? <EmptyState>No entries.</EmptyState> : (
-        <div className="rounded-md border">
+      {!isLoading && entries.length === 0 ? <EmptyState art="documents">No entries.</EmptyState> : (
+        <div className="overflow-hidden rounded-xl border bg-card shadow-card">
           <Table>
             <TableHeader>
               <TableRow><TableHead>#</TableHead><TableHead>When</TableHead><TableHead>Who</TableHead><TableHead>What</TableHead><TableHead>Target</TableHead><TableHead>Details</TableHead></TableRow>

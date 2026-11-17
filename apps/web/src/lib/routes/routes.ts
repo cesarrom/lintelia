@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import {
-  Building2, Cable, ClipboardCheck, Plug, FileLock2, LifeBuoy, FileIcon, FolderKanban, FormInput, KeyIcon, LayoutDashboard, Logs, MailIcon, ScrollText,
+  AppWindow, Building2, Map as MapIcon, Cable, ClipboardCheck, Plug, FileLock2, LifeBuoy, FileIcon, FolderKanban, FormInput, KeyIcon, LayoutDashboard, Logs, MailIcon, ScrollText,
   Settings, Shield, UserRound, Users, WebhookIcon, Workflow,
 } from 'lucide-react';
 
@@ -19,8 +19,10 @@ export const memberRoutes: AppRoute[] = [
   { name: 'Tasks', href: '/app/tasks', icon: ClipboardCheck, permissions: ['tasks:work', 'tasks:assign'], section: 'Work' },
   { name: 'Cases', href: '/app/cases', icon: FolderKanban, permissions: ['cases:read'], section: 'Work' },
   { name: 'Clients', href: '/app/clients', icon: UserRound, permissions: ['clients:read'], section: 'Work' },
+  { name: 'Map', href: '/app/map', icon: MapIcon, permissions: ['experience:read', 'workflows:read'], section: 'Build' },
   { name: 'Forms', href: '/app/forms', icon: FormInput, permissions: ['forms:read'], section: 'Build' },
   { name: 'Workflows', href: '/app/workflows', icon: Workflow, permissions: ['workflows:read'], section: 'Build' },
+  { name: 'Client app', href: '/app/experience', icon: AppWindow, permissions: ['experience:read'], section: 'Build' },
   { name: 'Email Templates', href: '/app/emails', icon: MailIcon, permissions: ['templates:manage'], section: 'Build' },
   { name: 'Documents', href: '/app/documents', icon: FileIcon, permissions: ['templates:manage'], section: 'Build' },
   { name: 'Integrations', href: '/app/integrations', icon: Plug, permissions: ['integrations:read'], section: 'Build' },

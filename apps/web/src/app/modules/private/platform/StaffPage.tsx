@@ -121,7 +121,7 @@ export default function StaffPage() {
   return (
     <PageContainer>
       <PageHeader title="Staff" description="People operating the platform" actions={<Button onClick={() => setInviting(true)}><Plus className="h-4 w-4 mr-2" />Invite staff</Button>} />
-      <div className="rounded-md border">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-card">
         <Table>
           <TableHeader><TableRow><TableHead>E-mail</TableHead><TableHead>Name</TableHead><TableHead>Roles</TableHead><TableHead>Status</TableHead><TableHead /></TableRow></TableHeader>
           <TableBody>

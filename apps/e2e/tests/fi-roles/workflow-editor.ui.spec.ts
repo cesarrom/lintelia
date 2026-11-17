@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../support/test';
 import YAML from 'yaml';
 import { Api, expectStatus } from '../../support/api';
 import { deleteTenant } from '../../support/factories';

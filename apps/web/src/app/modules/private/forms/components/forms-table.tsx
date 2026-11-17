@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Table,
   TableBody,
@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { FormDialog } from './form-builder/FormDialog';
 import type { Form } from '@repo/fintivio/schemas';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 
 interface FormsTableProps {
   forms: Form[];
@@ -44,9 +44,21 @@ export default function FormsTable({ forms }: FormsTableProps) {
     setEditDialogOpen(true);
   };
 
+  // Opened from the experience map (`?edit=<form id>`): the form editor opens at once.
+  const [search] = useSearchParams();
+  const opened = useRef(false);
+  useEffect(() => {
+    const id = search.get('edit');
+    const form = id ? forms?.find((f) => f.id === id) : undefined;
+    if (form && !opened.current) {
+      opened.current = true;
+      handleEdit(form);
+    }
+  }, [forms, search]);
+
   return (
     <>
-      <div className="rounded-md border">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-card">
         <Table>
           <TableHeader>
             <TableRow>

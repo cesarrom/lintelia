@@ -8,6 +8,8 @@ import { TENANT } from '../injector/tokens/tenant.token';
 import { USER } from '../injector/tokens/user.token';
 import { CASE_REPOSITORY } from '../engine/engine.client';
 import type { CaseRepository } from '../engine/case-repository';
+import { functionWorkflowId } from '../engine/components';
+import { functionComponent } from '../engine/components/parties';
 import { parseDefinition } from '../engine/definition';
 import { validateDefinition } from '../engine/components/validation';
 import { templateYaml, WORKFLOW_TEMPLATES } from '../engine/templates';
@@ -68,10 +70,41 @@ export class WorkflowLifecycleService {
       const definition = parseDefinition(workflow.yaml);
       errors = validateDefinition(definition, { roles: roleKeys });
       errors.push(...(await this.connectionErrors(definition.steps)));
+      errors.push(...(await this.functionErrors(definition.steps, workflowId)));
     } catch (error) {
       errors = [`Invalid YAML: ${(error as Error).message}`];
     }
     return { workflow, errors };
+  }
+
+  /** The institution's functions as components of the editor's palette (`function:<workflow id>`). */
+  async functionDefinitions() {
+    const rows = await this.db.select({ version: workflowVersions, name: sysWorkflows.name }).from(workflowVersions)
+      .innerJoin(sysWorkflows, eq(sysWorkflows.id, workflowVersions.workflowId))
+      .where(eq(workflowVersions.status, 'active'));
+    return rows.flatMap(({ version, name }) => {
+      const definition = parseDefinition(version.yaml);
+      if (!definition.function) return [];
+      const outputs = Object.keys(definition.outputs);
+      return [{
+        ...functionComponent(version.workflowId, { name, description: definition.description, inputs: definition.inputs }).definition,
+        outputSchema: { type: 'object' as const, properties: Object.fromEntries(outputs.map((key) => [key, { title: key }])) },
+      }];
+    });
+  }
+
+  /** Function steps must call a published workflow marked `function: true` (not this one: no recursion). */
+  private async functionErrors(steps: Array<{ name: string; type: string }>, workflowId: string) {
+    const errors: string[] = [];
+    for (const step of steps) {
+      const target = functionWorkflowId(step.type);
+      if (!target) continue;
+      if (target === workflowId) { errors.push(`${step.name}: a function cannot call itself`); continue; }
+      const [active] = await this.db.select().from(workflowVersions).where(and(eq(workflowVersions.workflowId, target), eq(workflowVersions.status, 'active'))).limit(1);
+      if (!active) errors.push(`${step.name}: the function is not published`);
+      else if (!parseDefinition(active.yaml).function) errors.push(`${step.name}: "${parseDefinition(active.yaml).name}" is not a function (function: true)`);
+    }
+    return errors;
   }
 
   /** Connector steps must use an active connection of their connector (docs/plans/03). */

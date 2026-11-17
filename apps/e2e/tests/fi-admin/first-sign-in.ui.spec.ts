@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../support/test';
 import { completeSecondFactor } from '../../support/ui';
 import { Api, expectStatus } from '../../support/api';
 import { staffSession, uniqueKey } from '../../support/factories';

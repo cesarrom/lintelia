@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../support/test';
 import { Api, expectForbidden, expectStatus, type Session } from '../../support/api';
 import { DEFAULT_PASSWORD, acceptInvitation, acceptInvitationResponse, login, staffSession, uniqueEmail, uniqueKey } from '../../support/factories';
 import { PLATFORM_ROLES } from '../../support/catalog';
@@ -25,7 +25,14 @@ test.describe('STAFF-06 Manage platform staff and their roles', { tag: ['@staff'
     const support = await inviteStaff('support');
     const key = uniqueKey();
     expectForbidden(await Api.as(support).post('/tenants', { name: 'x', domain: key, invitee: [] }));
-    expectStatus(await Api.as(cs).post('/tenants', { name: 'x', domain: key, invitee: [] }), 201);
+    try {
+      expectStatus(await Api.as(cs).post('/tenants', { name: 'x', domain: key, invitee: [] }), 201);
+    } finally {
+      // Offboard it again (suspend, then delete), like every institution the suite creates.
+      const staff = Api.as(await staffSession());
+      await staff.put(`/tenants/${key}`, { data: { status: 'suspended' } });
+      await staff.delete(`/tenants/${key}`);
+    }
   });
 
   test('staff roles cannot be granted by staff who are not platform admins', async () => {

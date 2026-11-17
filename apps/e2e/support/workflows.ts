@@ -60,3 +60,39 @@ export const simpleFormConfig = (name: string) => ({
     { id: 'email', type: 'email', config: { type: 'email', label: 'E-mail', propertyName: 'email', required: true } },
   ],
 });
+
+/**
+ * A journey screen with the building blocks of docs/plans/14: a slider, a calculated value, a field shown on a
+ * condition, an IBAN, a reference with a pattern, a one-time code and a handwritten signature.
+ */
+export function screenBlocksWorkflowYaml(name: string) {
+  return `schemaVersion: "1"
+name: ${name}
+description: e2e screen building blocks
+caseTitle: "Blocks: {{applicant}}"
+inputs: []
+steps:
+  - { id: start, name: Start, type: start, events: [{ name: finished, outputs: [], next: [form] }] }
+  - id: form
+    name: Form
+    type: client.screen
+    config:
+      title: Your loan
+      fields:
+        - { key: months, label: Term (months), type: slider, min: 6, max: 60, step: 6, required: true }
+        - { key: monthly, label: Monthly payment, type: display, expression: "$round(6000 / months, 2)", format: money }
+        - { key: reason, label: Why so long?, type: text, required: true, visibleIf: "months > 36" }
+        - { key: iban, label: IBAN, type: text, required: true, check: iban }
+        - { key: ref, label: Reference, type: text, pattern: "^[A-Z]{3}-[0-9]+$", patternMessage: "like ABC-123" }
+        - { key: code, label: Code we sent you, type: otp, length: 6, required: true }
+        - { key: signature, label: Your signature, type: signature }
+      buttons: [{ key: continue, label: Continue, style: primary }]
+    events: [{ name: continue, outputs: [], next: [done] }]
+  - id: done
+    name: Done
+    type: case.decision
+    config: { status: completed, outcome: done, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]
+`;
+}

@@ -5,6 +5,8 @@ export interface CaseSummary {
   reference: string;
   title: string;
   status: string;
+  /** Business stage set by the workflow (e.g. underwriting, funding). */
+  stage: string | null;
   outcome: string | null;
   riskLevel: string | null;
   flags: string[];
@@ -17,7 +19,12 @@ export interface CaseSummary {
   completedAt: string | null;
 }
 
+/** `exit`: off the main path (declined, withdrawn): shown only when the case is there. */
+export interface Stage { key: string; label: string; clientLabel?: string; exit?: boolean }
+
 export interface CaseDetail extends CaseSummary {
+  /** The workflow's stages, in order. */
+  stages: Stage[];
   data: Record<string, unknown>;
   calculations: Calculation[];
   tasks: TaskSummary[];
@@ -39,3 +46,17 @@ export interface CaseRecord {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface CaseSignal {
+  id: string;
+  name: string;
+  status: 'waiting' | 'pending' | 'delivered' | 'cancelled';
+  source: string | null;
+  createdAt: string;
+  deliveredAt: string | null;
+  fields: string[];
+  /** The address to give the other system (waiting signals, for members with cases:signal). */
+  hookUrl?: string;
+}
+
+export interface Pipeline { id: string; name: string; stages: Stage[]; cases: number }

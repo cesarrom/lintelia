@@ -1,3 +1,4 @@
+import { PageContainer, PageHeader } from '@/components/app/page';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import TenantSettingsForm from './components/tenant-settings-form';
 import SystemVariablesTable from './components/system-variables-table';
@@ -12,19 +13,14 @@ export default function SettingsPage() {
   const initialTab = new URLSearchParams(window.location.search).get('tab') ?? 'tenant';
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground mt-2">
-          Manage tenant settings and system variables
-        </p>
-      </div>
+    <PageContainer>
+      <PageHeader title="Settings" description="Your workspace: name, brand colours, domains, sign-in security and variables used by workflows" />
 
       <Tabs defaultValue={initialTab} className="space-y-6">
         <TabsList>
-          <TabsTrigger value="tenant">Tenant Settings</TabsTrigger>
+          <TabsTrigger value="tenant">Workspace</TabsTrigger>
           {hasPermission('security:manage') && <TabsTrigger value="security">Security</TabsTrigger>}
-          <TabsTrigger value="variables">System Variables</TabsTrigger>
+          <TabsTrigger value="variables">Variables</TabsTrigger>
         </TabsList>
 
         {hasPermission('security:manage') && (
@@ -42,6 +38,6 @@ export default function SettingsPage() {
           <SystemVariablesTable variables={systemVariables} />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageContainer>
   );
 } 

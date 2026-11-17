@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test } from '../../support/test';
 import { Api, expectAllowed, expectForbidden, type ApiResponse } from '../../support/api';
 import { addMember, createTenant, deleteTenant, uniqueEmail, type TenantHandle } from '../../support/factories';
 import { ROLE_PERMISSIONS, SYSTEM_ROLES, type SystemRole, type TenantPermission } from '../../support/catalog';

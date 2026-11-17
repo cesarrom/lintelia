@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../support/test';
 import { Api } from '../../support/api';
 import { env, tenantUrl } from '../../support/env';
 import { acceptInvitation, createTenant, deleteTenant, login, staffSession, uniqueEmail, uniqueKey } from '../../support/factories';
@@ -117,8 +117,14 @@ test.describe('STAFF-05 / FIA-11 Support access (console)', { tag: ['@staff', '@
       const staff = await staffSession();
       await openPlatformAsStaff(page);
       await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Support access' }).click();
-      await page.getByRole('combobox', { name: 'Institution' }).click();
-      await page.getByRole('option', { name: bank.tenant.name }).click();
+      // Other tests create and delete institutions all the time: the list can change under the pointer while it is
+      // open. Pick again until the choice shows in the field.
+      const institution = page.getByRole('combobox', { name: 'Institution' });
+      await expect(async () => {
+        if ((await institution.getAttribute('aria-expanded')) !== 'true') await institution.click();
+        await page.getByRole('option', { name: bank.tenant.name, exact: true }).click({ timeout: 3000 });
+        await expect(institution).toContainText(bank.tenant.name, { timeout: 1000 });
+      }).toPass({ timeout: 20_000 });
       await page.getByLabel('Reason (ticket)').fill('Ticket 4711: applicant cannot submit the loan form');
       await page.getByLabel('Minutes').fill('30');
       await page.getByRole('button', { name: 'Request access' }).click();

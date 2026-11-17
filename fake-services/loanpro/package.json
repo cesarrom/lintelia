@@ -1,0 +1,15 @@
+{
+  "name": "@fake/loanpro",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts"
+  },
+  "dependencies": {
+    "@repo/fake-kit": "*",
+    "hono": "^4.7.8"
+  },
+  "description": "Local LoanPro loan servicing API subset (customers, loans, payments, webhooks) with a servicing page."
+}

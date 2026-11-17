@@ -1,3 +1,4 @@
+import { ConnectorLogo } from '@/components/brand/ConnectorLogo';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -43,14 +44,14 @@ export default function ConnectorsPage() {
         </div>
         <Button type="submit" disabled={!manifestUrl || register.isPending}>Register</Button>
       </form>
-      {!isLoading && connectors.length === 0 ? <EmptyState>No connectors registered.</EmptyState> : (
-        <div className="rounded-md border">
+      {!isLoading && connectors.length === 0 ? <EmptyState art="connect">No connectors registered.</EmptyState> : (
+        <div className="overflow-hidden rounded-xl border bg-card shadow-card">
           <Table>
             <TableHeader><TableRow><TableHead>Connector</TableHead><TableHead>Status</TableHead><TableHead>Versions</TableHead><TableHead>Components</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
             <TableBody>
               {connectors.map((c) => (
                 <TableRow key={c.id} data-testid="registry-row" data-connector={c.id}>
-                  <TableCell><span className="font-medium">{c.name}</span><br /><span className="text-xs text-muted-foreground">{c.id}</span></TableCell>
+                  <TableCell><span className="flex items-center gap-3"><ConnectorLogo id={c.id} className="h-9 w-9 rounded-lg" /><span><span className="font-medium">{c.name}</span><br /><span className="text-xs text-muted-foreground">{c.id}</span></span></span></TableCell>
                   <TableCell><StatusBadge status={c.status === 'revoked' ? 'suspended' : 'active'} label={c.status === 'revoked' ? 'Revoked' : 'Active'} /></TableCell>
                   <TableCell className="text-sm space-y-1">
                     {c.versions.map((v) => (

@@ -1,17 +1,22 @@
-import { cn } from '@/lib/utils';
-import { LogOut, ChevronLeft, ChevronRight, Moon, Sun } from 'lucide-react';
-import { useAuth } from '@/lib/auth/AuthContext';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router';
-import { Button } from '@/components/ui/button';
+import { ChevronsLeft, ChevronsRight, LogOut } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useAuth } from '@/lib/auth/AuthContext';
+import { useSession } from '@/lib/auth/session';
 import { memberRoutes, staffRoutes, type AppRoute } from '@/lib/routes/routes';
-import { useTheme } from '@/lib/providers/ThemeProvider';
+import { LogoMark } from '@/components/brand/Logo';
+import { Avatar, Monogram } from '@/components/brand/Monogram';
+import { humanize } from '@/components/app/page';
+
+const COLLAPSED_KEY = 'fintivio.sidebar.collapsed';
 
 /** Main navigation: institution members see what their permissions allow; platform staff see the platform console. */
 export function Sidebar() {
   const { isAuthenticated, user, tenant, kind, hasPermission, logout } = useAuth();
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const { session } = useSession();
+  const [isCollapsed, setIsCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === '1');
+  useEffect(() => localStorage.setItem(COLLAPSED_KEY, isCollapsed ? '1' : '0'), [isCollapsed]);
 
   if (!isAuthenticated) return null;
 
@@ -21,67 +26,94 @@ export function Sidebar() {
     (acc[route.section] ??= []).push(route);
     return acc;
   }, {});
-  const title = kind === 'staff' ? 'Fintivio platform' : tenant?.name ?? 'Fintivio';
+  const staff = kind === 'staff';
+  const title = staff ? 'Fintivio platform' : tenant?.name ?? 'Fintivio';
+  const brandColor = session?.tenant?.pallette?.primary;
+  const roleLabel = staff ? (user?.platformRoles ?? []).join(', ') : (user?.userTenants?.[0]?.roleNames ?? []).join(', ');
+  const displayName = (user as { name?: string } | null)?.name;
 
   return (
-    <div className={cn('flex h-full flex-col border-r transition-all duration-300', isCollapsed ? 'w-16' : 'w-64')}>
-      <div className="flex h-16 items-center justify-between border-b px-4">
-        {!isCollapsed && <h1 className="text-lg font-bold truncate" data-testid="workspace-name">{title}</h1>}
-        <Button variant="ghost" size="icon" aria-label={isCollapsed ? 'Expand navigation' : 'Collapse navigation'} onClick={() => setIsCollapsed(!isCollapsed)}>
-          {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-        </Button>
+    <aside
+      className={cn(
+        'relative flex h-full shrink-0 flex-col bg-sidebar text-sidebar-foreground transition-[width] duration-200 ease-out',
+        isCollapsed ? 'w-[68px]' : 'w-[248px]',
+      )}
+    >
+      {/* workspace */}
+      <div className={cn('flex h-14 items-center gap-2.5 px-3.5 pt-2', isCollapsed && 'justify-center px-0')}>
+        {staff ? <LogoMark className="h-8 w-8 shrink-0" /> : <Monogram name={title} color={brandColor} size="md" className="h-8 w-8" />}
+        {!isCollapsed && (
+          <div className="min-w-0 flex-1 leading-tight">
+            <p className="truncate text-[14px] font-semibold text-foreground" data-testid="workspace-name">{title}</p>
+            <p className="truncate text-[11.5px] text-muted-foreground">{staff ? 'Operator console' : 'Back office'}</p>
+          </div>
+        )}
       </div>
-      <div className="flex flex-1 flex-col overflow-y-auto">
-        <nav aria-label="Main" className="flex-1 space-y-4 px-2 py-4">
+
+      <div className="flex min-h-0 flex-1 flex-col">
+        <nav aria-label="Main" className="flex-1 space-y-5 overflow-y-auto px-2.5 pb-4 pt-4">
           {Object.entries(sections).map(([section, items]) => (
-            <div key={section} className="space-y-1">
-              {!isCollapsed && <p className="px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{section}</p>}
+            <div key={section} className="space-y-0.5">
+              {!isCollapsed
+                ? <p className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">{section}</p>
+                : <div className="mx-auto mb-2 h-px w-6 bg-border" />}
               {items.map((item) => (
                 <NavLink
                   key={item.href}
                   to={item.href}
                   title={isCollapsed ? item.name : undefined}
                   className={({ isActive }) => cn(
-                    isActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                    'group flex items-center rounded-md px-2 py-2 text-sm font-medium',
-                    isCollapsed && 'justify-center',
+                    'group relative flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] font-medium transition-colors',
+                    isActive
+                      ? 'bg-background text-foreground shadow-raised ring-1 ring-border/70 dark:bg-accent'
+                      : 'text-sidebar-foreground hover:bg-foreground/[0.045] hover:text-foreground',
+                    isCollapsed && 'justify-center px-0',
                   )}
                 >
-                  <item.icon className={cn('h-5 w-5 flex-shrink-0', !isCollapsed && 'mr-3')} />
-                  {!isCollapsed && item.name}
+                  {({ isActive }) => (
+                    <>
+                      <item.icon className={cn('h-[17px] w-[17px] shrink-0', isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground')} />
+                      {!isCollapsed && item.name}
+                    </>
+                  )}
                 </NavLink>
               ))}
             </div>
           ))}
         </nav>
-        <div className="border-t p-4 space-y-4">
-          <NavLink to="/app/me" className="flex items-center" title="My profile">
-            <div className="h-8 w-8 flex-shrink-0 rounded-full bg-accent flex items-center justify-center">
-              <span className="text-accent-foreground text-sm">{user?.email?.charAt(0).toUpperCase()}</span>
-            </div>
-            {!isCollapsed && (
-              <div className="ml-3 min-w-0">
-                <p className="text-sm font-medium truncate" data-testid="current-user">{user?.email}</p>
-                <p className="text-xs text-muted-foreground truncate">{kind === 'staff' ? (user?.platformRoles ?? []).join(', ') : (user?.userTenants?.[0]?.roleNames ?? []).join(', ')}</p>
-              </div>
-            )}
-          </NavLink>
-          <Button variant="ghost" size="sm" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} className="w-full justify-start px-2">
-            {theme === 'light' ? <Moon className="h-5 w-5 mr-3" /> : <Sun className="h-5 w-5 mr-3" />}
-            {!isCollapsed && (theme === 'light' ? 'Dark Mode' : 'Light Mode')}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => void logout()}
-            className={cn('flex items-center rounded-md px-2 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground w-full', isCollapsed && 'justify-center')}
-            title={isCollapsed ? 'Sign out' : undefined}
+
+        {/* account */}
+        <div className="border-t border-border/70 p-2.5">
+          <div className={cn('flex items-center gap-1 rounded-xl p-1', isCollapsed ? 'flex-col' : 'hover:bg-foreground/[0.035]')}>
+            <NavLink to="/app/me" className={cn('flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1', isCollapsed && 'justify-center')} title="My profile">
+              <Avatar name={displayName} email={user?.email} size="sm" className="ring-sidebar" />
+              {!isCollapsed && (
+                <div className="min-w-0 leading-tight">
+                  <p className="truncate text-[13px] font-medium text-foreground" data-testid="current-user">{user?.email}</p>
+                  <p className="truncate text-[11.5px] text-muted-foreground">{humanize(roleLabel.split(',')[0] ?? '')}{roleLabel.includes(',') ? ` +${roleLabel.split(',').length - 1}` : ''}</p>
+                </div>
+              )}
+            </NavLink>
+            <button
+              type="button"
+              onClick={() => void logout()}
+              title="Sign out"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="sr-only">Sign out</span>
+            </button>
+          </div>
+          <button
+            type="button"
+            aria-label={isCollapsed ? 'Expand navigation' : 'Collapse navigation'}
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className={cn('mt-1 flex h-8 w-full items-center gap-2 rounded-lg px-2.5 text-[12.5px] text-muted-foreground transition-colors hover:bg-foreground/[0.045] hover:text-foreground', isCollapsed && 'justify-center px-0')}
           >
-            <LogOut className={cn('h-5 w-5', !isCollapsed && 'mr-3')} />
-            {!isCollapsed && 'Sign out'}
-          </Button>
+            {isCollapsed ? <ChevronsRight className="h-4 w-4" /> : <><ChevronsLeft className="h-4 w-4" />Collapse</>}
+          </button>
         </div>
       </div>
-    </div>
+    </aside>
   );
 }

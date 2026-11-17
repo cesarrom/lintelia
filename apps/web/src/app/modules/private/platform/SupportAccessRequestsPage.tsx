@@ -63,7 +63,7 @@ export default function SupportAccessRequestsPage() {
           </form>
         </CardContent>
       </Card>
-      <div className="rounded-md border">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-card">
         <Table>
           <TableHeader><TableRow><TableHead>Institution</TableHead><TableHead>Reason</TableHead><TableHead>Requested</TableHead><TableHead>Status</TableHead><TableHead>Until</TableHead></TableRow></TableHeader>
           <TableBody>

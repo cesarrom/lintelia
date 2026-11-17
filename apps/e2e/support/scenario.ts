@@ -12,11 +12,11 @@ export type Member = Session & { email: string };
 export interface Institution {
   bank: TenantHandle;
   members: Record<string, Member>;
-  /** Connection ids by logical name (didit, documenso, coreBankingDb, screening). */
+  /** Connection ids by logical name (didit, documenso, coreBankingDb, screening, ai, loanpro, sheets, quickbooks). */
   connections: Record<string, string>;
 }
 
-type ConnectionName = 'didit' | 'documenso' | 'coreBankingDb' | 'screening';
+export type ConnectionName = 'didit' | 'documenso' | 'coreBankingDb' | 'screening' | 'ai' | 'loanpro' | 'sheets' | 'quickbooks';
 
 
 /** Connections made through connectors (docs/plans/03): the connector's own settings page, like an administrator. */
@@ -26,6 +26,12 @@ const CONNECTOR_CONNECTIONS: Partial<Record<ConnectionName, { connector: string;
   didit: { connector: 'didit', values: () => ({ apiKey: `didit-key-${randomUUID()}`, webhookSecret: 'didit-webhook-secret', workflowId: 'kyc-standard', baseUrl: env.fakes.didit }) },
   documenso: { connector: 'documenso', values: () => ({ apiKey: `documenso-key-${randomUUID()}`, webhookSecret: 'documenso-webhook-secret', baseUrl: `${env.fakes.documenso}/api/v2` }) },
   screening: { connector: 'screening', values: () => ({ apiKey: `screening-key-${randomUUID()}`, baseUrl: env.fakes.screening }) },
+  ai: { connector: 'ai', values: () => ({ baseUrl: `${env.fakes.llm}/v1`, apiKey: `sk-e2e-${randomUUID()}`, model: 'fake-extractor-1' }) },
+  // LoanPro routes webhooks per tenant (Autopal-Instance-Id): one instance per institution.
+  loanpro: { connector: 'loanpro', values: () => ({ baseUrl: `${env.fakes.loanpro}/api/public/api/1`, instanceId: `e2e-${randomUUID().slice(0, 8)}`, apiToken: `lp-${randomUUID()}`, webhookSecret: 'loanpro-webhook-secret' }) },
+  // Two "HTTP API" connections: the institution's Google Sheets and QuickBooks, no dedicated connector needed.
+  sheets: { connector: 'http', values: () => ({ label: 'Deal log (Google Sheets)', baseUrl: env.fakes.sheets, authType: 'bearer', token: `ya29.e2e-${randomUUID()}` }) },
+  quickbooks: { connector: 'http', values: () => ({ label: 'QuickBooks Online', baseUrl: env.fakes.quickbooks, authType: 'bearer', token: `qbo-e2e-${randomUUID()}` }) },
 };
 
 /** An institution with members in the given roles (one member per entry) and connections to local fakes. */

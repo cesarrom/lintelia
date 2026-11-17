@@ -18,7 +18,7 @@ export class ChildCases {
     @Inject(AuditWriter) private readonly audit: AuditWriter,
   ) { }
 
-  async start(input: { tenantId: string; parentCaseId: string; parentStepId: string; workflowId: string; data: Record<string, unknown>; applicantId?: string | null; partyId?: string | null; callbackPromise: string }) {
+  async start(input: { tenantId: string; parentCaseId: string; parentStepId: string; workflowId: string; data: Record<string, unknown>; applicantId?: string | null; partyId?: string | null; callbackPromise: string | null }) {
     const version = await this.repository.activeVersion(input.tenantId, input.workflowId);
     if (!version) throw new Error(`Workflow ${input.workflowId} has no published version`);
     const parent = await this.repository.getCase(input.tenantId, input.parentCaseId);

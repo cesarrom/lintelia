@@ -23,8 +23,8 @@ export default function PlatformAuditPage() {
     <PageContainer>
       <PageHeader title="Platform audit log" description="Append-only and hash-chained, like the institutions' own audit logs" />
       <Input placeholder="Filter by workspace key" className="max-w-sm" value={tenant} onChange={(e) => setTenant(e.target.value.trim())} />
-      {!isLoading && entries.length === 0 ? <EmptyState>No entries.</EmptyState> : (
-        <div className="rounded-md border">
+      {!isLoading && entries.length === 0 ? <EmptyState art="documents">No entries.</EmptyState> : (
+        <div className="overflow-hidden rounded-xl border bg-card shadow-card">
           <Table>
             <TableHeader><TableRow><TableHead>#</TableHead><TableHead>When</TableHead><TableHead>Who</TableHead><TableHead>What</TableHead><TableHead>Institution</TableHead><TableHead>Details</TableHead></TableRow></TableHeader>
             <TableBody>

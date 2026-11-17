@@ -1,4 +1,4 @@
-import { test, expect, type Browser } from '@playwright/test';
+import { test, expect, type Browser } from '../../support/test';
 import { readFile } from 'node:fs/promises';
 import { Api, expectStatus } from '../../support/api';
 import { addClient, deleteTenant, DEFAULT_PASSWORD, login } from '../../support/factories';

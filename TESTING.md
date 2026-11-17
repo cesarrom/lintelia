@@ -21,6 +21,18 @@ local fakes that use the vendors' API shapes.
 
 ## 1. What changed
 
+Latest batches (details in `docs/changes/`):
+
+| Batch | What | Try it |
+| --- | --- | --- |
+| [0011](docs/changes/0011-ui-building-blocks.md) | **UI building blocks**: journeys open as a dialog, a sheet or full screen (floating button, quick actions, deep links); QR / barcode **scanner** reading payment codes; screens that **continue by themselves**; signature, one-time code, slider, calculated and conditional fields, format rules; **branding** (presets, accent, fonts, button shapes, light/dark, colours from the logo, readability) and region. Banking app: **Pay with a QR code** | journey [J21](#j21--pay-with-a-qr-code-and-brand-the-app) |
+| [0010](docs/changes/0010-bun-e2e.md) | **`bun e2e`** runs the end-to-end suite in one command: attaches to the stack or starts it (refuses a partially up stack unless `--force`), decides headed or headless, runs, updates flow-status | `bun e2e` (§4) |
+| [0009](docs/changes/0009-experience-map.md) | **Experience map** (experiment): the layout, pages, journeys with their screens and what happens in between, workflows, functions, forms and events on one Figma-like canvas; follow links, personas, layers, open each editor and come back | *Build → Map*, journey [J20](#j20--the-experience-map) |
+| [0008](docs/changes/0008-dealer-finance.md) | **Dealer finance** (indirect auto lending) and the automation building blocks behind it: business **stages** and a pipeline board, **functions** (workflows used as steps), **signals** (other systems call a case back), the generic **HTTP connector**, an **AI** connector (document extraction, summaries), **LoanPro**, workflows that create clients (`client.upsert`); fakes for LoanPro, QuickBooks, Google Sheets and an LLM | journey [J19](#j19--dealer-finance-from-the-deal-to-the-borrowers-payments); `http://demo-auto.localhost:3001` |
+| [0007](docs/changes/0007-client-apps.md) | **Client apps**: a studio to build the institution's app for its clients (pages of widgets, journeys run by workflows), the banking template, the client SDK (embedded app) | `http://demo-bank.localhost:3001/portal` as `client@demo-bank.test` |
+| [0006](docs/changes/0006-ui-redesign.md) | UI redesign (back office, portal, dark mode) | — |
+| [0005](docs/changes/0005-visual-e2e.md) | **Visual e2e**: watch the browser journeys in real windows when a display is available | `bun e2e` (headed when possible) |
+
 Batch 0004 implemented most of the roadmap in `docs/plans/` (M0–M9). The detailed change log is
 [docs/changes/0004-platform-capabilities.md](docs/changes/0004-platform-capabilities.md).
 
@@ -73,7 +85,7 @@ registers and approves the connectors.
 | `bun run stack:stop` | stops what the stack started |
 | `bun run stack:reset` | stops, **wipes local state** (databases, Redis, Restate, fakes, connectors), starts again; add `--no-start` to only wipe |
 | `bun run stack:doctor` | checks Bun version, root user, disk space, busy ports, missing `.env` files |
-| `bun run stack:test [--keep] [-- <playwright args>]` | starts the stack if needed (profile `e2e`), runs the e2e suite, regenerates flow-status, stops the stack unless `--keep` |
+| `bun e2e [--attach\|--force] [--headed\|--headless] [--keep] [playwright args]` | the e2e suite: attaches to the stack or starts it (refuses a partially up stack unless `--force`), decides headed/headless, runs, regenerates flow-status (§4) |
 | `bun run stack --profile core` | only what the back office needs (no connectors, no third-party fakes, no demo site) |
 | `bun run stack --only api,web` / `--skip demo-site` | choose services (dependencies are added automatically) |
 
@@ -86,14 +98,15 @@ Services that are already running and healthy (started another way) are reused, 
 | Platform console (staff) | http://localhost:3001 | the platform host (no institution) |
 | Demo Bank back office and client portal | http://demo-bank.localhost:3001 (`/app/...`, `/portal`) | each institution is served on `<key>.localhost:3001` |
 | Acme Credit Union | http://acme-credit.localhost:3001 | second seeded institution |
+| Demo Auto Finance (dealer finance) | http://demo-auto.localhost:3001 (`/app/...` back office, `/portal` dealer & borrower portal) | connected to the fakes and set up by the stack (`demo-auto-finance` task) |
 | API | http://localhost:8000 | `GET /health`; Restate endpoint at `/restate`; core JWKS at `/.well-known/jwks.json` |
 | Mailbox (every e-mail sent) | http://localhost:8025 | SMTP on `localhost:1025`; REST `GET /api/messages?to=` |
-| Demo Bank public website | http://localhost:4000 | the loan form embedded on a third-party site |
+| Demo Bank public website | http://localhost:4000 | the loan form embedded on a third-party site; `/online-banking`: the banking app embedded with `@fintivio/client-sdk` |
 | Restate | ingress http://localhost:8080, admin http://localhost:9070, UI http://localhost:9070/ui/ | durable executions (`caseRun`, `webhooks`, `fileIntake`) |
 | Postgres | `localhost:5433` (owner `postgres` / `postgres`) | databases `fintivio`, `fintivio_test`, `connector_*`, `fi_core_banking` |
 | Redis | `localhost:6380` | sessions, one-time codes, rate limits |
-| Connectors | smtp-mailer :4101, didit :4102, documenso :4103, postgres-datasource :4104, screening :4105 | each serves `/.well-known/fintivio-connector.json` and `/health` |
-| Fakes | WorkOS :9300, OIDC IdP :9400, Didit :9401, Documenso :9402, webhook receiver :9404, screening :9407, DNS :9408, scanner :9501, sanitiser :9502 | each has `/__health` and `/__control/*` |
+| Connectors | smtp-mailer :4101, didit :4102, documenso :4103, postgres-datasource :4104, screening :4105, http :4106, ai :4107, loanpro :4108 | each serves `/.well-known/fintivio-connector.json` and `/health` |
+| Fakes | WorkOS :9300, OIDC IdP :9400, Didit :9401, Documenso :9402, webhook receiver :9404, screening :9407, DNS :9408, LLM :9409, LoanPro :9410, QuickBooks :9411, Google Sheets :9412, scanner :9501, sanitiser :9502 | each has `/__health` and `/__control/*`; LLM, LoanPro, QuickBooks and Sheets show what happened at `/` |
 
 Browsers resolve `*.localhost` to 127.0.0.1; server-side code always uses `localhost:<port>` because Bun does not.
 The first page you open after a start can take 20–30 seconds while Vite compiles it.
@@ -143,6 +156,10 @@ Password for every seeded account: **`fintivio-dev-password`** (override with `S
 | | `support@demo-bank.test`, `auditor@demo-bank.test` | support agent, auditor (read-only oversight) |
 | | `client@demo-bank.test` (Chris Client) | a client: the portal at `/portal`. Clients can also use "Email me a code" (any e-mail address creates a client) |
 | http://acme-credit.localhost:3001/sign-on | `admin@acme-credit.test` | Acme Credit Union administrator (tenant isolation checks) |
+| http://demo-auto.localhost:3001/sign-on | `underwriter@demo-auto.test` (Uma Underwriter) | reviewer: credit decisions on deals |
+| | `funding@demo-auto.test` (Frank Funding) | senior reviewer: funding audits, dealer approvals, lien releases |
+| | `admin@demo-auto.test`, `designer@demo-auto.test`, `integrations@demo-auto.test` | administrator, flow designer (studio, workflows), integration manager |
+| | `dealer@sunrise-motors.test` (Sam Sunrise) | a dealer (client with the `dealer` segment): the dealer portal at `/portal` |
 
 The seeded institutions **do not require** a second factor for members, for convenience. Institutions you create
 **do**: their members enrol an authenticator app when they activate their account.
@@ -170,6 +187,12 @@ fill in the values below and click **Test and connect**.
 | **Didit** | API key: any text except `invalid` (e.g. `demo-bank-didit-key`; **use a different key per institution**), webhook secret: any text, workflow id `kyc-standard`, base URL `http://localhost:9401` (default) | the fake routes webhooks by API key, like the Didit console per account |
 | **Documenso** | API token: any text except `invalid` (unique per institution), webhook secret: any text, base URL `http://localhost:9402/api/v2` (default) | templates: `Retail account agreement` (id 101, `retail-account-agreement`), `Loan agreement` (102) |
 | **AML screening** | API key: any text except `invalid`, base URL `http://localhost:9407` (default) | results are preset per name (see §5) |
+| **HTTP API** (Google Sheets) | name `Deal log (Google Sheets)`, base address `http://localhost:9412`, authentication *Bearer token*, token: any text except `invalid` | one connection per API; optional test path, webhook secret (inbound webhooks) |
+| **HTTP API** (QuickBooks) | name `QuickBooks Online`, base address `http://localhost:9411`, *Bearer token*, any token except `invalid` | the company (realm) is part of the paths the workflows call |
+| **AI assistant** | API base address `http://localhost:9409/v1` (default), API key: any text except one ending in `invalid`, model `fake-extractor-1` | any OpenAI-compatible API in production |
+| **LoanPro** | API base address `http://localhost:9410/api/public/api/1` (default), tenant id: any (**unique per institution**), API token: any except `invalid`, webhook secret: any | saving registers the webhook at the fake |
+
+Demo Auto Finance gets these five connections from the stack (`bun run demo:auto-finance` does it again if needed).
 
 When the local fakes are used, saving Didit or Documenso settings also registers the connector's webhook URL at the
 fake, as an admin would do in the vendor's console. The settings page shows that URL.
@@ -189,25 +212,46 @@ fake, as an admin would do in the vendor's console. The settings page shows that
 
 ## 4. Validate the implementation (automated)
 
-Run these with the stack up (`bun run stack --detach`), or use `bun run stack:test`, which starts it.
+`bun e2e` takes care of the stack; the other commands below need it up (`bun run stack --detach`).
 
 ### End-to-end suite (Playwright, `apps/e2e`)
 
 ```sh
-bun run stack:test                                   # everything, then regenerates docs/testing/flow-status.md
-bun run e2e                                          # everything, against the running stack (api + ui projects)
-bun run --cwd apps/e2e test:api                      # HTTP-level flows only (fast, no browser)
-bun run --cwd apps/e2e test:ui                       # browser journeys only
-bun run --cwd apps/e2e test --grep @FIA-06           # one flow (tags: @<FLOW-ID>, see docs/product/flows.md)
-bun run --cwd apps/e2e test --grep @client           # one persona (@staff @fi-admin @reviewer @client @scenario …)
-bun run --cwd apps/e2e test tests/clients/uploads.api.spec.ts   # one file
+bun e2e                                              # everything: attaches to the stack or starts it, headed when
+                                                     # this machine has a screen, then rewrites docs/testing/flow-status.md
+bun e2e --headed | --headless                        # choose instead (bun run e2e:watch / e2e:headless are aliases)
+bun e2e --force                                      # restart the whole stack first (also the way out of a partially up stack)
+bun e2e --attach                                     # only ever use the running stack
+bun e2e --grep @FIA-06                               # one flow (tags: @<FLOW-ID>, see docs/product/flows.md)
+bun e2e --grep @client                               # one persona (@staff @fi-admin @reviewer @client @scenario …)
+bun e2e tests/clients/uploads.api.spec.ts            # one file (any Playwright argument works)
+bun e2e --project=api                                # HTTP-level flows only (fast, no browser)
+bun run --cwd apps/e2e screens [--dark]              # screenshots of ~30 screens as the seeded personas (docs/design)
 bun run e2e:status                                   # rewrite docs/testing/flow-status.md from the last run
 bun run --cwd apps/e2e report                        # HTML report with traces of failures
 ```
 
-- Expect **404 passed** in about 3–4 minutes with 4 workers (`E2E_WORKERS`).
+What `bun e2e` decides, and says so before the run (`e2e ›` lines, `e2e ⚠` warnings):
+
+- **Every service up** → it attaches. **Nothing up** → it starts the whole stack in the background and stops it after
+  the run (`--keep` leaves it running). **Partially up** (some services answer, others do not) → it stops with an error
+  listing them: start the whole stack yourself (`bun run stack --detach` reuses what is up) and re-run, or run
+  `bun e2e --force`, which stops the stack and anything on its ports, starts everything again and runs. A supervisor
+  still starting services is waited for.
+- **Headed or headless** from this machine (display + a browser with a UI → windows), unless `--headed` / `--headless`.
+- **Warnings**: Playwright's Chromium missing, a busy machine (consider `E2E_WORKERS=2` or `--retries=1`).
+- A full run rewrites docs/testing/flow-status.md; a filtered one does not. Details: [docs/testing/e2e.md](docs/testing/e2e.md#running-the-suite).
+
+- Expect **458 passed** (103 flows) in about 6–9 minutes with 4 workers (`E2E_WORKERS`); on a busy machine use
+  `E2E_WORKERS=2` or `--retries=1`.
 - `PLAYWRIGHT_BROWSERS_PATH` or `E2E_CHROMIUM_PATH` point at the browsers.
-- `E2E_START_STACK=1` lets Playwright start the stack itself.
+- **Visual mode**: when the machine has a screen (a desktop, or `DISPLAY`/`WAYLAND_DISPLAY` on Linux) and a Chromium or
+  Chrome with a UI, the browser journeys run in visible windows you can watch: one window per persona tiled on the
+  screen, the step about to run highlighted and narrated, plus a run monitor window with the progress of every test
+  (API tests included). UI tests then run one at a time (a full run takes 8–9 minutes instead of 3–6 here). CI, no
+  display or `E2E_VISUAL=0` run headless as before; the choice and its reason are printed first, and
+  `bun run stack:doctor` tells in advance. Details and tuning: [docs/testing/e2e.md](docs/testing/e2e.md#watching-the-tests).
+- Plain Playwright (`bun run --cwd apps/e2e test …`) runs against a stack you started; `E2E_START_STACK=1` lets it start the stack itself.
 - Point the suite elsewhere with `E2E_API_URL`, `E2E_WEB_URL`, `E2E_BASE_DOMAIN`, `E2E_MAILBOX_URL`,
   `E2E_FAKE_*_URL`, `E2E_CONNECTOR_*_URL` (see `apps/e2e/support/env.ts`).
 - The global setup checks the API, Restate, the mailbox and the seeded staff account, signs the staff in once
@@ -219,7 +263,7 @@ bun run --cwd apps/e2e report                        # HTML report with traces o
 ### Unit and integration tests of the core
 
 ```sh
-bun run --cwd apps/core test          # 41 tests: RLS isolation of every table, authentication, MFA, case engine definitions
+bun run --cwd apps/core test          # RLS isolation of every table, authentication, MFA, case engine definitions, client apps, automation (dealer finance)
 ```
 
 These need Postgres and Redis (the stack) and use the `fintivio_test` database.
@@ -268,6 +312,8 @@ bun run demo:case "<workflow name>" key=value …   # start a case as admin@demo
 bun run demo:token [email]             # access token for curl (default admin@demo-bank.test; Demo Bank members need no second factor)
 bun run demo:files                     # sample upload files in .data/demo-files (clean, with JavaScript, infected, renamed executable)
 bun run totp [SECRET]                  # current TOTP code (default: the seeded staff account)
+bun run demo:auto-finance              # Demo Auto Finance: connections to the fakes + the dealer & borrower portal (the stack runs it)
+DEMO_TENANT=demo-auto bun run --silent demo:token underwriter@demo-auto.test   # tokens for another institution
 ```
 
 `demo:workflows` publishes these workflows. Workflows whose connector is not connected yet are skipped with a hint.
@@ -343,6 +389,20 @@ curl -X POST localhost:9408/__control/records -H 'content-type: application/json
   -d '{"name":"_fintivio-challenge.onboarding.demo-bank.example","type":"TXT","value":"fintivio-verify=…"}'
 curl -s "localhost:9408/resolve?name=_fintivio-challenge.onboarding.demo-bank.example&type=TXT"
 
+# LoanPro (servicing): the back office's own channels — a payment by phone, a missed payment, a payoff.
+# Each sends the signed webhook to the connector, which updates the borrower's app and starts servicing workflows.
+# The page http://localhost:9410 has the same buttons per loan.
+curl -s localhost:9410/__control/loans                                   # every loan (all tenants)
+curl -X POST localhost:9410/__control/loans/<id>/pay -H 'content-type: application/json' -d '{"amount":450}'
+curl -X POST localhost:9410/__control/loans/<id>/delinquent -H 'content-type: application/json' -d '{"daysPastDue":15}'
+curl -X POST localhost:9410/__control/loans/<id>/payoff
+
+# QuickBooks and Google Sheets: what the workflows wrote (also at http://localhost:9411 and http://localhost:9412)
+curl -s localhost:9411/__control/companies/9130350000000001             # vendors, bills, bill payments of a company
+curl -s localhost:9412/__control/spreadsheets/demo-auto-deal-log         # rows of a spreadsheet
+
+# LLM: the last completions (prompts and answers) at http://localhost:9409. Extraction reads "Label: value" lines.
+
 # Scanner and sanitiser: make them fail (the intake then refuses files as processing_failed)
 curl -X POST localhost:9501/__control/fail-next -H 'content-type: application/json' -d '{"count":5}'
 curl -X POST localhost:9502/__control/fail-next -H 'content-type: application/json' -d '{"count":5}'
@@ -378,7 +438,7 @@ Conventions for every journey below:
 
 - "Back office" means `http://demo-bank.localhost:3001`; the sign-in page is `/sign-on`.
 - Codes and links always arrive in the mailbox (http://localhost:8025).
-- Each journey names the e2e test that automates it, so you can run it with `bun run --cwd apps/e2e test <file>`.
+- Each journey names the e2e test that automates it, so you can run it with `bun e2e <file>`.
 
 **One-time preparation for the connector journeys (J5–J14):**
 
@@ -670,6 +730,81 @@ curl -s -X POST localhost:8000/events -H "Authorization: Bearer $AT" -H 'X-Tenan
 
 ---
 
+### J19 — Dealer finance: from the deal to the borrower's payments
+*Dealer, underwriter, funding team, borrower. Tests: `scenarios/dealer-finance.ui` (watch it with `bun e2e --headed tests/scenarios/dealer-finance.ui.spec.ts`),
+`scenarios/dealer-finance.api`, `automation/automation.api`, `automation/functions.ui` (SCN-12, AUT-01…07).*
+
+Everything is ready in **Demo Auto Finance** (`http://demo-auto.localhost:3001`); keep the fakes' pages open to watch
+them fill up: LoanPro http://localhost:9410, QuickBooks http://localhost:9411, Sheets http://localhost:9412, LLM
+http://localhost:9409, mailbox http://localhost:8025.
+
+1. **Dealer** — sign in to `/portal` as `dealer@sunrise-motors.test` (password or e-mailed code). *Submit a deal*:
+   buyer (use a new e-mail address, e.g. `jamie.1@buyers.example`), vehicle, structure (e.g. 21,000 financed over
+   60 months at 8.9%, declared income 5,500, VIN `1HGCV1F30LA012345`, sale price 24,500, buyer Jamie Rivera). Upload
+   the stipulations written by `bun run demo:files` to `.data/demo-files`: `deal-pay-stub.pdf`,
+   `deal-buyers-order.pdf`, `deal-drivers-license.pdf` (the AI reads their `Label: value` lines; change the VIN or the
+   income to see flags). The journey shows *Underwriting*.
+2. **Underwriter** — sign in as `underwriter@demo-auto.test`. *Cases → Pipeline* shows the deal under *Underwriting*.
+   *Tasks → Team queue → Claim*: the AI summary, payment, PTI, LTV, what the pay stub and buyer's order said, and
+   flags. Choose *Ask the dealer*, tick "They answer with a document", write what you need → the dealer sees it under
+   *Waiting for you* and uploads it; the task comes back. *Approve* (or *Approve with conditions*: the dealer accepts
+   them first; *Decline*: the dealer is told why, the deal log says so).
+3. **Contracts** — the dealer opens the deal: "The buyer signs the retail installment contract" (Documenso, at the
+   dealership), then "Sign the assignment of the contract".
+4. **Funding package** — the dealer uploads the title application and proof of insurance. `funding@demo-auto.test`
+   claims the *Funding audit* (documents listed on the task) and chooses *Fund the dealer*.
+5. **Watch** — QuickBooks: vendor *Sunrise Motors*, a bill and its payment (amount financed − 395). Sheets: two rows
+   (*In underwriting*, *Funded*). LoanPro: the loan, *Open*. The case page shows the stage bar at *Boarded*; the
+   mailbox has the buyer's invitation.
+6. **Borrower** — sign in to `/portal` with the buyer's e-mail (code), accept the terms: the loan balance, next payment,
+   *Make a payment* (posted in LoanPro), *Payoff quote*, *Need help?* (a hardship request for the underwriters).
+7. **Servicing** — on the LoanPro page, *Missed payment* → the borrower gets a past-due notice, the underwriters a
+   collections task; *Pay off* → congratulations in the app, a lien release task for funding.
+8. **Title** — as `admin@demo-auto.test`, open the *Title: <VIN>* case (search the deal reference): *Signals* shows
+   `title_received` waiting; *Record it* with `{"titleNumber":"TX-1","state":"TX"}` → *Lien perfected*. The title
+   service would call the case back instead: *Copy the call-back address* (shown to members who may signal) and
+   `curl -X POST '<address>' -H 'content-type: application/json' -d '{"titleNumber":"TX-2"}'`.
+
+Also: *Client app* (studio) as `designer@demo-auto.test` shows the portal; *Templates → Dealer & borrower portal*
+installs it in any institution once its connections exist. *Workflows* shows the functions (*Function: …*) and, in
+the editor, *Your functions* in the palette and the ⚙ settings (stages, function, outputs).
+
+### J20 — The experience map
+*Designer. Test: `client-app/map.ui` (APP-11).*
+
+1. Sign in as `designer@demo-auto.test` (or `designer@demo-bank.test` for the banking app) → *Build → Map*.
+2. Top row: the **layout** (menu, sign-up, theme) and every **page** drawn with a sample client; arrows from the menu
+   and from widgets. Hover the quick actions on *Home*: their arrows light up. Click *Submit a deal* inside the Home
+   frame: the map flies to the journey (*Back* returns).
+3. Below: one row per **journey** — its screens and requests in order, *Behind the scenes* nodes (AI, reviews, functions,
+   LoanPro…), the outcomes, and the workflow under the journey card. Click a screen's button to follow the flow.
+4. *As a “dealer” / “borrower”* fades what that client would not see. *Layers* hides the journey screens or the
+   automations. Search jumps anywhere.
+5. *Edit* on a frame (or double-click): a page opens in the studio, a screen opens its step in the workflow editor with
+   the configuration open, a form opens the form editor; *Back to the map* returns to the same view.
+6. At the bottom, **automations**: LoanPro events → servicing workflows, functions used by the deal, the title
+   tracking.
+
+### J21 — Pay with a QR code, and brand the app
+*Client and designer. Tests: `client-app/pay-with-qr.ui`, `client-app/ui-blocks.api` (APP-12).*
+
+1. `bun run demo:files` writes payment QR codes to `.data/demo-files`: `pay-corner-cafe.gif` (£12.50),
+   `pay-market-stall.gif` (any amount), `pay-nyc-deli-usd.gif` (refused: another currency), and their text in
+   `payment-codes.txt`. Open one on screen to scan it with a phone, or use the file as the photo.
+2. As `client@demo-bank.test` at http://demo-bank.localhost:3001/portal: the amber **Pay** button (bottom right) opens
+   *Pay with a QR code* **full screen**. *Scan the QR code* (the camera), *Use a photo*, or *Type the code instead*.
+   A code with an amount shows the payee and amount and **continues by itself** after a 2-second countdown (*Stop*
+   holds it); without an amount, the app asks for one. Confirm → *Pay now* → the accounts page with the payment.
+3. *Pay with QR* in the quick actions opens the same journey as a **bottom sheet**; close it half-way and *Waiting for
+   you → Continue* reopens it where it was. http://demo-bank.localhost:3001/portal/start/pay_qr?presentation=dialog
+   opens it in a dialog.
+4. As `designer@demo-bank.test`, *Build → Client app → Settings → Appearance*: a **preset** (Neo bank: pill buttons,
+   geometric font, tinted background), an accent colour, *Colours from your logo*, and the **Readability** check;
+   *Region*: the currency. *Journeys → Pay with a QR code → How it opens*. In a workflow's `client.screen` step, the
+   new field types (scanner, signature, one-time code, slider, calculated value), *Shown when*, format rules and
+   *Continue by itself*.
+5. Watch it: `bun e2e --headed tests/client-app/pay-with-qr.ui.spec.ts` (the camera test films a generated code).
+
 ## 7. Troubleshooting
 
 | Symptom | Fix |
@@ -678,6 +813,7 @@ curl -s -X POST localhost:8000/events -H "Authorization: Bearer $AT" -H 'X-Tenan
 | A service is `down` in `stack:status` | `bun run stack:logs <service>`, then `bun run stack:restart <service>`. The supervisor restarts crashed services up to 5 times |
 | Embedded Postgres refuses to start | do not run as root; check `apps/core/.data/postgres` permissions; `bun run stack:reset` as a last resort |
 | "Registered … with Restate" missing, cases do not advance | `bun run stack:restart api` (it re-registers with Restate); check http://localhost:9070/ui/ |
+| Timers do not fire: webhook retries, reminders, SLA escalations or expiries are late; `sys_invocation` shows invocations `suspended` on a `Sleep` whose wake-up time has passed | Restate stalled after an overload (its log says "Severe lag … detected"): `bun run stack:restart restate`; the overdue timers fire at once |
 | A connector step fails with "Connection … is pending" | finish the connector's settings (*Integrations → Finish setup*) |
 | Didit/Documenso decisions never arrive | the connection's webhook URL is registered at the fake when its settings are saved. After resetting the fake, re-save the settings. Use a different API key per institution |
 | Integrations catalogue empty | `bun run connectors:register` (the API refreshes its registry through Postgres `NOTIFY`) |

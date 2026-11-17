@@ -130,8 +130,8 @@ export default function KeysPage() {
         description="Credentials for your own systems to call Fintivio (OAuth 2.0 client credentials). Each client gets only the permissions you choose."
         actions={<Button onClick={() => setCreating(true)}><Plus className="h-4 w-4 mr-2" />New API client</Button>}
       />
-      {!isLoading && clients.length === 0 ? <EmptyState>No API clients yet.</EmptyState> : (
-        <div className="rounded-md border">
+      {!isLoading && clients.length === 0 ? <EmptyState art="connect" title="No API clients yet">Create credentials for a system that should start cases or read their status.</EmptyState> : (
+        <div className="overflow-hidden rounded-xl border bg-card shadow-card">
           <Table>
             <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Client id</TableHead><TableHead>Permissions</TableHead><TableHead>Status</TableHead><TableHead>Last used</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
             <TableBody>

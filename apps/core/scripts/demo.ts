@@ -4,7 +4,7 @@
  *   bun run demo:workflows                       publish example workflows that use Demo Bank's active connections
  *   bun run demo:case "<workflow name>" k=v …    start a case on a published workflow (as admin@demo-bank.test)
  *   bun run demo:token [email]                   print an access token (default admin@demo-bank.test) for curl
- *   bun run demo:files                           write sample upload files (clean, with JavaScript, infected, fake) to .data/demo-files
+ *   bun run demo:files                           write sample upload files (clean, with JavaScript, infected, fake) and payment QR codes to .data/demo-files
  *
  * Workflows needing a connection that does not exist yet are skipped with a hint (connect it under Integrations
  * as integrations@demo-bank.test, then run the command again). Already published workflows are left alone.
@@ -389,19 +389,50 @@ async function writeFiles() {
     if (javascript) doc.addJavaScript('hello', 'app.alert("this script is removed by the sanitiser");');
     return Buffer.from(await doc.save({ useObjectStreams: false }));
   };
+  // Stipulations of a deal (dealer finance, Demo Auto Finance): digital documents the AI connector reads line by line.
+  const document = async (lines: string[]) => {
+    const doc = await PDFDocument.create();
+    const page = doc.addPage([595, 842]);
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    lines.forEach((line, i) => page.drawText(line, { x: 50, y: 780 - i * 22, size: i === 0 ? 16 : 12, font }));
+    return Buffer.from(await doc.save({ useObjectStreams: false }));
+  };
   const eicar = 'X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*';
   const files: Record<string, Buffer> = {
     'utility-bill.pdf': await pdf('Utility bill - 1 High Street - March'),
     'statement-with-javascript.pdf': await pdf('Bank statement (contains a script)', true),
     'infected-invoice.pdf': Buffer.concat([await pdf('Invoice'), Buffer.from(`\n%${eicar}\n`)]),
     'program-renamed.pdf': Buffer.concat([Buffer.from('MZ'), Buffer.alloc(62), Buffer.from('PE\0\0'), Buffer.alloc(200)]),
+    'deal-pay-stub.pdf': await document(['Pay stub - October 2026', 'Employer: Northwind Logistics', 'Employee name: Jamie Rivera', 'Pay date: 2026-10-31', 'Gross monthly income: $5,400.00']),
+    'deal-buyers-order.pdf': await document(["Buyer's order - Sunrise Motors", 'Buyer name: Jamie Rivera', 'Vehicle: 2022 Honda Accord', 'VIN: 1HGCV1F30LA012345', 'Sale price: $24,500.00', 'Down payment: $3,500.00', 'Amount financed: $21,000.00']),
+    'deal-drivers-license.pdf': await document(['Driver license - State of Texas', 'Name: Jamie Rivera', 'License number: 40917733', 'Expires: 2030-05-01']),
   };
+  // Payment QR codes (docs/plans/14) for the banking app's "Pay with a QR code": use them with "Use a photo", show
+  // them on screen to a phone's camera, or paste the text with "Type the code instead".
+  const { buildEmvPayload } = await import('@repo/fintivio/utilities');
+  const { default: qrcode } = await import('qrcode-generator');
+  const codes: Record<string, string> = {
+    'pay-corner-cafe': buildEmvPayload({ gui: 'uk.fintivio.demo', account: 'SHOP-42', name: 'Corner Cafe', city: 'London', country: 'GB', currency: 'GBP', amount: 12.5, reference: 'T-881', mcc: '5812' }),
+    'pay-market-stall': buildEmvPayload({ gui: 'uk.fintivio.demo', account: 'STALL-7', name: 'Market Stall', city: 'Bristol', country: 'GB', currency: 'GBP' }),
+    'pay-nyc-deli-usd': buildEmvPayload({ gui: 'us.fintivio.demo', account: 'DELI-1', name: 'NYC Deli', city: 'New York', country: 'US', currency: 'USD', amount: 8 }),
+  };
+  for (const [name, payload] of Object.entries(codes)) {
+    const qr = qrcode(0, 'M');
+    qr.addData(payload);
+    qr.make();
+    files[`${name}.gif`] = Buffer.from(qr.createDataURL(8, 4).split(',')[1], 'base64');
+  }
+  files['payment-codes.txt'] = Buffer.from(`${Object.entries(codes).map(([name, payload]) => `${name}\n${payload}\n`).join('\n')}`);
   for (const [name, bytes] of Object.entries(files)) writeFileSync(resolve(dir, name), bytes);
   console.log(`sample files in ${dir}:`);
   console.log('  utility-bill.pdf               accepted');
   console.log('  statement-with-javascript.pdf  accepted, the script is removed (reviewers see "removed JavaScript")');
   console.log('  infected-invoice.pdf           refused: malware detected (EICAR test signature)');
   console.log('  program-renamed.pdf            refused: not an accepted type (an executable renamed to .pdf)');
+  console.log('  deal-*.pdf                     a deal\'s stipulations (pay stub, buyer\'s order, licence) for Demo Auto Finance:');
+  console.log('                                 VIN 1HGCV1F30LA012345, sale 24,500, financed 21,000, income 5,400/month');
+  console.log('  pay-*.gif, payment-codes.txt   payment QR codes for Demo Bank\'s "Pay with a QR code" (a photo, or the text typed):');
+  console.log('                                 Corner Cafe £12.50 (continues by itself), Market Stall (any amount), NYC Deli in USD (refused)');
 }
 
 const [command, ...args] = process.argv.slice(2);

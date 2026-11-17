@@ -1,0 +1,63 @@
+schemaVersion: "1"
+name: "Dealer: title tracking"
+description: After funding, waits for the title showing our lien — the title service (or the DMV's electronic lien system) calls the case back on its hook URL. Chased by a person if it does not arrive in 45 days.
+caseTitle: "Title: {{input.vin}} ({{input.reference}})"
+clientVisibility: requests_only
+stages:
+  - { key: waiting, label: Waiting for the title }
+  - { key: chasing, label: Chasing the dealer }
+  - { key: perfected, label: Lien perfected }
+inputs:
+  - { id: reference, name: reference, label: Deal reference, type: string, required: true }
+  - { id: vin, name: vin, label: VIN, type: string, required: true }
+  - { id: buyer, name: buyer, label: Buyer, type: string }
+  - { id: dealer, name: dealer, label: Dealer, type: string }
+steps:
+  - { id: start, name: Start, type: start, events: [{ name: finished, outputs: [], next: [waiting] }] }
+  # The title service (or the DMV's electronic lien system) calls the case back on its hook URL: an HTTP step here
+  # would register it there (body: { "callbackUrl": "= case.hooks.title_received" }). Operations see the address on the
+  # case page (Signals) and can record the title by hand when it comes by mail.
+  - id: waiting
+    name: Waiting
+    type: case.update
+    config: { stage: waiting }
+    events: [{ name: done, outputs: [], next: [title] }]
+  - id: title
+    name: Title received?
+    type: webhook.wait
+    config: { name: title_received, timeout: P45D }
+    events: [{ name: received, outputs: [], next: [perfected] }, { name: timeout, outputs: [], next: [chase] }]
+  - id: chase
+    name: Chase the title
+    type: task
+    config:
+      title: "Chase the title for {{input.vin}} ({{input.dealer}})"
+      description: "No title with our lien 45 days after funding {{input.reference}} ({{input.buyer}}). Call the dealer, then record the title number."
+      assignTo: { role: senior_reviewer }
+    events: [{ name: done, outputs: [], next: [chased] }]
+  - id: chased
+    name: Chased
+    type: case.update
+    config: { stage: chasing }
+    events: [{ name: done, outputs: [], next: [title_again] }]
+  - id: title_again
+    name: Title received (after chasing)?
+    type: webhook.wait
+    config: { name: title_received, timeout: P30D }
+    events: [{ name: received, outputs: [], next: [perfected_late] }, { name: timeout, outputs: [], next: [chase] }]
+  - id: perfected_late
+    name: Lien perfected (late)
+    type: case.update
+    config: { stage: perfected, data: { titleNumber: "= steps.title_again.titleNumber", titleState: "= steps.title_again.state", lienholder: "= steps.title_again.lienholder" } }
+    events: [{ name: done, outputs: [], next: [done] }]
+  - id: perfected
+    name: Lien perfected
+    type: case.update
+    config: { stage: perfected, data: { titleNumber: "= steps.title.titleNumber", titleState: "= steps.title.state", lienholder: "= steps.title.lienholder" } }
+    events: [{ name: done, outputs: [], next: [done] }]
+  - id: done
+    name: Title on file
+    type: case.decision
+    config: { status: completed, outcome: lien_perfected, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]

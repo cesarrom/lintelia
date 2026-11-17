@@ -1,0 +1,74 @@
+schemaVersion: "1"
+name: "App: report a lost or stolen card"
+description: Blocks the card at once and orders a replacement to the address the client confirms.
+caseTitle: "Lost card: {{applicant}}"
+inputs: [{ id: card, name: card, type: string, required: true }]
+steps:
+  - { id: start, name: Start, type: start, events: [{ name: finished, outputs: [], next: [cards] }] }
+  - id: cards
+    name: Cards
+    type: client.data
+    config: { collection: cards }
+    events: [{ name: done, outputs: [], next: [check] }]
+  - id: check
+    name: Which card
+    type: calculate
+    config:
+      outputs:
+        card: "steps.cards.records[key = $$.input.card]"
+        last4: "steps.cards.records[key = $$.input.card].last4"
+        newLast4: "$string($floor($random() * 9000) + 1000)"
+        newKey: "'card-' & case.reference"
+    events: [{ name: done, outputs: [], next: [form] }]
+  - id: form
+    name: What happened
+    type: client.screen
+    config:
+      title: "Report your card ending {{steps.check.last4}}"
+      description: We block the card as soon as you confirm and send you a new one with a new number.
+      stage: details
+      fields:
+        - { key: what, label: What happened?, type: choice, required: true, options: [It is lost, It was stolen, It is damaged] }
+        - { key: deliver, label: Send the new card to, type: textarea, required: true, default: "{{me.address}}" }
+      buttons: [{ key: block, label: Block card and send a new one, style: danger }, { key: cancel, label: Cancel, style: secondary, skipValidation: true }]
+    events: [{ name: block, outputs: [], next: [block] }, { name: cancel, outputs: [], next: [cancelled] }]
+  - id: block
+    name: Block the card
+    type: client.record
+    config: { collection: cards, key: "{{input.card}}", mode: merge, data: { status: blocked, blockedReason: "{{input.what}}" } }
+    events: [{ name: done, outputs: [], next: [replacement] }]
+  - id: replacement
+    name: Order a new card
+    type: client.record
+    config:
+      collection: cards
+      key: "{{steps.check.newKey}}"
+      mode: upsert
+      data:
+        name: "= steps.check.card.name"
+        type: "= steps.check.card.type"
+        network: "= steps.check.card.network"
+        last4: "{{steps.check.newLast4}}"
+        account: "= steps.check.card.account"
+        limit: "= steps.check.card.limit"
+        holder: "= steps.check.card.holder"
+        status: ordered
+        expiry: "= $fromMillis($toMillis($now()) + 94608000000, '[M01]/[Y01]')"
+    events: [{ name: done, outputs: [], next: [notify] }]
+  - id: notify
+    name: Tell the client
+    type: client.notify
+    config: { title: "Your new card is on its way", body: "We blocked the card ending {{steps.check.last4}}. The new one, ending {{steps.check.newLast4}}, arrives in 3–5 working days.", tone: success, page: cards, email: true }
+    events: [{ name: done, outputs: [], next: [done] }]
+  - id: done
+    name: Done
+    type: case.decision
+    config: { status: completed, outcome: card_replaced, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]
+  - id: cancelled
+    name: Cancelled
+    type: case.decision
+    config: { status: withdrawn, outcome: cancelled, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]

@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { resolveVisual, visualLaunchArgs } from './support/visual/detect';
 
 /**
  * End-to-end suite: persona flows from docs/product/flows.md, tagged with their flow id (e.g. @FIA-04).
@@ -7,8 +8,14 @@ import { defineConfig, devices } from '@playwright/test';
  *
  *  - project `api`: HTTP-level flows (authorization, contracts, scenarios driven through the API)
  *  - project `ui`:  browser journeys (Chromium)
+ *
+ * Visual mode (support/visual): when the machine can show a browser window (a desktop session, or DISPLAY /
+ * WAYLAND_DISPLAY on Linux, and a Chromium or Chrome with a UI), the `ui` project runs headed, one test at a time,
+ * with windows tiled on the screen and an overlay that narrates each step, so a person can watch the journeys.
+ * Otherwise (CI, no display, E2E_VISUAL=0) it runs headless exactly as before. The decision is printed at the start.
  */
 const startStack = !!process.env.E2E_START_STACK;
+const visual = resolveVisual();
 
 export default defineConfig({
   testDir: './tests',
@@ -24,6 +31,8 @@ export default defineConfig({
     ['list'],
     ['html', { open: 'never', outputFolder: 'playwright-report' }],
     ['json', { outputFile: 'test-results/results.json' }],
+    // Visual mode only: a window with the live progress of the whole run (support/visual/monitor.ts).
+    ['./support/visual/monitor.ts'],
   ],
   use: {
     // Fail fast when a UI element does not exist yet (most UI flows are planned) instead of waiting for the test timeout.
@@ -36,9 +45,18 @@ export default defineConfig({
     {
       name: 'ui',
       testMatch: /.*\.ui\.spec\.ts$/,
+      // Watched runs show one journey at a time (E2E_VISUAL_WORKERS); API tests keep running alongside.
+      ...(visual.enabled ? { workers: visual.uiWorkers } : {}),
       use: {
         ...devices['Desktop Chrome'],
-        launchOptions: process.env.E2E_CHROMIUM_PATH ? { executablePath: process.env.E2E_CHROMIUM_PATH } : {},
+        headless: !visual.enabled,
+        launchOptions: visual.enabled
+          ? {
+            ...(visual.executablePath ? { executablePath: visual.executablePath } : {}),
+            slowMo: visual.slowMo,
+            args: visualLaunchArgs(visual),
+          }
+          : process.env.E2E_CHROMIUM_PATH ? { executablePath: process.env.E2E_CHROMIUM_PATH } : {},
       },
     },
   ],

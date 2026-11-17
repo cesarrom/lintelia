@@ -1,0 +1,29 @@
+schemaVersion: "1"
+name: "Servicing: payment received"
+description: Runs on every payment LoanPro posts (in the app, autopay, by phone) — the borrower gets a receipt in their app.
+caseTitle: "Payment on {{input.displayId}}"
+startOn: ["connector:loanpro/payment.posted"]
+clientVisibility: requests_only
+inputs: []
+steps:
+  - { id: start, name: Start, type: start, events: [{ name: finished, outputs: [], next: [known] }] }
+  - id: known
+    name: Borrower in the app?
+    type: conditional
+    config: { expression: "$exists(case.applicant.id) and case.applicant.id != null" }
+    events: [{ name: "true", outputs: [], next: [receipt] }, { name: "false", outputs: [], next: [done] }]
+  - id: receipt
+    name: Receipt
+    type: client.notify
+    config:
+      title: "Payment received: ${{input.payment.amount | money}}"
+      body: "Thank you. Your loan balance is now ${{input.balance | money}}; next payment of ${{input.nextPaymentAmount | money}} on {{input.nextPaymentDate | date}}."
+      tone: success
+      page: loan
+    events: [{ name: done, outputs: [], next: [done] }]
+  - id: done
+    name: Done
+    type: case.decision
+    config: { status: completed, outcome: receipt_sent, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]

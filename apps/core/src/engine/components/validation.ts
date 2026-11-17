@@ -27,6 +27,11 @@ export function validateDefinition(definition: WorkflowDefinition, context: { ro
         errors.push(`Step "${step.name}" has an event "${event.name}" that ${component.definition.title} never emits (it emits: ${[...emitted].join(', ')})`);
       }
     }
+    // Stages must be declared (the board, the case page and clients show their labels).
+    const stage = step.type === 'case.update' ? step.config?.stage : undefined;
+    if (typeof stage === 'string' && stage && !stage.trim().startsWith('=') && !stage.includes('{{') && !definition.stages.some((s) => s.key === stage)) {
+      errors.push(`Step "${step.name}" moves the case to the stage "${stage}", which the workflow does not declare (stages: ${definition.stages.map((s) => s.key).join(', ') || 'none'})`);
+    }
     for (const error of validateComponentConfig(component, step.config ?? {}, context)) {
       errors.push(`${component.definition.title} "${step.name}": ${error}`);
     }

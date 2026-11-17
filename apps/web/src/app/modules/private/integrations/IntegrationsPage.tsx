@@ -1,3 +1,4 @@
+import { ConnectorLogo } from '@/components/brand/ConnectorLogo';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
@@ -170,15 +171,15 @@ export default function IntegrationsPage() {
       <PageHeader title="Integrations" description="Connect your own systems and vendors. Each connection adds steps to your workflows; its settings and secrets stay with the connector." />
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Your connections</h2>
-        {!isLoading && connections.length === 0 ? <EmptyState>No connections yet.</EmptyState> : (
-          <div className="rounded-md border">
+        <h2 className="text-[15px] font-semibold tracking-tight">Your connections</h2>
+        {!isLoading && connections.length === 0 ? <EmptyState art="connect" title="No connections yet">Connect a vendor below: its steps become available in the workflow editor.</EmptyState> : (
+          <div className="overflow-hidden rounded-xl border bg-card shadow-card">
             <Table>
               <TableHeader><TableRow><TableHead>Connection</TableHead><TableHead>Connector</TableHead><TableHead>Status</TableHead><TableHead>Settings</TableHead><TableHead>Added</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
               <TableBody>
                 {connections.map((c) => (
                   <TableRow key={c.id} data-testid="connection-row" data-connector={c.connectorId} data-status={c.status}>
-                    <TableCell className="font-medium">{c.displayName}</TableCell>
+                    <TableCell className="font-medium"><span className="flex items-center gap-3"><ConnectorLogo id={c.connectorId} className="h-8 w-8 rounded-lg" />{c.displayName}</span></TableCell>
                     <TableCell className="text-sm">{c.connectorName}<span className="text-muted-foreground"> v{c.connectorVersion}</span></TableCell>
                     <TableCell>
                       <StatusBadge status={c.status === 'pending' ? 'draft' : c.status === 'failing' ? 'rejected' : c.status} label={{ pending: 'Not finished', active: 'Active', failing: 'Failing', disabled: 'Removed' }[c.status]} />
@@ -188,7 +189,7 @@ export default function IntegrationsPage() {
                     <TableCell className="text-xs text-muted-foreground max-w-xs">{summaryText(c.configSummary)}</TableCell>
                     <TableCell className="text-xs">{formatDate(c.createdAt)}<br /><span className="text-muted-foreground">{c.createdBy}</span></TableCell>
                     <TableCell className="text-right space-x-2 whitespace-nowrap">
-                      {manage && c.available && <Button size="sm" variant="outline" onClick={() => settingsOf(c)}><Settings2 className="h-4 w-4 mr-1" />{c.status === 'pending' ? 'Finish setup' : 'Settings'}</Button>}
+                      {manage && c.available && <Button size="sm" variant="outline" onClick={() => settingsOf(c)}><Settings2 className="h-4 w-4" />{c.status === 'pending' ? 'Finish setup' : 'Settings'}</Button>}
                       {manage && <Button size="sm" variant="ghost" aria-label={`Remove ${c.displayName}`} onClick={() => setRemoving(c)}><Trash2 className="h-4 w-4" /></Button>}
                     </TableCell>
                   </TableRow>
@@ -200,21 +201,24 @@ export default function IntegrationsPage() {
       </section>
 
       <section className="space-y-3 mt-8">
-        <h2 className="text-lg font-semibold">Available connectors</h2>
-        {catalog.length === 0 ? <EmptyState>No connectors are available yet.</EmptyState> : (
+        <h2 className="text-[15px] font-semibold tracking-tight">Available connectors</h2>
+        {catalog.length === 0 ? <EmptyState art="connect">No connectors are available yet.</EmptyState> : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {catalog.map((connector) => (
-              <Card key={connector.id} data-testid="connector-card" data-connector={connector.id}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base"><Plug className="h-4 w-4" />{connector.name}</CardTitle>
-                  <CardDescription>{connector.description}</CardDescription>
+              <Card key={connector.id} data-testid="connector-card" data-connector={connector.id} className="flex flex-col transition hover:border-primary/30 hover:shadow-raised">
+                <CardHeader className="flex-row items-start gap-3.5 space-y-0">
+                  <ConnectorLogo id={connector.id} className="h-11 w-11" />
+                  <div className="min-w-0 space-y-1">
+                    <CardTitle className="text-[15px]">{connector.name}</CardTitle>
+                    <p className="text-xs text-muted-foreground">by {connector.publisher.name} · v{connector.version}</p>
+                  </div>
                 </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex flex-wrap gap-1">{connector.components.map((c) => <Badge key={c.key} variant="secondary">{c.title}</Badge>)}</div>
-                  <p className="text-xs text-muted-foreground">by {connector.publisher.name} · v{connector.version}</p>
+                <CardContent className="flex-1 space-y-3">
+                  <CardDescription>{connector.description}</CardDescription>
+                  <div className="flex flex-wrap gap-1.5">{connector.components.map((c) => <Badge key={c.key} variant="outline"><Plug className="h-3 w-3 text-muted-foreground" />{c.title}</Badge>)}</div>
                 </CardContent>
-                <CardFooter>
-                  {manage && <Button size="sm" onClick={() => setConnecting(connector)}>Connect</Button>}
+                <CardFooter className="border-t bg-muted/20 py-3">
+                  {manage ? <Button size="sm" onClick={() => setConnecting(connector)}>Connect</Button> : <span className="text-xs text-muted-foreground">Ask an integration manager to connect it</span>}
                 </CardFooter>
               </Card>
             ))}

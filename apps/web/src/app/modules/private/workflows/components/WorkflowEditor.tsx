@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
   Background,
+  BackgroundVariant,
   Controls,
   MiniMap,
   Panel,
@@ -17,7 +18,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 
 import { Button } from '@/components/ui/button';
-import { Save, FileEdit, Play, LayoutGrid, ShieldCheck, Rocket } from 'lucide-react';
+import { Save, FileEdit, Play, LayoutGrid, ShieldCheck, Rocket, Settings2, SquareFunction } from 'lucide-react';
 import { toast } from 'sonner';
 import { CatalogContext, useComponentCatalog } from './catalog/catalog';
 import { ComponentNode, UnknownNode } from './catalog/ComponentNode';
@@ -31,6 +32,7 @@ import { Label } from "@/components/ui/label";
 import { WorkflowProvider, useWorkflow } from './WorkflowContext';
 import { RunWorkflowDialog } from './RunWorkflowDialog';
 import { YamlActions } from './yaml/YamlActions';
+import { WorkflowSettingsDialog } from './WorkflowSettingsDialog';
 import { useTheme } from '@/lib/providers/ThemeProvider';
 import { NodeData } from '@repo/fintivio/schemas';
 
@@ -70,9 +72,17 @@ function WorkflowEditorContent({ workflowId }: { workflowId?: string }) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const fitted = useRef(false);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
+  // Opened from the experience map on a step (`?step=`): show it.
+  const stepParam = new URLSearchParams(window.location.search).get('step');
+  useEffect(() => {
+    if (!reactFlowInstance || !stepParam) return;
+    const node = reactFlowInstance.getNode(stepParam);
+    if (node) setTimeout(() => reactFlowInstance.setCenter(node.position.x + (node.width ?? 280) / 2, node.position.y + (node.height ?? 140) / 2, { zoom: 1, duration: 400 }), 200);
+  }, [reactFlowInstance, stepParam]);
   const { theme } = useTheme();
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [tempDescription, setTempDescription] = useState('');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isRunDialogOpen, setIsRunDialogOpen] = useState(false);
 
   // Validate if two nodes can be connected
@@ -210,9 +220,9 @@ function WorkflowEditorContent({ workflowId }: { workflowId?: string }) {
 
   return (
     <CatalogContext.Provider value={catalog}>
-    <div className="h-screen w-full flex">
+    <div className="flex h-full w-full">
       {/* Component palette (catalogue) */}
-      <aside className="w-64 shrink-0 overflow-y-auto border-r bg-muted/20 p-2">
+      <aside className="w-60 shrink-0 overflow-y-auto border-r bg-canvas/70 p-3">
         <Palette components={catalogList} onAdd={addStep} />
       </aside>
       {/* Main Editor Area */}
@@ -247,8 +257,17 @@ function WorkflowEditorContent({ workflowId }: { workflowId?: string }) {
                       {workflow.description}
                     </p>
                   )}
+                  {(workflow.function || !!workflow.stages?.length) && (
+                    <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground" data-testid="wf-summary">
+                      {workflow.function && <span className="inline-flex items-center gap-1 rounded-full bg-teal-500/10 px-2 py-0.5 font-medium text-teal-700 dark:text-teal-300"><SquareFunction className="h-3 w-3" />Function</span>}
+                      {!!workflow.stages?.length && <span>Stages: {workflow.stages.map((s) => s.label).join(' → ')}</span>}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
+                  <Button variant="outline" size="icon" title="Workflow settings" aria-label="Workflow settings" onClick={() => setIsSettingsOpen(true)} data-testid="wf-settings">
+                    <Settings2 className="h-4 w-4" />
+                  </Button>
                   <Button variant="outline" size="icon" title="Tidy up the layout" aria-label="Tidy up the layout" onClick={tidyUp}>
                     <LayoutGrid className="h-4 w-4" />
                   </Button>
@@ -313,7 +332,7 @@ function WorkflowEditorContent({ workflowId }: { workflowId?: string }) {
             {/* Validation results */}
             {validationErrors && (
               <Panel position="bottom-center" className="max-w-2xl">
-                <div className={`rounded-lg border p-3 text-sm shadow-lg ${validationErrors.length ? 'border-red-300 bg-red-50 text-red-900' : 'border-emerald-300 bg-emerald-50 text-emerald-900'}`} data-testid="validation-result">
+                <div className={`rounded-xl border p-3.5 text-sm shadow-overlay ${validationErrors.length ? 'border-destructive/30 bg-card text-destructive' : 'border-success/30 bg-card text-success'}`} data-testid="validation-result">
                   <div className="flex items-center justify-between gap-4">
                     <strong>{validationErrors.length ? `${validationErrors.length} problem(s) prevent publishing` : 'Ready to publish: no problems found'}</strong>
                     <button className="text-xs underline" onClick={() => setValidationErrors(null)}>close</button>
@@ -324,9 +343,9 @@ function WorkflowEditorContent({ workflowId }: { workflowId?: string }) {
             )}
 
             {/* ReactFlow UI Components */}
-            <Controls />
-            <MiniMap />
-            <Background />
+            <Controls showInteractive={false} />
+            <MiniMap pannable zoomable className="!rounded-xl !border !bg-card !shadow-raised" maskColor={theme === 'dark' ? 'rgba(0,0,0,0.35)' : 'rgba(16,24,40,0.05)'} nodeColor={theme === 'dark' ? '#4b3fa8' : '#cfc8ff'} nodeBorderRadius={6} />
+            <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} color={theme === 'dark' ? '#2c3149' : '#c5cadb'} />
           </ReactFlow>
           )}
         </div>
@@ -357,6 +376,9 @@ function WorkflowEditorContent({ workflowId }: { workflowId?: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <WorkflowSettingsDialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} workflow={workflow}
+        onSave={(settings) => updateWorkflow((w) => ({ ...w, ...settings }))} />
 
       {/* Run Workflow Dialog */}
       {workflow.id && yaml && <RunWorkflowDialog

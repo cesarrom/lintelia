@@ -44,9 +44,9 @@ export function PartiesRequest({ caseId, roles }: { caseId: string; roles: strin
 
   return (
     <div className="space-y-4">
-      <ul className="space-y-1 text-sm" data-testid="parties">
+      <ul className="space-y-2 text-sm" data-testid="parties">
         {parties.map((p) => (
-          <li key={p.id} className="flex items-center gap-2" data-testid="party" data-status={p.status}>
+          <li key={p.id} className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/20 px-3 py-2" data-testid="party" data-status={p.status}>
             <span className="font-medium">{p.name ?? p.email}</span><span className="text-muted-foreground">{label(p.role)} · {p.email}</span>
             <StatusBadge status={p.status === 'completed' ? 'approved' : p.status === 'declined' ? 'rejected' : 'open'} label={p.status === 'invited' ? 'Invited' : p.status === 'in_progress' ? 'Joined' : p.status} />
           </li>
@@ -55,7 +55,7 @@ export function PartiesRequest({ caseId, roles }: { caseId: string; roles: strin
       <div className="grid gap-2 sm:grid-cols-4 items-end">
         <div className="space-y-1">
           <Label htmlFor={`role-${caseId}`}>Role</Label>
-          <select id={`role-${caseId}`} className="w-full rounded-md border px-2 py-2 text-sm" value={role} onChange={(e) => setRole(e.target.value)}>
+          <select id={`role-${caseId}`} className="h-9 w-full rounded-lg border border-input bg-background px-2.5 text-sm shadow-xs focus-visible:border-primary focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/15" value={role} onChange={(e) => setRole(e.target.value)}>
             {roles.map((r) => <option key={r} value={r}>{label(r)}</option>)}
           </select>
         </div>

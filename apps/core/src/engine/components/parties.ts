@@ -130,10 +130,27 @@ const partiesUpdate: EngineComponent = {
   },
 };
 
-/** Run another published workflow as a child case and wait for it (reusable sub-processes). */
+/**
+ * Run a published workflow as a child case; wait for it (default) and continue with its outputs, or start it and go on
+ * (`wait: false`, e.g. title tracking that lasts weeks while the deal moves on).
+ */
+async function callWorkflow({ ctx, step, label, tenantId, caseId, deps }: Parameters<EngineComponent['execute']>[0], workflowId: string, inputs: Record<string, unknown>, applicant: unknown, wait: boolean) {
+  const start = deps.services.startChildCase;
+  if (!start) throw new restate.TerminalError('Child cases are not available in this engine');
+  const promise = `child:${step.id}:${label}`.slice(0, 150);
+  const child = await ctx.run(`child-${label}`, () => start({
+    tenantId, parentCaseId: caseId, parentStepId: step.id, workflowId, data: inputs,
+    applicantId: applicant ? String(applicant) : null, callbackPromise: wait ? promise : null,
+  }));
+  if (!wait) return { event: 'started', output: child };
+  const signal = await ctx.promise<TaskSignal>(promise).get();
+  const outputs = (signal.output?.outputs ?? {}) as Record<string, unknown>;
+  return { event: signal.outcome === 'failed' ? 'failed' : 'completed', output: { ...child, ...(signal.output ?? {}), ...outputs } };
+}
+
 const workflowCall: EngineComponent = {
   definition: {
-    type: 'workflow.call', version: 1, title: 'Run a sub-workflow', description: 'Starts a published workflow as a child case and continues when it ends.',
+    type: 'workflow.call', version: 1, title: 'Run a sub-workflow', description: 'Starts a published workflow as a child case and continues when it ends (or at once).',
     icon: 'Workflow', category: 'flow', kind: 'automatic', source: { kind: 'builtin' },
     configSchema: {
       type: 'object', required: ['workflowId'],
@@ -141,25 +158,46 @@ const workflowCall: EngineComponent = {
         workflowId: { type: 'string', title: 'Workflow', 'x-widget': 'workflow' },
         inputs: { type: 'object', title: 'Inputs', additionalProperties: { type: 'string', 'x-expression': true } },
         applicant: expression('Person the child case is about (user id)', 'default: the same applicant'),
+        wait: { type: 'boolean', title: 'Wait until it ends', description: 'off: start it and continue at once (event started)', default: true },
       },
     },
-    defaults: { inputs: {} },
+    defaults: { inputs: {}, wait: true },
     summary: 'Runs {{workflowId}}',
-    events: { static: ['completed', 'failed'] },
+    events: { static: ['completed', 'failed', 'started'] },
   },
   validate: (config) => (config.workflowId ? [] : ['needs a workflow']),
-  async execute({ ctx, step, label, config, tenantId, caseId, deps }) {
-    const start = deps.services.startChildCase;
-    if (!start) throw new restate.TerminalError('Child cases are not available in this engine');
-    const promise = `child:${step.id}:${label}`.slice(0, 150);
-    const child = await ctx.run(`child-${label}`, () => start({
-      tenantId, parentCaseId: caseId, parentStepId: step.id, workflowId: String(config.workflowId), data: (config.inputs ?? {}) as Record<string, unknown>,
-      applicantId: config.applicant ? String(config.applicant) : null, callbackPromise: promise,
-    }));
-    const signal = await ctx.promise<TaskSignal>(promise).get();
-    return { event: signal.outcome === 'failed' ? 'failed' : 'completed', output: { ...child, ...(signal.output ?? {}) } };
-  },
+  execute: (context) => callWorkflow(context, String(context.config.workflowId), (context.config.inputs ?? {}) as Record<string, unknown>, context.config.applicant, context.config.wait !== false),
 };
+
+/**
+ * An institution's function (a published workflow with `function: true`) used as a step, `function:<workflow id>`:
+ * its inputs are the step's fields, its outputs the step's result (docs/plans/12). A connector of their own, made of
+ * steps (HTTP calls, mappings, reviews) and reused across workflows.
+ */
+export function functionComponent(workflowId: string, info?: { name: string; description?: string; inputs?: Array<{ id: string; name?: string; label?: string; description?: string; required?: boolean }> }): EngineComponent {
+  const inputs = info?.inputs ?? [];
+  return {
+    definition: {
+      type: `function:${workflowId}`, version: 1, title: info?.name ?? 'Function', description: info?.description || 'A function of your institution (a workflow used as a step).',
+      icon: 'SquareFunction', category: 'function', kind: 'automatic', source: { kind: 'function', workflowId },
+      configSchema: {
+        type: 'object',
+        properties: {
+          inputs: {
+            type: 'object', title: 'Inputs',
+            ...(inputs.length ? { properties: Object.fromEntries(inputs.map((i) => [i.id, { type: 'string', title: i.label ?? i.name ?? i.id, description: i.description, 'x-expression': true }])), required: inputs.filter((i) => i.required).map((i) => i.id) } : {}),
+            additionalProperties: { type: 'string', 'x-expression': true },
+          },
+          wait: { type: 'boolean', title: 'Wait until it ends', default: true },
+        },
+      },
+      defaults: { inputs: Object.fromEntries(inputs.map((i) => [i.id, ''])), wait: true },
+      summary: info?.name ?? 'Function',
+      events: { static: ['completed', 'failed', 'started'] },
+    },
+    execute: (context) => callWorkflow(context, workflowId, (context.config.inputs ?? {}) as Record<string, unknown>, null, context.config.wait !== false),
+  };
+}
 
 /**
  * Multi-instance over a list (BPMN multi-instance, docs/plans/06): one child case of a published workflow per item,

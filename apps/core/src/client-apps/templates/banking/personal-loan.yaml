@@ -1,0 +1,148 @@
+schemaVersion: "1"
+name: "App: personal loan"
+description: Loan application in the app — amount, finances, an instant offer; loans above 10,000 are reviewed by a credit analyst before pay-out.
+caseTitle: "Personal loan: {{applicant}} ({{input.amount}})"
+inputs: []
+steps:
+  - { id: start, name: Start, type: start, events: [{ name: finished, outputs: [], next: [accounts] }] }
+  - id: accounts
+    name: Current accounts
+    type: client.data
+    config: { collection: accounts, filter: 'type = "current" and status = "active"' }
+    events: [{ name: done, outputs: [], next: [loan] }]
+  - id: loan
+    name: The loan
+    type: client.screen
+    config:
+      title: How much would you like to borrow?
+      description: Borrow between £1,000 and £50,000. Checking your offer does not affect your credit score.
+      stage: loan
+      fields:
+        - { key: amount, label: Amount, type: money, required: true, min: 1000, max: 50000 }
+        - { key: term, label: Pay it back over, type: select, required: true, options: ["12|1 year", "24|2 years", "36|3 years", "48|4 years", "60|5 years"], default: "36" }
+        - { key: purpose, label: What is it for?, type: select, required: true, options: [A car, Home improvements, Consolidating debts, A wedding, Something else] }
+        - { key: payTo, label: Pay the money into, type: select, required: true, optionsFrom: accounts, optionFilter: 'type = "current" and status = "active"', optionLabel: "{{item.name}} ({{item.number}})", optionValue: "{{item.key}}" }
+      buttons: [{ key: continue, label: Continue, style: primary }]
+    events: [{ name: continue, outputs: [], next: [finances] }]
+  - id: finances
+    name: Finances
+    type: client.screen
+    config:
+      title: About your finances
+      stage: finances
+      fields:
+        - { key: employment, label: Employment, type: select, required: true, options: [Employed full-time, Employed part-time, Self-employed, Retired, Other], default: "{{me.employment}}" }
+        - { key: income, label: Yearly income before tax, type: money, required: true, min: 0 }
+        - { key: outgoings, label: Monthly rent or mortgage, type: money, required: true, min: 0 }
+      buttons: [{ key: continue, label: See my offer, style: primary }, { key: back, label: Back, style: secondary, skipValidation: true }]
+    events: [{ name: continue, outputs: [], next: [estimate] }, { name: back, outputs: [], next: [loan] }]
+  - id: estimate
+    name: Estimate
+    type: calculate
+    config:
+      outputs:
+        amount: "$number(input.amount)"
+        term: "$number(input.term)"
+        monthly: "$round($number(input.amount) * (0.079 / 12) / (1 - $power(1 + 0.079 / 12, -$number(input.term))), 2)"
+        total: "$round(result.monthly * $number(input.term), 2)"
+        disposable: "$round($number(input.income) / 12 * 0.7 - $number(input.outgoings), 2)"
+        affordable: "result.monthly <= ($number(input.income) / 12 * 0.7 - $number(input.outgoings)) * 0.4"
+    events: [{ name: done, outputs: [], next: [affordable] }]
+  - id: affordable
+    name: Affordable?
+    type: conditional
+    config: { expression: "steps.estimate.affordable" }
+    events: [{ name: "true", outputs: [], next: [offer] }, { name: "false", outputs: [], next: [too_much] }]
+  - id: too_much
+    name: Cannot offer
+    type: client.notify
+    config: { title: "We can't offer this loan right now", body: "Based on what you told us, the repayments of £{{steps.estimate.monthly | money}} a month would be too high. You could try a smaller amount or a longer term.", tone: warning }
+    events: [{ name: done, outputs: [], next: [declined] }]
+  - id: declined
+    name: Declined
+    type: case.decision
+    config: { status: rejected, outcome: not_affordable, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]
+  - id: offer
+    name: Your offer
+    type: client.screen
+    config:
+      title: Your loan offer
+      stage: offer
+      content: "**£{{steps.estimate.amount | money}}** over **{{steps.estimate.term}} months**\n\nMonthly repayment **£{{steps.estimate.monthly | money}}**\nRepresentative APR **7.9%** · total to repay **£{{steps.estimate.total | money}}**"
+      fields:
+        - { key: agree, label: "I have read the loan agreement and the pre-contract information", type: checkbox, required: true }
+      buttons: [{ key: accept, label: Accept the offer, style: primary }, { key: decline, label: No thanks, style: secondary, skipValidation: true }]
+    events: [{ name: accept, outputs: [], next: [big] }, { name: decline, outputs: [], next: [withdrawn] }]
+  - id: withdrawn
+    name: Declined by the client
+    type: case.decision
+    config: { status: withdrawn, outcome: offer_declined, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]
+  - id: big
+    name: Above 10,000?
+    type: conditional
+    config: { expression: "steps.estimate.amount > 10000" }
+    events: [{ name: "true", outputs: [], next: [review] }, { name: "false", outputs: [], next: [accounts_now] }]
+  - id: review
+    name: Credit review
+    type: review
+    config:
+      title: "Loan review: {{case.applicant.name}} — £{{input.amount | money}} over {{input.term}} months"
+      description: "Monthly £{{steps.estimate.monthly | money}} vs. disposable income £{{steps.estimate.disposable | money}} a month. {{input.employment}}, income £{{input.income | money}} a year. Purpose: {{input.purpose}}."
+      assignTo: { role: reviewer }
+      sla: PT24H
+      escalateTo: { role: senior_reviewer }
+    events: [{ name: review_approved, outputs: [], next: [accounts_now] }, { name: review_rejected, outputs: [], next: [sorry] }]
+  - id: sorry
+    name: Not approved
+    type: client.notify
+    config: { title: "We could not approve your loan", body: "{{steps.review.reason}}", tone: warning, email: true }
+    events: [{ name: done, outputs: [], next: [rejected] }]
+  - id: rejected
+    name: Rejected
+    type: case.decision
+    config: { status: rejected, outcome: declined_by_review, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]
+  - id: accounts_now
+    name: Balance today
+    type: client.data
+    config: { collection: accounts, filter: 'type = "current"' }
+    events: [{ name: done, outputs: [], next: [loan_account] }]
+  - id: loan_account
+    name: Loan account
+    type: client.record
+    config:
+      collection: accounts
+      key: "= 'loan-' & case.reference"
+      mode: upsert
+      data: { name: Personal loan, type: loan, number: "= '•• ' & $substring(case.reference, 9)", balance: "= -steps.estimate.amount", currency: GBP, rate: "= 7.9", monthlyPayment: "= steps.estimate.monthly", termMonths: "= steps.estimate.term", status: active, openedAt: "= $now()" }
+    events: [{ name: done, outputs: [], next: [payout] }]
+  - id: payout
+    name: Pay out
+    type: client.record
+    config: { collection: accounts, key: "{{input.payTo}}", mode: merge, data: { balance: "= $round($number(steps.accounts_now.records[key = $$.input.payTo].balance) + steps.estimate.amount, 2)" } }
+    events: [{ name: done, outputs: [], next: [tx] }]
+  - id: tx
+    name: Transaction
+    type: client.record
+    config:
+      collection: transactions
+      key: "= 'tx-' & case.reference"
+      mode: upsert
+      data: { account: "{{input.payTo}}", date: "= $now()", description: "Personal loan pay-out", amount: "= steps.estimate.amount", currency: GBP, category: Loans, status: posted }
+    events: [{ name: done, outputs: [], next: [paid] }]
+  - id: paid
+    name: Tell the client
+    type: client.notify
+    config: { title: "Your loan is paid out", body: "£{{steps.estimate.amount | money}} is in your account. Your first repayment of £{{steps.estimate.monthly | money}} is due in a month.", tone: success, page: accounts, email: true }
+    events: [{ name: done, outputs: [], next: [approved] }]
+  - id: approved
+    name: Approved
+    type: case.decision
+    config: { status: approved, outcome: loan_paid_out, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]

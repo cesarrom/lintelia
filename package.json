@@ -15,7 +15,9 @@
     "db:reset": "bun run --cwd apps/core db:reset",
     "restate:serve": "bun run --cwd apps/core restate:serve",
     "restate:register": "bun run --cwd apps/core restate:register",
-    "e2e": "bun run --cwd apps/e2e test",
+    "e2e": "bun scripts/e2e.ts",
+    "e2e:watch": "bun scripts/e2e.ts --headed",
+    "e2e:headless": "bun scripts/e2e.ts --headless",
     "e2e:status": "bun run --cwd apps/e2e flow-status",
     "redis:start": "bun run --cwd apps/core redis:start",
     "demo:site": "bun run --cwd apps/core demo:site",
@@ -26,14 +28,15 @@
     "stack:stop": "bun scripts/stack.ts stop",
     "stack:reset": "bun scripts/stack.ts reset",
     "stack:doctor": "bun scripts/stack.ts doctor",
-    "stack:test": "bun scripts/stack.ts test",
+    "stack:test": "bun scripts/e2e.ts",
     "totp": "bun run --cwd apps/core totp",
     "demo:workflows": "bun run --cwd apps/core demo:workflows",
     "demo:case": "bun run --cwd apps/core demo:case",
     "demo:token": "bun run --cwd apps/core demo:token",
     "connectors:register": "bun run --cwd apps/core connectors:register",
     "db:migrate": "bun run --cwd apps/core db:migrate",
-    "demo:files": "bun run --cwd apps/core demo:files"
+    "demo:files": "bun run --cwd apps/core demo:files",
+    "demo:auto-finance": "bun run --cwd apps/core demo:auto-finance"
   },
   "devDependencies": {
     "prettier": "^3.5.3",

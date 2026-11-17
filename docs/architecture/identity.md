@@ -80,6 +80,38 @@ configures the connection and verifies its e-mail domains in the broker's **Admi
 - Self-service password reset for every realm (implemented): `POST /auth/password/forgot` (always 202, no account
   enumeration), `POST /auth/password/reset` (page `/reset-password?token=`).
 
+### Clients known to the institution's systems (client app, docs/plans/11 §13)
+
+Three ways a client is known, all landing on one **client profile** (`client_profiles`: external id and source,
+attributes, segments, consents):
+
+- **Hosted accounts**: sign-up / sign-in above. When the institution published a client app, sign-up asks the
+  profile fields and consents the app declares (`GET /auth/client/registration`); required consents are enforced
+  (`POST /auth/register` answers 400 without them; 403 when the app closed sign-up) and recorded with their version.
+- **Server-created sessions** (the Stripe *AccountSession* / Plaid *link_token* pattern): the institution's backend
+  (API client with `clients:provision`) calls `POST /client-sessions` with its customer (`externalId`, e-mail, name,
+  attributes). The client is found by `(source, externalId)`, else by e-mail when the app links by e-mail, else
+  created. The answer carries a **single-use `clientSecret`** (random, stored hashed in Redis, 5 minutes) that the
+  institution's front end hands to `@fintivio/client-sdk`; the embedded app exchanges it at
+  `POST /auth/client/session` (tenant from `X-Tenant` / the host) for a normal client session. A secret of another
+  institution, a used or an expired one is refused.
+- **Token exchange** (RFC 8693 style): when the app enables it (issuer, JWKS address, audience), a JWT of the
+  institution's own identity provider is exchanged at `POST /auth/client/token`: signature checked against the JWKS
+  (cached), issuer and audience checked, claims mapped.
+
+The app's **identity mapping** (one JSONata expression per field: `externalId`, `email`, `name`, `attributes`,
+`segments`) turns the API payload or the token claims into the profile. Segments from the mapping are only added
+(workflows and the team add their own, e.g. `customer`). A new client emits **`client.registered`**, which starts
+the workflows with `startOn: [client.registered]` (welcome, KYC) and is audited.
+
+Required consents are checked by the app itself as well: a client without the current version of a required consent
+(signed in by code, by the institution's systems or its identity provider, or after a new version) accepts it
+before anything else (`POST /me/app/consents`, versions recorded).
+
+The embedded app keeps its session in the tab's `sessionStorage` (never the full site's `localStorage`), only talks
+to the host page the institution allowed (embedding settings; the same list feeds the `frame-ancestors` policy of
+`/embed/app`) and asks the host for a new secret when its session ends.
+
 ## Machine identities
 
 - **API clients** (implemented): OAuth 2.0 client credentials at `POST /oauth/token`; explicit permission list (subset

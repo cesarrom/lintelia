@@ -34,7 +34,7 @@ function visit(suite, inheritedTags = []) {
 }
 for (const suite of report.suites ?? []) visit(suite);
 
-const order = ['STAFF', 'FIA', 'DES', 'REV', 'SUP', 'CMP', 'RM', 'AGT', 'INT', 'AUD', 'CLI', 'X', 'SCN'];
+const order = ['STAFF', 'FIA', 'DES', 'REV', 'SUP', 'CMP', 'RM', 'AGT', 'INT', 'AUD', 'CLI', 'APP', 'AUT', 'X', 'SCN'];
 const sorted = [...flows.values()].sort((a, b) => {
   const [pa, na] = a.id.split('-');
   const [pb, nb] = b.id.split('-');

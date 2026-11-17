@@ -3,7 +3,7 @@ import { rmSync } from 'node:fs';
 import { withOwnerDb } from './infra';
 import { STAFF_SESSION_FILE, staffSession } from './factories';
 
-const hint = 'Start the local stack first: `bun run stack` (see readme.md), or use `bun run stack:test`.';
+const hint = 'Run the suite with `bun e2e` (it starts the local stack or attaches to it), or start the stack first: `bun run stack --detach` (see readme.md).';
 
 async function check(name: string, fn: () => Promise<void>) {
   try {

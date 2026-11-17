@@ -44,6 +44,8 @@ export const cases = pgTable('cases', {
   status: varchar('status', { length: 32 }).$type<CaseStatus>().default('draft').notNull(),
   /** Business outcome set by the workflow (e.g. `pre_approved`, `sar_filed`). */
   outcome: varchar('outcome', { length: 64 }),
+  /** Business stage declared by the workflow (`stages`), e.g. `underwriting`, `funding` — set by `case.update`. */
+  stage: varchar('stage', { length: 64 }),
   riskLevel: varchar('risk_level', { length: 16 }),
   flags: text('flags').array().default(sql`'{}'::text[]`).notNull(),
   applicantId: uuid('applicant_id'),
@@ -82,6 +84,30 @@ export const cases = pgTable('cases', {
   index('cases_parent_idx').on(table.tenantId, table.parentCaseId),
   foreignKey({ name: 'cases_workflow_fk', columns: [table.tenantId, table.workflowId], foreignColumns: [sysWorkflows.tenantId, sysWorkflows.id] }),
   foreignKey({ name: 'cases_applicant_fk', columns: [table.tenantId, table.applicantId], foreignColumns: [users.tenantId, users.id] }),
+]);
+
+/**
+ * Signals from outside for a running case (message correlation): an external system calls the case's hook URL or the
+ * API (`POST /cases/:id/signals/:name`). A `webhook.wait` step registers what it waits for (`waiting`, with its
+ * durable promise); a signal arriving first is kept (`pending`) until a step asks for it; then `delivered`.
+ */
+export const caseSignals = pgTable('case_signals', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: tenantIdColumn(),
+  caseId: uuid('case_id').notNull(),
+  name: varchar('name', { length: 64 }).notNull(),
+  status: varchar('status', { length: 16 }).$type<'waiting' | 'pending' | 'delivered' | 'cancelled'>().notNull(),
+  /** Durable promise of the waiting step. */
+  promise: varchar('promise', { length: 160 }),
+  payload: jsonb('payload').$type<Record<string, unknown>>(),
+  /** Who sent it: `hook` (signed URL), `api:<client>`, `member:<email>`. */
+  source: varchar('source', { length: 255 }),
+  createdAt: timestamp('created_at', { mode: 'date', withTimezone: true }).defaultNow().notNull(),
+  deliveredAt: timestamp('delivered_at', { mode: 'date', withTimezone: true }),
+}, (table) => [
+  ...tenantTable('case_signals', table),
+  index('case_signals_case_idx').on(table.tenantId, table.caseId, table.name, table.status),
+  foreignKey({ name: 'case_signals_case_fk', columns: [table.tenantId, table.caseId], foreignColumns: [cases.tenantId, cases.id] }).onDelete('cascade'),
 ]);
 
 export type TaskStatus = 'open' | 'claimed' | 'pending_second_approval' | 'pending_client' | 'escalated' | 'completed' | 'cancelled' | 'expired';
@@ -127,6 +153,8 @@ export const tasks = pgTable('tasks', {
   /** Routing rules kept with the task (e.g. `sameAssigneeAs: siblings`: one person handles the step for every item). */
   routing: jsonb('routing').$type<{ sameAssigneeAs?: 'siblings' } | null>(),
   clientAction: jsonb('client_action').$type<{ type: 'redirect' | 'embed' | 'sdk'; url: string; title?: string; instructions?: string; sdk?: string } | null>(),
+  /** Journey screens (`client.screen`): the screen the client fills (fields, content, buttons). */
+  screen: jsonb('screen').$type<Record<string, unknown> | null>(),
   createdAt: timestamp('created_at', { mode: 'date', withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date', withTimezone: true }).defaultNow().notNull().$onUpdate(() => new Date()),
 }, (table) => [

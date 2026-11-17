@@ -69,6 +69,8 @@ export const CONNECTOR_SCOPES: Record<string, string> = {
   'records:write': 'Write results to cases (verifications, signature requests, messages)',
   'events:publish': 'Publish events that can start workflows',
   'files:write': 'Attach documents to cases',
+  'files:read': "Read the documents of the cases its steps run for (e.g. to extract data)",
+  'client-records:write': 'Keep the data clients see in their app up to date (e.g. loan balance, payments)',
   'clients:read_basic': "Read the name and e-mail of the people its steps are about",
 };
 

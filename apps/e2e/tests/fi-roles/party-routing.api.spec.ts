@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../support/test';
 import { Api, expectStatus } from '../../support/api';
 import { deleteTenant, uniqueEmail } from '../../support/factories';
 import { applyAsClient, decide, prepareInstitution, publishForm, waitForCase, waitForTask, type Institution } from '../../support/scenario';

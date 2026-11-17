@@ -10,4 +10,5 @@ export * from './workflows.schema'
 export * from './authorization.schema'
 export * from './components.schema'
 export * from './connectors.schema'
+export * from './client-app.schema'
 // @endindex

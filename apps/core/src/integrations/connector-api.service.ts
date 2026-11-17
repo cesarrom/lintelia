@@ -3,7 +3,8 @@ import { and, eq, sql } from 'drizzle-orm';
 import { createRemoteJWKSet, decodeJwt, jwtVerify, type JWTVerifyGetKey } from 'jose';
 import { randomBytes } from 'node:crypto';
 import { CASE_RECORD_TYPES, type ConnectorManifest } from '@repo/fintivio/schemas';
-import { caseRecords, cases, connectorInstallationIndex, connectorInstallations, uploads, users, workflowVersions } from '../entities';
+import { caseFiles, caseRecords, cases, clientProfiles, connectorInstallationIndex, connectorInstallations, uploads, users, workflowVersions } from '../entities';
+import { deleteRecord, listRecords, writeRecord } from '../client-apps/profiles';
 import { FileStore } from '../files/file-store';
 import { quarantineKey } from '../files/object-store';
 import { policyFor } from '../files/policy';
@@ -293,6 +294,58 @@ export class ConnectorApiService {
     await this.audit.record(principal.tenantId, this.actor(principal), 'file.uploaded', { type: 'upload', id: upload.id, name }, { size: bytes.length, purpose: 'connector_document', kind }, caseId);
     await this.files.startIntake(principal.tenantId, upload.id);
     return { uploadId: upload.id, status: 'uploaded' };
+  }
+
+  /**
+   * Read a document of the case a step runs for (e.g. to extract data from a pay stub): only files of that case or of
+   * its parent cases (a function called by the deal), through the step's callback token. Audited.
+   */
+  async readFile(principal: ConnectorPrincipal, fileId: string, callbackToken: string | undefined) {
+    const claims = await this.callbackClaims(principal, callbackToken);
+    if (!/^[0-9a-f-]{36}$/i.test(fileId)) throw new NotFoundError('File not found');
+    const db = this.databases.forTenant(principal.tenantId);
+    const [file] = await db.select().from(caseFiles).where(eq(caseFiles.id, fileId)).limit(1);
+    let allowed = false;
+    let caseId: string | null = claims.cid;
+    for (let depth = 0; file && caseId && depth < 4 && !allowed; depth++) {
+      if (file.caseId === caseId) allowed = true;
+      else caseId = (await db.select({ parent: cases.parentCaseId }).from(cases).where(eq(cases.id, caseId)).limit(1))[0]?.parent ?? null;
+    }
+    if (!file || !allowed) throw new NotFoundError('File not found for this case');
+    const content = await this.files.objects.get(file.storageKey);
+    if (!content) throw new NotFoundError('File content is not available');
+    await this.audit.record(principal.tenantId, this.actor(principal), 'file.read_by_connector', { type: 'file', id: file.id, name: file.name }, { step: claims.sid }, file.caseId);
+    return { id: file.id, name: file.name, contentType: file.contentType, size: file.size, contentBase64: content.toString('base64') };
+  }
+
+  // --- client records --------------------------------------------------------------------------------------------
+
+  /**
+   * What a client sees in the client app, kept current by a system of record (e.g. the loan servicing system after a
+   * payment): records of one collection for one client, found by id, by its identifier in that system or by e-mail.
+   */
+  async writeClientRecords(principal: ConnectorPrincipal, body: { client?: { id?: string; externalId?: string; source?: string; email?: string }; collection?: string; records?: Array<{ key?: string; data?: Record<string, unknown> }>; mode?: string; replace?: boolean }) {
+    const db = this.databases.forTenant(principal.tenantId);
+    const ref = body.client ?? {};
+    let clientId: string | null = null;
+    if (ref.id && /^[0-9a-f-]{36}$/i.test(ref.id)) clientId = (await db.select({ id: users.id }).from(users).where(and(eq(users.id, ref.id), eq(users.kind, 'client'))).limit(1))[0]?.id ?? null;
+    else if (ref.externalId) clientId = (await db.select({ id: clientProfiles.userId }).from(clientProfiles).where(and(eq(clientProfiles.externalSource, ref.source || principal.connectorId), eq(clientProfiles.externalId, ref.externalId))).limit(1))[0]?.id ?? null;
+    else if (ref.email) clientId = (await db.select({ id: users.id }).from(users).where(and(sql`lower(${users.email}) = ${ref.email.toLowerCase()}`, eq(users.kind, 'client'))).limit(1))[0]?.id ?? null;
+    if (!clientId) throw new NotFoundError('Client not found');
+    const collection = String(body.collection ?? '');
+    if (!/^[a-z][a-z0-9_-]{0,63}$/.test(collection)) throw new BadRequestError('collection: lower-case letters, digits, - and _');
+    const items = Array.isArray(body.records) ? body.records.slice(0, 500) : [];
+    for (const item of items) if (!item.key || !/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/.test(item.key) || !item.data || typeof item.data !== 'object') throw new BadRequestError('every record needs a key and a data object');
+    const written = [];
+    for (const item of items) {
+      written.push(await writeRecord(db, { clientId, collection, key: item.key!, data: item.data!, source: `connector:${principal.connectorId}`, mode: body.mode === 'merge' ? 'merge' : 'upsert' }));
+    }
+    if (body.replace) {
+      const keep = new Set(items.map((i) => i.key));
+      for (const row of await listRecords(db, clientId, collection, 5000)) if (!keep.has(row.key)) await deleteRecord(db, clientId, collection, row.key);
+    }
+    await this.audit.record(principal.tenantId, this.actor(principal), 'client_record.written', { type: 'client_record', id: collection }, { clientId, count: written.length }, null);
+    return { clientId, collection, written: written.length };
   }
 
   // --- events ----------------------------------------------------------------------------------------------------

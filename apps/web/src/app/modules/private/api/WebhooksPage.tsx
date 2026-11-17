@@ -112,8 +112,8 @@ export default function WebhooksPage() {
         description="Tell your systems when things happen: signed HTTP calls (Standard Webhooks), retried until they succeed, with a delivery log."
         actions={<Button onClick={() => setCreating(true)}><Plus className="h-4 w-4 mr-2" />New webhook</Button>}
       />
-      {!isLoading && subscriptions.length === 0 ? <EmptyState>No webhooks yet.</EmptyState> : (
-        <div className="rounded-md border">
+      {!isLoading && subscriptions.length === 0 ? <EmptyState art="connect" title="No webhooks yet">Add an endpoint to receive signed events when cases and tasks change.</EmptyState> : (
+        <div className="overflow-hidden rounded-xl border bg-card shadow-card">
           <Table>
             <TableHeader><TableRow><TableHead /><TableHead>Endpoint</TableHead><TableHead>Events</TableHead><TableHead>Status</TableHead><TableHead>Enabled</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
             <TableBody>

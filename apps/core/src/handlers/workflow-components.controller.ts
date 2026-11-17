@@ -6,6 +6,7 @@ import { evaluate, interpolate } from '../engine/expressions';
 import { ConnectorComponentsService } from '../integrations/connector-components.service';
 import { type AppRequest, REQUEST_PROXY } from '../injector/tokens/request-proxy.token';
 import { handle } from '../http/respond';
+import { WorkflowLifecycleService } from '../services/workflow-lifecycle.service';
 import { BadRequestError } from '../http/errors';
 
 /** The component catalogue for the workflow editor (docs/plans/01) and a side-effect-free expression tester. */
@@ -13,14 +14,17 @@ import { BadRequestError } from '../http/errors';
 export class WorkflowComponentsHandler {
   constructor(
     @Inject(ConnectorComponentsService) private readonly connectorComponents: ConnectorComponentsService,
+    @Inject(WorkflowLifecycleService) private readonly lifecycle: WorkflowLifecycleService,
     @Inject(REQUEST_PROXY) private readonly request: AppRequest,
   ) { }
 
-  /** Built-in components plus the components of the institution's active connections. */
+  /** Built-in components, the components of the institution's active connections and its functions. */
   @Require('workflows:read')
   @Get()
   list(@Res() ctx: Context) {
-    return handle(ctx, async () => [...builtinDefinitions(), ...(await this.connectorComponents.definitionsForTenant())], 'Failed to list components');
+    return handle(ctx, async () => [
+      ...builtinDefinitions(), ...(await this.connectorComponents.definitionsForTenant()), ...(await this.lifecycle.functionDefinitions()),
+    ], 'Failed to list components');
   }
 
   /** Evaluate a JSONata expression (`=…`) or a `{{template}}` against sample data. */

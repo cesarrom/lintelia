@@ -116,6 +116,26 @@ export const stack: StackEntry[] = [
     check: { type: 'http', url: `${p.screening.url}/__health` }, profiles: full, url: p.screening.url, label: 'Screening (fake)',
   },
   {
+    name: 'llm', kind: 'service', description: 'language model fake (OpenAI-compatible; deterministic extraction)',
+    cwd: 'fake-services/llm', command: ['bun', 'src/index.ts'],
+    check: { type: 'http', url: `${p.llm.url}/__health` }, profiles: full, url: p.llm.url, label: 'Language model (fake)',
+  },
+  {
+    name: 'loanpro', kind: 'service', description: 'LoanPro fake (loans, payments, servicing webhooks, servicing screen)',
+    cwd: 'fake-services/loanpro', command: ['bun', 'src/index.ts'],
+    check: { type: 'http', url: `${p.loanpro.url}/__health` }, profiles: full, url: p.loanpro.url, label: 'LoanPro (fake)',
+  },
+  {
+    name: 'quickbooks', kind: 'service', description: 'QuickBooks Online fake (vendors, bills, payments)',
+    cwd: 'fake-services/quickbooks', command: ['bun', 'src/index.ts'],
+    check: { type: 'http', url: `${p.quickbooks.url}/__health` }, profiles: full, url: p.quickbooks.url, label: 'QuickBooks (fake)',
+  },
+  {
+    name: 'sheets', kind: 'service', description: 'Google Sheets fake (append and read rows)',
+    cwd: 'fake-services/sheets', command: ['bun', 'src/index.ts'],
+    check: { type: 'http', url: `${p.sheets.url}/__health` }, profiles: full, url: p.sheets.url, label: 'Google Sheets (fake)',
+  },
+  {
     name: 'migrate', kind: 'task', description: 'database migrations (dev + test databases)',
     cwd: 'apps/core', command: ['bun', './scripts/db.ts', 'migrate'], dependsOn: ['postgres'], profiles: all,
   },
@@ -154,7 +174,12 @@ export const stack: StackEntry[] = [
     dependsOn: ['migrate', ...connectors().map((c) => `connector-${c.id}`)], profiles: full,
   },
   {
-    name: 'demo-site', kind: 'service', description: "Demo Bank's public website with the loan form embedded",
+    name: 'demo-auto-finance', kind: 'task', description: 'Demo Auto Finance: connections to the fakes + the dealer & borrower portal (docs/plans/12)',
+    cwd: 'apps/core', command: ['bun', './scripts/demo-auto-finance.ts'],
+    dependsOn: ['api', 'register-connectors', 'llm', 'loanpro', 'documenso', 'sheets', 'quickbooks'], profiles: full,
+  },
+  {
+    name: 'demo-site', kind: 'service', description: "Demo Bank's public website: the loan form and the banking app embedded",
     cwd: 'apps/core', command: ['bun', './scripts/demo-site.ts'],
     check: { type: 'http', url: p['demo-site'].url }, profiles: full, url: p['demo-site'].url, label: 'Bank website (embed)',
   },

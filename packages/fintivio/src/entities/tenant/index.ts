@@ -20,4 +20,5 @@ export * from './integration.entity'
 export * from './api.entity'
 export * from './file.entity'
 export * from './security.entity'
+export * from './client-app.entity'
 // @endindex

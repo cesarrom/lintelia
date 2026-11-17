@@ -132,8 +132,8 @@ export default function WorkflowsPage() {
         </Alert>
       )}
 
-      {!isLoading && workflows.length === 0 ? <EmptyState>No workflows yet. Start from a template.</EmptyState> : (
-        <div className="rounded-md border">
+      {!isLoading && workflows.length === 0 ? <EmptyState art="workflows">No workflows yet. Start from a template.</EmptyState> : (
+        <div className="overflow-hidden rounded-xl border bg-card shadow-card">
           <Table>
             <TableHeader>
               <TableRow>

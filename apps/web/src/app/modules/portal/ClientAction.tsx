@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ExternalLink, ShieldCheck } from 'lucide-react';
+import { ExternalLink, Lock, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -44,22 +44,22 @@ export function ClientAction({ action }: { action: ClientActionView }) {
 
   const label = action.title ?? 'Continue';
   if (action.type === 'redirect') {
-    return <Button asChild><a href={action.url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4 mr-2" />{label}</a></Button>;
+    return <Button asChild><a href={action.url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" />{label}</a></Button>;
   }
   return (
     <>
       {action.instructions && <p className="text-sm text-muted-foreground">{action.instructions}</p>}
-      {finished ? <p className="text-sm" data-testid="client-action-finished">Thank you. We are checking the result; this page updates by itself.</p> : (
-        <Button onClick={() => setOpen(true)} data-testid="client-action"><ShieldCheck className="h-4 w-4 mr-2" />{label}</Button>
+      {finished ? <p className="rounded-lg bg-success-soft/70 p-3 text-sm" data-testid="client-action-finished">Thank you. We are checking the result; this page updates by itself.</p> : (
+        <Button onClick={() => setOpen(true)} data-testid="client-action" className="h-10"><ShieldCheck className="h-4 w-4" />{label}</Button>
       )}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl gap-3">
           <DialogHeader>
             <DialogTitle>{label}</DialogTitle>
-            <DialogDescription>Provided by our partner on their secure page.</DialogDescription>
+            <DialogDescription className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" />Provided by our partner on their secure page.</DialogDescription>
           </DialogHeader>
           <iframe
-            title={label} src={action.url} className="w-full h-[70vh] rounded-md border bg-white"
+            title={label} src={action.url} className="h-[70vh] w-full rounded-xl border bg-white"
             allow="camera; microphone; fullscreen; clipboard-write"
             sandbox="allow-forms allow-scripts allow-same-origin allow-popups"
           />

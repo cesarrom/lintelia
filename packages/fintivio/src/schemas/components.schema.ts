@@ -31,10 +31,15 @@ export type JsonSchema = {
   'x-expression'?: boolean;
   /** Dynamic options source for connector components (`/options/<name>`). */
   'x-options'?: string;
+  /**
+   * Show the property only when sibling properties have one of the listed values, e.g. `{ type: ['scan'] }` (a
+   * sibling left empty counts as its schema's `default`). Editor only: the value is kept when hidden.
+   */
+  'x-show-if'?: Record<string, readonly unknown[]>;
   [key: string]: unknown;
 };
 
-export type ComponentCategory = 'flow' | 'data' | 'people' | 'client' | 'case' | 'communication' | 'connector';
+export type ComponentCategory = 'flow' | 'data' | 'people' | 'client' | 'case' | 'communication' | 'connector' | 'function';
 export type ComponentKind = 'automatic' | 'human' | 'client' | 'timer' | 'container';
 
 export interface ComponentDefinition {
@@ -47,7 +52,9 @@ export interface ComponentDefinition {
   icon: string;
   category: ComponentCategory;
   kind: ComponentKind;
-  source: { kind: 'builtin' } | { kind: 'connector'; connectorId: string; installationId?: string; installationName?: string };
+  source: { kind: 'builtin' } | { kind: 'connector'; connectorId: string; installationId?: string; installationName?: string }
+    /** A published workflow of the institution marked `function: true`, used as a step (`function:<workflow id>`). */
+    | { kind: 'function'; workflowId: string };
   configSchema: JsonSchema;
   /** Default configuration of a new step. */
   defaults?: Record<string, unknown>;

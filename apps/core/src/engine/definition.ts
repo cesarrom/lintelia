@@ -28,14 +28,42 @@ export interface WorkflowDefinition {
   startOn: string[];
   /** `requests_only`: the applicant never sees the case itself (e.g. investigations), only requests addressed to them. */
   clientVisibility: 'full' | 'requests_only';
-  inputs: Array<{ id: string; name: string; type: string; required?: boolean }>;
+  inputs: Array<{ id: string; name: string; type: string; required?: boolean; label?: string; description?: string }>;
   steps: StepDefinition[];
+  /**
+   * Business stages of the case (a deal: submitted → underwriting → funding → boarded), set by `case.update` steps;
+   * shown on the case, the board and to clients.
+   */
+  stages: Array<{ key: string; label: string; clientLabel?: string; exit?: boolean }>;
+  /**
+   * A function: other workflows use it as a step (`function:<workflow id>`) with its inputs as fields and these
+   * outputs as the step's result — an institution's own connector, made of steps.
+   */
+  function: boolean;
+  /** What the case returns to its caller: name → JSONata or {{template}} over the case (`steps`, `input`, `case`). */
+  outputs: Record<string, string>;
 }
 
 const asArray = <T>(value: unknown): T[] => (Array.isArray(value) ? value as T[] : []);
 
+/**
+ * Parsed YAML of recent definitions: versions are immutable and read on every case page, task and engine step, and
+ * parsing dominates. Callers get their own copy (structuredClone is far cheaper than parsing).
+ */
+const parsed = new Map<string, any>();
+const MAX_PARSED = 300;
+function parseYaml(yaml: string) {
+  let raw = parsed.get(yaml);
+  if (raw === undefined) {
+    raw = YAML.parse(yaml) ?? {};
+    if (parsed.size >= MAX_PARSED) parsed.delete(parsed.keys().next().value!);
+    parsed.set(yaml, raw);
+  }
+  return structuredClone(raw);
+}
+
 export function parseDefinition(yaml: string): WorkflowDefinition {
-  const raw = YAML.parse(yaml) ?? {};
+  const raw = parseYaml(yaml);
   return {
     id: raw.id,
     name: String(raw.name ?? 'Untitled workflow'),
@@ -45,6 +73,9 @@ export function parseDefinition(yaml: string): WorkflowDefinition {
     startOn: asArray<string>(raw.startOn),
     clientVisibility: raw.clientVisibility === 'requests_only' ? 'requests_only' : 'full',
     inputs: asArray(raw.inputs),
+    stages: asArray<any>(raw.stages).filter((s) => s && s.key).map((s) => ({ key: String(s.key), label: String(s.label ?? s.key), ...(s.clientLabel ? { clientLabel: String(s.clientLabel) } : {}), ...(s.exit ? { exit: true } : {}) })),
+    function: raw.function === true,
+    outputs: raw.outputs && typeof raw.outputs === 'object' && !Array.isArray(raw.outputs) ? Object.fromEntries(Object.entries(raw.outputs).map(([k, v]) => [k, String(v)])) : {},
     steps: asArray<any>(raw.steps).map((step) => ({
       id: String(step.id),
       name: String(step.name ?? step.id),
@@ -59,7 +90,7 @@ export function parseDefinition(yaml: string): WorkflowDefinition {
 
 /** Title of a case created on a version: the definition's `caseTitle` template, or "<workflow name>: <applicant>". */
 export function renderCaseTitle(yaml: string, data: Record<string, unknown>, applicantLabel: string, interpolateFn: (t: string, v: Record<string, unknown>) => string): string {
-  const raw = YAML.parse(yaml) ?? {};
+  const raw = parseYaml(yaml);
   const template = typeof raw.caseTitle === 'string' ? raw.caseTitle : `${raw.name ?? 'Case'}: {{applicant}}`;
   return interpolateFn(template, { input: data, applicant: applicantLabel }).slice(0, 255);
 }

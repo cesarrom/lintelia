@@ -1,4 +1,4 @@
-import { Controller, Get, Inject, Post, Put, Res, Scope } from '@nestjs/common';
+import { Controller, Get, Inject, Param, Post, Put, Res, Scope } from '@nestjs/common';
 import type { Context } from 'hono';
 import { Public } from '../auth/access';
 import { ConnectorApiService } from '../integrations/connector-api.service';
@@ -62,6 +62,18 @@ export class ConnectorApiHandler {
   @Post('/files')
   file(@Res() ctx: Context) {
     return handle(ctx, async () => this.api.uploadFile(await this.api.authenticate(this.authorization, 'files:write'), await this.body()), 'Failed to upload the document', 202);
+  }
+
+  /** A document of the step's case (`?callbackToken=`), for connectors that read documents (AI extraction). */
+  @Get('/files/:fileId')
+  readFile(@Param('fileId') fileId: string, @Res() ctx: Context) {
+    return handle(ctx, async () => this.api.readFile(await this.api.authenticate(this.authorization, 'files:read'), fileId, new URL(this.request.url).searchParams.get('callbackToken') ?? undefined), 'Failed to read the document');
+  }
+
+  /** Records of a client shown in the client app (`{ client: { id | externalId, source | email }, collection, records, replace? }`). */
+  @Put('/client-records')
+  clientRecords(@Res() ctx: Context) {
+    return handle(ctx, async () => this.api.writeClientRecords(await this.api.authenticate(this.authorization, 'client-records:write'), await this.body()), 'Failed to write the client records');
   }
 
   @Post('/events')

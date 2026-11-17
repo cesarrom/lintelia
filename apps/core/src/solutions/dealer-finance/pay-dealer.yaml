@@ -1,0 +1,71 @@
+schemaVersion: "1"
+name: "Function: pay the dealer in QuickBooks"
+description: Finds (or creates) the dealer as a vendor in QuickBooks, records a bill for the funded contract and pays it — the institution's own QuickBooks connector, made of HTTP steps.
+function: true
+caseTitle: "Dealer payment: {{input.reference}}"
+clientVisibility: requests_only
+inputs:
+  - { id: dealerName, name: dealerName, label: Dealer (vendor name), type: string, required: true }
+  - { id: dealerEmail, name: dealerEmail, label: Dealer e-mail, type: string }
+  - { id: amount, name: amount, label: Amount to pay, type: string, required: true }
+  - { id: reference, name: reference, label: Reference (bill number), type: string, required: true }
+  - { id: memo, name: memo, label: Memo, type: string }
+outputs:
+  paid: "= $exists(steps.pay.body.BillPayment.Id)"
+  vendorId: "= steps.vendor.id"
+  billId: "= steps.bill.body.Bill.Id"
+  paymentId: "= steps.pay.body.BillPayment.Id"
+steps:
+  - { id: start, name: Start, type: start, events: [{ name: finished, outputs: [], next: [find] }] }
+  - id: find
+    name: Find the vendor
+    type: "connector:http/request"
+    config:
+      connection: ${QUICKBOOKS}
+      method: GET
+      input:
+        path: "/v3/company/${QBO_REALM}/query"
+        query: "= { 'query': \"select * from Vendor where DisplayName = '\" & $replace(input.dealerName, \"'\", \"\") & \"'\" }"
+    events: [{ name: succeeded, outputs: [], next: [known] }, { name: failed, outputs: [], next: [] }]
+  - id: known
+    name: Known vendor?
+    type: conditional
+    config: { expression: "$count(steps.find.body.QueryResponse.Vendor) > 0" }
+    events: [{ name: "true", outputs: [], next: [vendor] }, { name: "false", outputs: [], next: [create_vendor] }]
+  - id: create_vendor
+    name: Create the vendor
+    type: "connector:http/request"
+    config:
+      connection: ${QUICKBOOKS}
+      method: POST
+      input:
+        path: "/v3/company/${QBO_REALM}/vendor"
+        body: "= { 'DisplayName': $replace(input.dealerName, \"'\", \"\"), 'PrimaryEmailAddr': input.dealerEmail ? { 'Address': input.dealerEmail } : undefined }"
+    events: [{ name: succeeded, outputs: [], next: [vendor] }, { name: failed, outputs: [], next: [] }]
+  - id: vendor
+    name: Vendor id
+    type: calculate
+    config:
+      outputs:
+        id: "$exists(steps.create_vendor.body.Vendor.Id) ? steps.create_vendor.body.Vendor.Id : steps.find.body.QueryResponse.Vendor[0].Id"
+    events: [{ name: done, outputs: [], next: [bill] }]
+  - id: bill
+    name: Record the bill
+    type: "connector:http/request"
+    config:
+      connection: ${QUICKBOOKS}
+      method: POST
+      input:
+        path: "/v3/company/${QBO_REALM}/bill"
+        body: "= { 'VendorRef': { 'value': steps.vendor.id }, 'DocNumber': input.reference, 'PrivateNote': input.memo, 'Line': [{ 'Amount': $number(input.amount), 'DetailType': 'AccountBasedExpenseLineDetail', 'AccountBasedExpenseLineDetail': { 'AccountRef': { 'value': '7', 'name': 'Contracts purchased' } } }] }"
+    events: [{ name: succeeded, outputs: [], next: [pay] }, { name: failed, outputs: [], next: [] }]
+  - id: pay
+    name: Pay the bill
+    type: "connector:http/request"
+    config:
+      connection: ${QUICKBOOKS}
+      method: POST
+      input:
+        path: "/v3/company/${QBO_REALM}/billpayment"
+        body: "= { 'VendorRef': { 'value': steps.vendor.id }, 'PayType': 'Check', 'TotalAmt': $number(input.amount), 'CheckPayment': { 'BankAccountRef': { 'value': '35' } }, 'Line': [{ 'Amount': $number(input.amount), 'LinkedTxn': [{ 'TxnId': steps.bill.body.Bill.Id, 'TxnType': 'Bill' }] }] }"
+    events: [{ name: succeeded, outputs: [], next: [] }, { name: failed, outputs: [], next: [] }]

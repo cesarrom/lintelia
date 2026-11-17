@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../support/test';
 import { deleteTenant } from '../../support/factories';
 import { prepareInstitution, type Institution } from '../../support/scenario';
 import { requireConnector } from '../../support/connectors';

@@ -46,6 +46,10 @@ export const env = {
     screening: process.env.E2E_FAKE_SCREENING_URL ?? 'http://localhost:9407',
     scanner: process.env.E2E_FAKE_SCANNER_URL ?? 'http://localhost:9501',
     sanitizer: process.env.E2E_FAKE_SANITIZER_URL ?? 'http://localhost:9502',
+    llm: process.env.E2E_FAKE_LLM_URL ?? 'http://localhost:9409',
+    loanpro: process.env.E2E_FAKE_LOANPRO_URL ?? 'http://localhost:9410',
+    quickbooks: process.env.E2E_FAKE_QUICKBOOKS_URL ?? 'http://localhost:9411',
+    sheets: process.env.E2E_FAKE_SHEETS_URL ?? 'http://localhost:9412',
   },
   /** External database a tenant connects as a data source (created by global setup). */
   externalDatabase: {

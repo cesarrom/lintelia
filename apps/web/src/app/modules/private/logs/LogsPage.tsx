@@ -1,3 +1,4 @@
+import { PageContainer, PageHeader } from '@/components/app/page';
 import LogsTable from './components/logs-table';
 import LogsFilter from './components/logs-filter';
 import LogsDashboard from './components/logs-dashboard';
@@ -23,13 +24,8 @@ export default function LogsPage() {
   const activeView = searchParams?.get('view') || 'analytics';
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">System Logs</h1>
-        <p className="text-muted-foreground mt-2">
-          View and manage system logs and events
-        </p>
-      </div>
+    <PageContainer>
+      <PageHeader title="System Logs" description="View and manage system logs and events" />
 
       <Tabs defaultValue={activeView} className="space-y-4">
         <div className="flex justify-between items-center">
@@ -63,6 +59,6 @@ export default function LogsPage() {
           <LogsTable logs={logs} />
         </TabsContent>
       </Tabs>
-    </div>
+    </PageContainer>
   );
 }

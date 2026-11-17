@@ -22,8 +22,8 @@ export default function SupportAccessPage() {
   return (
     <PageContainer>
       <PageHeader title="Support access" description="Fintivio staff can only look at your workspace with your approval, read-only and for a limited time. Every page they open is in your audit log." />
-      {!isLoading && grants.length === 0 ? <EmptyState>No requests.</EmptyState> : (
-        <div className="rounded-md border">
+      {!isLoading && grants.length === 0 ? <EmptyState art="shield">No requests.</EmptyState> : (
+        <div className="overflow-hidden rounded-xl border bg-card shadow-card">
           <Table>
             <TableHeader><TableRow><TableHead>Staff</TableHead><TableHead>Reason</TableHead><TableHead>Duration</TableHead><TableHead>Status</TableHead><TableHead>Until</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
             <TableBody>

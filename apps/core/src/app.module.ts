@@ -51,7 +51,7 @@ import { AuditWriter } from './services/audit.writer';
 import { SystemRolesSync } from './services/system-roles.sync';
 import { ENGINE_PROVIDERS } from './engine/providers';
 import { RestateHandler } from './handlers/restate.controller';
-import { CasesHandler } from './handlers/cases.controller';
+import { CaseHooksHandler, CasesHandler } from './handlers/cases.controller';
 import { TasksHandler } from './handlers/tasks.controller';
 import { ClientsHandler } from './handlers/clients.controller';
 import { PortalHandler } from './handlers/portal.controller';
@@ -60,6 +60,7 @@ import { WorkflowTemplatesHandler } from './handlers/workflow-templates.controll
 import { CasesService } from './services/cases.service';
 import { TasksService, ClientTasksService } from './services/tasks.service';
 import { WorkflowLifecycleService } from './services/workflow-lifecycle.service';
+import { SignalsService } from './services/signals.service';
 import { PublicFormsService } from './services/public-forms.service';
 import { EventsService } from './services/events.service';
 import { ClientsService } from './services/clients.service';
@@ -96,6 +97,12 @@ import { PartiesService } from './services/parties.service';
 import { DomainsHandler } from './handlers/domains.controller';
 import { CustomDomainsService } from './services/custom-domains.service';
 import { REQUEST_PROXY_PROVIDER } from './injector/tokens/request-proxy.token';
+import { ClientAppsHandler, ClientAuthHandler, ClientDataHandler, ClientRuntimeHandler, ClientSessionsHandler } from './handlers/client-apps.controller';
+import { ClientAppsService } from './client-apps/studio.service';
+import { ExperienceMapService } from './experience-map/map.service';
+import { ExperienceMapHandler } from './handlers/experience-map.controller';
+import { ClientRuntimeService } from './client-apps/runtime.service';
+import { ClientProvisioningService } from './client-apps/provisioning.service';
 
 const SERVICES = [
   DatabaseService,
@@ -120,6 +127,7 @@ const SERVICES = [
   TasksService,
   ClientTasksService,
   WorkflowLifecycleService,
+  SignalsService,
   PublicFormsService,
   EventsService,
   ClientsService,
@@ -133,6 +141,10 @@ const SERVICES = [
   UploadsService,
   PartiesService,
   CustomDomainsService,
+  ClientAppsService,
+  ExperienceMapService,
+  ClientRuntimeService,
+  ClientProvisioningService,
 ];
 
 const HANDLERS = [
@@ -152,6 +164,7 @@ const HANDLERS = [
   CatalogHandler,
   AuditHandler,
   CasesHandler,
+  CaseHooksHandler,
   TasksHandler,
   ClientsHandler,
   PortalHandler,
@@ -179,6 +192,12 @@ const HANDLERS = [
   SsoAuthHandler,
   PlatformSsoHandler,
   DomainsHandler,
+  ClientAppsHandler,
+  ExperienceMapHandler,
+  ClientRuntimeHandler,
+  ClientDataHandler,
+  ClientSessionsHandler,
+  ClientAuthHandler,
 ];
 
 export const HANDLERS_MAP = {

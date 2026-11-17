@@ -26,6 +26,11 @@ export const TENANT_PERMISSION_CATALOG: PermissionDefinition[] = [
   p('roles:manage', 'Manage roles', 'Create, change and delete custom roles', 'People'),
   p('clients:read', 'View clients', 'See client profiles in scope', 'Clients'),
   p('clients:update', 'Update clients', 'Contact notes, resend links, flag clients', 'Clients'),
+  p('clients:provision', 'Provision clients', "Register clients from the institution's systems and open sessions for embedded apps", 'Clients'),
+  p('clients:records', 'Client data', "Write the data clients see in their app (accounts, cards, transactions…)", 'Clients'),
+  p('experience:read', 'View client app', 'See the client app: pages, journeys, versions', 'Building'),
+  p('experience:manage', 'Edit client app', 'Change the draft of the client app', 'Building'),
+  p('experience:publish', 'Publish client app', 'Publish and roll back versions of the client app', 'Building'),
   p('forms:read', 'View forms', 'See forms and their submissions', 'Building'),
   p('forms:manage', 'Edit forms', 'Create and edit forms', 'Building'),
   p('forms:publish', 'Publish forms', 'Publish forms and get embed snippets', 'Building'),
@@ -44,6 +49,7 @@ export const TENANT_PERMISSION_CATALOG: PermissionDefinition[] = [
   p('cases:read_all', 'View all cases', 'See every case of the institution', 'Operations'),
   p('cases:lookup', 'Look up applications', "Find any client's application (never investigations) to help them", 'Operations'),
   p('cases:create', 'Start cases', 'Start applications and investigations', 'Operations'),
+  p('cases:signal', 'Signal cases', "Tell a running case that something happened in the institution's systems (a waiting step continues)", 'Operations'),
   p('tasks:work', 'Work tasks', 'Claim and decide tasks routed to me', 'Operations'),
   p('tasks:assign', 'Assign tasks', 'Reassign tasks and manage queues', 'Operations'),
   p('cases:approve_high_risk', 'High-risk decisions', 'Decide above the authority threshold and give second approvals', 'Operations'),
@@ -66,7 +72,7 @@ export interface SystemRoleDefinition {
 
 const READ_ONLY_OVERSIGHT = [
   'workspace:read', 'members:read', 'roles:read', 'clients:read', 'forms:read', 'workflows:read', 'variables:read',
-  'integrations:read', 'cases:read', 'cases:read_all', 'audit:read', 'audit:export',
+  'integrations:read', 'cases:read', 'cases:read_all', 'audit:read', 'audit:export', 'experience:read',
 ];
 
 export const SYSTEM_ROLES: SystemRoleDefinition[] = [
@@ -93,12 +99,13 @@ export const SYSTEM_ROLES: SystemRoleDefinition[] = [
   {
     key: 'flow_designer', name: 'Flow designer', description: 'Builds and publishes forms and workflows',
     permissions: ['workspace:read', 'members:read', 'roles:read', 'forms:read', 'forms:manage', 'forms:publish', 'workflows:read',
-      'workflows:manage', 'workflows:publish', 'templates:manage', 'variables:read', 'variables:manage', 'integrations:read', 'integrations:use'],
+      'workflows:manage', 'workflows:publish', 'templates:manage', 'variables:read', 'variables:manage', 'integrations:read', 'integrations:use',
+      'experience:read', 'experience:manage', 'experience:publish'],
   },
   {
     key: 'integration_manager', name: 'Integration manager', description: "Connects the institution's systems",
     permissions: ['workspace:read', 'workflows:read', 'variables:read', 'integrations:read', 'integrations:manage', 'integrations:use',
-      'api_clients:manage', 'webhooks:manage'],
+      'api_clients:manage', 'webhooks:manage', 'clients:provision', 'clients:records', 'experience:read', 'cases:signal'],
   },
   {
     key: 'support_agent', name: 'Support agent', description: 'Looks up application status and resends links; no decisions',

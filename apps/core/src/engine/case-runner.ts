@@ -2,6 +2,7 @@ import * as restate from '@restatedev/restate-sdk/fetch';
 import { set } from 'lodash';
 import type { Tenant } from '@repo/fintivio/schemas';
 import { CaseRepository, isFinalStatus } from './case-repository';
+import { hookUrl, SIGNAL_NAME } from './signals';
 import { parseDefinition, type StepDefinition } from './definition';
 import { resolveConfig } from './expressions';
 import { Notifier } from './notifier';
@@ -49,7 +50,40 @@ export function createCaseRunner({ repository, audit, notifier, directory, servi
   };
   const deps: EngineDeps = { repository, audit, notifier, loadTenant, services };
 
+  /**
+   * Every durable action of a case (`ctx.run`) fails for good once its institution no longer exists (deleted while the
+   * case ran, e.g. the welcome workflow of a test institution): retrying could never succeed.
+   */
+  function guardTenant(ctx: restate.WorkflowContext, tenantId: string): restate.WorkflowContext {
+    const run = (...args: unknown[]) => {
+      const index = typeof args[0] === 'function' ? 0 : 1;
+      const action = args[index] as () => Promise<unknown>;
+      args[index] = async () => {
+        try {
+          return await action();
+        } catch (error) {
+          if (!(error instanceof restate.TerminalError) && !(await directory.findById(tenantId).catch(() => true))) {
+            throw new restate.TerminalError('The institution of this case no longer exists');
+          }
+          throw error;
+        }
+      };
+      return (ctx.run as (...a: unknown[]) => unknown)(...args);
+    };
+    return new Proxy(ctx, {
+      get(target, prop) {
+        if (prop === 'run') return run;
+        const value = Reflect.get(target, prop, target);
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+    });
+  }
+
   async function run(ctx: restate.WorkflowContext, input: CaseRunInput) {
+    return runCase(input?.tenantId ? guardTenant(ctx, input.tenantId) : ctx, input);
+  }
+
+  async function runCase(ctx: restate.WorkflowContext, input: CaseRunInput) {
     verify(ctx, input);
     const { tenantId, caseId } = input;
     const kase = await ctx.run('load-case', () => repository.getCase(tenantId, caseId));
@@ -61,9 +95,12 @@ export function createCaseRunner({ repository, audit, notifier, directory, servi
     const start = definition.steps.find((step) => step.type === 'start');
     if (!start) throw new restate.TerminalError('Workflow has no start step');
 
+    // Signed addresses external systems call to signal the case (`webhook.wait` steps), known from the start.
+    const hooks = Object.fromEntries(definition.steps.filter((s) => s.type === 'webhook.wait' && SIGNAL_NAME.test(String(s.config?.name ?? '')))
+      .map((s) => [String(s.config.name), hookUrl(tenantId, caseId, String(s.config.name))]));
     const vars: Record<string, any> = {
       input: kase.data,
-      case: { id: kase.id, reference: kase.reference, title: kase.title, applicant: { email: kase.applicantEmail, name: kase.applicantName } },
+      case: { id: kase.id, reference: kase.reference, title: kase.title, applicant: { id: kase.applicantId, email: kase.applicantEmail, name: kase.applicantName }, hooks },
       steps: {},
     };
 
@@ -96,7 +133,9 @@ export function createCaseRunner({ repository, audit, notifier, directory, servi
       vars.steps[step.id] = result.output;
       if (!RESERVED_VARS.has(step.name) && result.event) set(vars, [step.name, result.event], result.output);
       await ctx.run(`result-${label}`, () => repository.saveResult(tenantId, caseId, step.id, result.output));
-      const next = step.events.find((event) => event.name === result.event)?.next ?? [];
+      // Branches may use a component's short names (a review's `approve` for `review_approved`).
+      const aliases = getComponent(step.type)?.definition.events.aliases ?? {};
+      const next = (step.events.find((event) => event.name === result.event) ?? step.events.find((event) => aliases[event.name] === result.event))?.next ?? [];
       for (const id of next) queue.push(steps.get(id)!);
     }
 
@@ -109,9 +148,17 @@ export function createCaseRunner({ repository, audit, notifier, directory, servi
       }
       return { status: current?.status ?? 'completed', outcome: current?.outcome ?? current?.status ?? 'completed' };
     });
+    // What the case gives back to its caller (functions, sub-workflows).
+    const outputs = Object.keys(definition.outputs).length
+      ? await ctx.run('case-outputs', async () => {
+        const values = await resolveConfig(definition.outputs, vars) as Record<string, unknown>;
+        await repository.saveResult(tenantId, caseId, '_outputs', values);
+        return values;
+      })
+      : {};
     if (kase.parentCaseId && services.notifyParent) {
       await ctx.run('notify-parent', () => services.notifyParent!(tenantId, caseId, {
-        outcome: 'completed', output: { caseId, reference: kase.reference, status: final.status, outcome: final.outcome, results: vars.steps },
+        outcome: 'completed', output: { caseId, reference: kase.reference, status: final.status, outcome: final.outcome, results: vars.steps, outputs },
       }));
     }
     return { caseId, steps: count };
@@ -138,7 +185,7 @@ export function createCaseRunner({ repository, audit, notifier, directory, servi
       /** Resolve a named promise: connector callbacks (`connector:*`) and child cases (`child:*`). API only. */
       resolve: restate.handlers.workflow.shared(async (ctx: restate.WorkflowSharedContext, input: CaseRunInput & { promise: string; signal: TaskSignal }) => {
         verify(ctx, input);
-        if (!/^(connector|child|party):/.test(input.promise)) throw new restate.TerminalError('Unknown promise', { errorCode: 400 });
+        if (!/^(connector|child|party|hook):/.test(input.promise)) throw new restate.TerminalError('Unknown promise', { errorCode: 400 });
         await ctx.promise<TaskSignal>(input.promise).resolve(input.signal);
       }),
     },

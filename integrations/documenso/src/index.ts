@@ -91,7 +91,7 @@ connector.action('signature.request', async ({ installation, config, input, call
   log.info('documenso document created', { installation: installation.id, case: kase.id, document: document.id });
   return {
     pending: true, ref: String(document.id),
-    clientAction: { type: 'embed', url: signingUrl(settings, recipient.token), title: 'Sign your agreement', instructions: 'Read the agreement and sign it electronically.' },
+    clientAction: { type: 'embed', url: signingUrl(settings, recipient.token), title: String(config.title || 'Sign your agreement'), instructions: String(config.instructions || 'Read the agreement and sign it electronically.') },
   };
 });
 

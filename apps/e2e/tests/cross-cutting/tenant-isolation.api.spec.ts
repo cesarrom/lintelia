@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../support/test';
 import { Api, expectStatus } from '../../support/api';
 import { addMember, createTenant, deleteTenant, type TenantHandle } from '../../support/factories';
 import { minimalWorkflowYaml } from '../../support/workflows';

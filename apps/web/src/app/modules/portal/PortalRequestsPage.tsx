@@ -10,10 +10,13 @@ export default function PortalRequestsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Requests</h1>
-      {!isLoading && requests.length === 0 && <EmptyState>Nothing is waiting for you.</EmptyState>}
+      <div>
+        <h1 className="text-[26px] font-semibold tracking-[-0.02em]">Requests</h1>
+        <p className="mt-1 text-sm text-muted-foreground">What the team needs from you to move your applications forward.</p>
+      </div>
+      {!isLoading && requests.length === 0 && <EmptyState art="tasks" title="All caught up">Nothing is waiting for you.</EmptyState>}
       {open.map((r) => <RequestCard key={r.id} request={r} respondPath={`/me/requests/${r.id}/respond`} />)}
-      {past.length > 0 && <h2 className="pt-4 text-lg font-semibold">Answered</h2>}
+      {past.length > 0 && <h2 className="pt-4 text-[15px] font-semibold tracking-tight text-muted-foreground">Answered</h2>}
       {past.map((r) => <RequestCard key={r.id} request={r} respondPath={`/me/requests/${r.id}/respond`} />)}
     </div>
   );

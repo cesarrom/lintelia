@@ -14,6 +14,7 @@ import type { CaseRepository } from "../engine/case-repository";
 import { AuditWriter } from "../services/audit.writer";
 import { OneTimeSecrets } from "../auth/session.store";
 import { redis } from "../clients/redis.client";
+import { ClientProvisioningService } from "../client-apps/provisioning.service";
 
 const REFRESH_COOKIE = 'fintivio_refresh';
 import { Access, Public } from "../auth/access";
@@ -47,6 +48,7 @@ export class AuthHandler {
     @Inject(CASE_REPOSITORY) private readonly repository: CaseRepository,
     @Inject(ENGINE_CLIENT) private readonly engine: EngineClient,
     @Inject(AuditWriter) private readonly audit: AuditWriter,
+    @Inject(ClientProvisioningService) private readonly provisioning: ClientProvisioningService,
   ) { }
 
   private readonly partySecrets = new OneTimeSecrets(redis());
@@ -155,8 +157,10 @@ export class AuthHandler {
   async verifyOtp(@Res() ctx: Context) {
     try {
       const tenant = this.requireRequestedTenant()!;
-      const { email, code } = await this.request.json<{ email: string; code: string }>();
+      const { email, code, profile, consents } = await this.request.json<{ email: string; code: string; profile?: Record<string, unknown>; consents?: Array<{ key?: string; version?: string }> }>();
       const { created, ...session } = await this.identity.verifyOtp(tenant, email, code);
+      // A new client (first code): what the app's sign-up asked for, then the workflows listening to client.registered.
+      if (created) await this.provisioning.afterSignUp(session.user.userId, { profile, consents, method: 'email_code' }).catch((e) => console.error('client.registered failed', e));
       // A confirmed e-mail also confirms the applications submitted with it (embedded forms).
       const submitted = session.user.kind === 'client' ? await this.publicForms.submitDrafts(tenant, session.user) : [];
       this.sendSession(ctx, session, tenant, 200, { firstSeen: created, submittedCases: submitted });
@@ -171,8 +175,11 @@ export class AuthHandler {
   async register(@Res() ctx: Context) {
     try {
       const tenant = this.requireRequestedTenant()!;
-      const body = await this.request.json<{ email: string; password: string; name?: string }>();
-      this.sendSession(ctx, await this.identity.registerClient(tenant, body), tenant, 201);
+      const body = await this.request.json<{ email: string; password: string; name?: string; profile?: Record<string, unknown>; consents?: Array<{ key?: string; version?: string }> }>();
+      await this.provisioning.checkSignUp(body.consents);
+      const session = await this.identity.registerClient(tenant, body);
+      await this.provisioning.afterSignUp(session.user.userId, { profile: body.profile, consents: body.consents, method: 'password' }).catch((e) => console.error('client.registered failed', e));
+      this.sendSession(ctx, session, tenant, 201);
     } catch (error) {
       jsonError(ctx, error, 'Registration failed');
     }
@@ -244,6 +251,30 @@ export class AuthHandler {
       this.sendSession(ctx, session, tenant, 200, { caseId, role });
     } catch (error) {
       jsonError(ctx, error, 'Joining failed');
+    }
+  }
+
+  /** What the client app's sign-up asks for (profile fields, consents); `available: false` without a published app. */
+  @Public()
+  @Get('/client/registration')
+  async clientRegistration(@Res() ctx: Context) {
+    try {
+      this.requireRequestedTenant();
+      json(ctx, await this.provisioning.registrationForm());
+    } catch (error) {
+      jsonError(ctx, error, 'Could not load the sign-up form');
+    }
+  }
+
+  /** Sites allowed to frame the client app (`/embed/app`), for the web server's frame-ancestors policy. */
+  @Public()
+  @Get('/client/embed-policy')
+  async clientEmbedPolicy(@Res() ctx: Context) {
+    try {
+      this.requireRequestedTenant();
+      json(ctx, await this.provisioning.embedPolicy());
+    } catch {
+      json(ctx, { frameAncestors: [] });
     }
   }
 

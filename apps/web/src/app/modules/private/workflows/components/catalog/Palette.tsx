@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { v4 as uuid } from 'uuid';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { componentEvents, type ComponentDefinition, type NodeData } from '@repo/fintivio/schemas';
-import { CATEGORY_LABELS, iconFor } from './catalog';
+import { CATEGORY_LABELS, categoryStyle, iconFor } from './catalog';
+import { cn } from '@/lib/utils';
 
-const ORDER = ['people', 'client', 'case', 'flow', 'data', 'communication', 'connector'];
+const ORDER = ['people', 'client', 'case', 'flow', 'data', 'communication', 'connector', 'function'];
 
 /** A new step of this component with its default configuration. */
 export function newStep(definition: ComponentDefinition): NodeData {
@@ -21,11 +22,14 @@ export function Palette({ components, onAdd, legacy }: { components: ComponentDe
   const [showLegacy, setShowLegacy] = useState(false);
   const groups = ORDER.map((category) => ({ category, items: components.filter((c) => c.category === category && !c.hidden) })).filter((g) => g.items.length);
   return (
-    <div className="flex flex-col gap-3 p-1" role="region" aria-label="Components">
-      <p className="text-xs text-muted-foreground">Click or drag to add</p>
+    <div className="flex flex-col gap-5" role="region" aria-label="Components">
+      <div>
+        <p className="text-[13px] font-semibold">Components</p>
+        <p className="text-xs text-muted-foreground">Click or drag onto the canvas</p>
+      </div>
       {groups.map(({ category, items }) => (
-        <div key={category} className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{CATEGORY_LABELS[category] ?? category}</p>
+        <div key={category} className="space-y-0.5">
+          <p className="px-1 pb-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/90">{CATEGORY_LABELS[category] ?? category}</p>
           {items.map((definition) => {
             const Icon = iconFor(definition.icon);
             return (
@@ -34,14 +38,14 @@ export function Palette({ components, onAdd, legacy }: { components: ComponentDe
                 type="button"
                 draggable
                 title={definition.description}
-                className="flex w-full items-center gap-2 rounded-md border bg-card px-2 py-1.5 text-left text-sm hover:bg-accent"
+                className="group flex w-full cursor-grab items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-left text-[13px] font-medium transition-colors hover:bg-background hover:shadow-raised active:cursor-grabbing"
                 onDragStart={(event) => {
                   event.dataTransfer.setData('application/reactflow', JSON.stringify(newStep(definition)));
                   event.dataTransfer.effectAllowed = 'move';
                 }}
                 onClick={() => onAdd(newStep(definition))}
               >
-                <Icon className="h-4 w-4 shrink-0" />
+                <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-md', categoryStyle(category).tile)}><Icon className="h-3.5 w-3.5" /></span>
                 <span className="truncate">{definition.title}</span>
               </button>
             );

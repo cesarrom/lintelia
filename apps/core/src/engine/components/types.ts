@@ -39,7 +39,7 @@ export interface EngineServices {
   /** A child case ended: resolve the promise its parent step waits on. */
   notifyParent?(tenantId: string, childCaseId: string, signal: TaskSignal): Promise<void>;
   /** Start a child case on a published workflow (workflow.call / foreach). */
-  startChildCase?(input: { tenantId: string; parentCaseId: string; parentStepId: string; workflowId: string; data: Record<string, unknown>; applicantId?: string | null; partyId?: string | null; callbackPromise: string }): Promise<{ caseId: string; reference: string }>;
+  startChildCase?(input: { tenantId: string; parentCaseId: string; parentStepId: string; workflowId: string; data: Record<string, unknown>; applicantId?: string | null; partyId?: string | null; callbackPromise: string | null }): Promise<{ caseId: string; reference: string }>;
 }
 
 export interface ConnectorInvocation {

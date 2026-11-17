@@ -1,4 +1,6 @@
+import { Avatar } from '@/components/brand/Monogram';
 import { useMemo, useState } from 'react';
+import { DetailLoader } from '@/components/app/loading';
 import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 import { ArrowLeft, Flag, Plus } from 'lucide-react';
@@ -15,6 +17,7 @@ import { PageContainer, StatusBadge, formatDate, humanize } from '@/components/a
 import { useAuth } from '@/lib/auth/AuthContext';
 import { apiErrorMessage, useApiMutation, useApiQuery } from '@/lib/services/api';
 import type { CaseSummary } from '../cases/types';
+import { ClientAppData } from './ClientAppData';
 
 interface ClientDetail {
   id: string;
@@ -152,20 +155,25 @@ export default function ClientPage() {
   const [flagOpen, setFlagOpen] = useState(false);
   const [startOpen, setStartOpen] = useState(false);
 
-  if (isLoading) return <PageContainer>Loading…</PageContainer>;
+  if (isLoading) return <DetailLoader />;
   if (error || !client) return <PageContainer><Alert variant="destructive"><AlertDescription>{apiErrorMessage(error)}</AlertDescription></Alert></PageContainer>;
 
   return (
     <PageContainer>
-      <Button variant="ghost" size="sm" onClick={() => navigate('/app/clients')}><ArrowLeft className="h-4 w-4 mr-2" />Back to clients</Button>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{client.name || client.email}</h1>
-          <p className="text-muted-foreground">{client.email} · client since {formatDate(client.createdAt)} · <StatusBadge status={client.status} /></p>
-        </div>
-        <div className="flex gap-2">
-          {hasPermission('cases:create') && <Button variant="outline" onClick={() => setStartOpen(true)}><Plus className="h-4 w-4 mr-2" />Start application</Button>}
-          {hasPermission('clients:update') && <Button variant="destructive" onClick={() => setFlagOpen(true)}><Flag className="h-4 w-4 mr-2" />Flag suspicious activity</Button>}
+      <Button variant="ghost" size="sm" className="-ml-2 text-muted-foreground" onClick={() => navigate('/app/clients')}><ArrowLeft className="h-4 w-4" />Back to clients</Button>
+      <div className="rounded-2xl border bg-card p-6 shadow-card">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-4">
+            <Avatar name={client.name} email={client.email} size="lg" className="h-14 w-14 text-base" />
+            <div className="min-w-0">
+              <h1 className="text-[24px] font-semibold leading-tight tracking-[-0.02em]">{client.name || client.email}</h1>
+              <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">{client.email} · client since {formatDate(client.createdAt)} · <StatusBadge status={client.status} /></p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {hasPermission('cases:create') && <Button variant="outline" onClick={() => setStartOpen(true)}><Plus className="h-4 w-4" />Start application</Button>}
+            {hasPermission('clients:update') && <Button variant="outline" className="border-destructive/30 text-destructive hover:border-destructive/50 hover:bg-destructive/[0.06] hover:text-destructive" onClick={() => setFlagOpen(true)}><Flag className="h-4 w-4" />Flag suspicious activity</Button>}
+          </div>
         </div>
       </div>
       <Card>
@@ -173,7 +181,7 @@ export default function ClientPage() {
           <CardTitle>Cases</CardTitle>
           <CardDescription>Cases of this client that you can see</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className={client.cases.length ? 'px-0 pb-0' : undefined}>
           {client.cases.length === 0 ? <p className="text-sm text-muted-foreground">No cases in your scope.</p> : (
             <Table>
               <TableHeader><TableRow><TableHead>Reference</TableHead><TableHead>Title</TableHead><TableHead>Status</TableHead><TableHead>Opened</TableHead></TableRow></TableHeader>
@@ -181,7 +189,7 @@ export default function ClientPage() {
                 {client.cases.map((c) => (
                   <TableRow key={c.id} className="cursor-pointer" data-testid="case-row" data-case-reference={c.reference} onClick={() => navigate(`/app/cases/${c.id}`)}>
                     <TableCell className="font-mono text-xs">{c.reference}</TableCell>
-                    <TableCell>{c.title}</TableCell>
+                    <TableCell className="font-medium">{c.title}</TableCell>
                     <TableCell><StatusBadge status={c.status} /></TableCell>
                     <TableCell className="text-sm">{formatDate(c.createdAt)}</TableCell>
                   </TableRow>
@@ -191,6 +199,7 @@ export default function ClientPage() {
           )}
         </CardContent>
       </Card>
+      <ClientAppData clientId={client.id} />
       <FlagDialog client={client} open={flagOpen} onOpenChange={setFlagOpen} />
       {startOpen && <StartCaseDialog client={client} open={startOpen} onOpenChange={setStartOpen} />}
     </PageContainer>

@@ -1,0 +1,52 @@
+schemaVersion: "1"
+name: "App: freeze or unfreeze a card"
+description: Started from a card in the app. Freezes an active card, or unfreezes a frozen one.
+caseTitle: "Card freeze: {{applicant}}"
+inputs: [{ id: card, name: card, type: string, required: true }]
+steps:
+  - { id: start, name: Start, type: start, events: [{ name: finished, outputs: [], next: [cards] }] }
+  - id: cards
+    name: Cards
+    type: client.data
+    config: { collection: cards }
+    events: [{ name: done, outputs: [], next: [check] }]
+  - id: check
+    name: Which card
+    type: calculate
+    config:
+      outputs:
+        card: "steps.cards.records[key = $$.input.card]"
+        found: "$exists(steps.cards.records[key = $$.input.card])"
+        frozen: "steps.cards.records[key = $$.input.card].status = 'frozen'"
+        last4: "steps.cards.records[key = $$.input.card].last4"
+    events: [{ name: done, outputs: [], next: [found] }]
+  - id: found
+    name: Known card?
+    type: conditional
+    config: { expression: "steps.check.found" }
+    events: [{ name: "true", outputs: [], next: [toggle] }, { name: "false", outputs: [], next: [unknown] }]
+  - id: toggle
+    name: Change status
+    type: client.record
+    config: { collection: cards, key: "{{input.card}}", mode: merge, data: { status: "= steps.check.frozen ? 'active' : 'frozen'" } }
+    events: [{ name: done, outputs: [], next: [notify] }]
+  - id: notify
+    name: Tell the client
+    type: client.notify
+    config:
+      title: "= steps.check.frozen ? 'Card unfrozen' : 'Card frozen'"
+      body: "= steps.check.frozen ? 'Your card ending ' & steps.check.last4 & ' works again.' : 'Payments with your card ending ' & steps.check.last4 & ' are blocked until you unfreeze it.'"
+      page: cards
+    events: [{ name: done, outputs: [], next: [done] }]
+  - id: done
+    name: Done
+    type: case.decision
+    config: { status: completed, outcome: "= steps.check.frozen ? 'unfrozen' : 'frozen'", notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]
+  - id: unknown
+    name: Unknown card
+    type: case.decision
+    config: { status: closed, outcome: unknown_card, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]

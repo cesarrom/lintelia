@@ -1,0 +1,88 @@
+schemaVersion: "1"
+name: "Borrower: make a payment"
+description: The borrower pays towards their auto loan from the app; the payment is posted in LoanPro and the app shows the new balance.
+caseTitle: "Payment: {{applicant}}"
+inputs: []
+steps:
+  - { id: start, name: Start, type: start, events: [{ name: finished, outputs: [], next: [loans] }] }
+  - id: loans
+    name: Loans
+    type: client.data
+    config: { collection: loans }
+    events: [{ name: done, outputs: [], next: [form] }]
+  - id: form
+    name: Amount
+    type: client.screen
+    config:
+      title: Make a payment
+      stage: amount
+      fields:
+        - { key: loan, label: Loan, type: select, required: true, optionsFrom: loans, optionLabel: "{{item.name}} · balance ${{item.balance | money}}", optionValue: "{{item.key}}", default: "= steps.loans.records[0].key" }
+        - { key: amount, label: Amount (USD), type: money, required: true, min: 1, default: "= steps.loans.records[0].nextPaymentAmount", help: "Your next payment is ${{steps.loans.records[0].nextPaymentAmount | money}} due {{steps.loans.records[0].nextPaymentDate | date}}." }
+      buttons: [{ key: continue, label: Review payment, style: primary }]
+    events: [{ name: continue, outputs: [], next: [check] }]
+  - id: check
+    name: Check
+    type: calculate
+    config:
+      outputs:
+        loan: "steps.loans.records[key = $$.input.loan]"
+        amount: "$round($number(input.amount), 2)"
+        valid: "$exists(steps.loans.records[key = $$.input.loan]) and $number(input.amount) > 0 and $number(input.amount) <= steps.loans.records[key = $$.input.loan].balance + 1000"
+    events: [{ name: done, outputs: [], next: [valid] }]
+  - id: valid
+    name: Possible?
+    type: conditional
+    config: { expression: "steps.check.valid" }
+    events: [{ name: "true", outputs: [], next: [confirm] }, { name: "false", outputs: [], next: [problem] }]
+  - id: problem
+    name: Not possible
+    type: client.screen
+    config:
+      title: We can't take this payment
+      content: "The amount must be more than $0 and not more than what you owe."
+      stage: amount
+      buttons: [{ key: back, label: Change the amount, style: primary, skipValidation: true }]
+    events: [{ name: back, outputs: [], next: [form] }]
+  - id: confirm
+    name: Confirm
+    type: client.screen
+    config:
+      title: Confirm your payment
+      stage: confirm
+      content: "**${{steps.check.amount | money}}** towards your **{{steps.check.loan.name}}**, from the bank account on file.\n\nPayments made before 5 pm ET post today."
+      buttons: [{ key: pay, label: Pay now, style: primary }, { key: back, label: Back, style: secondary, skipValidation: true }]
+    events: [{ name: pay, outputs: [], next: [post] }, { name: back, outputs: [], next: [form] }]
+  - id: post
+    name: Post the payment (LoanPro)
+    type: "connector:loanpro/payment.create"
+    config:
+      connection: ${LOANPRO}
+      input: { loanId: "= $string(steps.check.loan.loanId)", amount: "= $string(steps.check.amount)", clientId: "= case.applicant.id" }
+    events: [{ name: posted, outputs: [], next: [thanks] }, { name: failed, outputs: [], next: [failed] }]
+  - id: thanks
+    name: Thank you
+    type: client.notify
+    config: { title: "Payment received: ${{steps.check.amount | money}}", body: "Your new balance is ${{steps.post.balance | money}}.", tone: success, page: loan }
+    events: [{ name: done, outputs: [], next: [done] }]
+  - id: done
+    name: Done
+    type: case.decision
+    config: { status: completed, outcome: paid, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]
+  - id: failed
+    name: Payment failed
+    type: client.screen
+    config:
+      title: Your payment did not go through
+      content: "Nothing was taken from your account. Try again in a few minutes or message us."
+      stage: confirm
+      buttons: [{ key: retry, label: Try again, style: primary, skipValidation: true }, { key: close, label: Close, style: secondary, skipValidation: true }]
+    events: [{ name: retry, outputs: [], next: [form] }, { name: close, outputs: [], next: [not_paid] }]
+  - id: not_paid
+    name: Not paid
+    type: case.decision
+    config: { status: closed, outcome: payment_failed, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]

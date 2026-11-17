@@ -1,3 +1,4 @@
+import { Monogram } from '@/components/brand/Monogram';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
@@ -99,10 +100,10 @@ export default function InstitutionsPage() {
       <PageHeader
         title="Institutions"
         description="Financial institutions operating on the platform"
-        actions={hasPermission('platform.tenants:create') && <Button onClick={() => setOnboarding(true)}><Plus className="h-4 w-4 mr-2" />Onboard institution</Button>}
+        actions={hasPermission('platform.tenants:create') && <Button onClick={() => setOnboarding(true)}><Plus className="h-4 w-4" />Onboard institution</Button>}
       />
-      {!isLoading && tenants.length === 0 ? <EmptyState>No institutions yet.</EmptyState> : (
-        <div className="rounded-md border">
+      {!isLoading && tenants.length === 0 ? <EmptyState art="clients">No institutions yet.</EmptyState> : (
+        <div className="overflow-hidden rounded-xl border bg-card shadow-card">
           <Table>
             <TableHeader>
               <TableRow><TableHead>Name</TableHead><TableHead>Workspace key</TableHead><TableHead>Custom domains</TableHead><TableHead>Status</TableHead><TableHead>Since</TableHead><TableHead className="text-right">Actions</TableHead></TableRow>
@@ -110,7 +111,7 @@ export default function InstitutionsPage() {
             <TableBody>
               {tenants.map((t) => (
                 <TableRow key={t.id} data-testid="institution-row" data-domain={t.domain}>
-                  <TableCell className="font-medium">{t.name}</TableCell>
+                  <TableCell className="font-medium"><span className="flex items-center gap-3"><Monogram name={t.name} color={(t as { pallette?: { primary?: string } }).pallette?.primary} size="sm" />{t.name}</span></TableCell>
                   <TableCell className="font-mono text-xs">{t.domain}</TableCell>
                   <TableCell className="text-sm">{t.allowedDomains.join(', ') || '—'}</TableCell>
                   <TableCell><StatusBadge status={t.status} /></TableCell>

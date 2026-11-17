@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from '../../support/test';
 import { deleteTenant, uniqueEmail } from '../../support/factories';
 import { waitForEmail } from '../../support/mailbox';
 import { prepareInstitution, type Institution } from '../../support/scenario';

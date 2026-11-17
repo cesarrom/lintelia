@@ -1,7 +1,7 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
 import { and, desc, eq, exists, inArray, or, sql, type SQL } from 'drizzle-orm';
 import type { Tenant, User } from '@repo/fintivio/schemas';
-import { caseFiles, caseRecords, cases, sysWorkflows, tasks, users } from '../entities';
+import { caseFiles, caseRecords, cases, sysWorkflows, tasks, users, workflowVersions } from '../entities';
 import { TENANT } from '../injector/tokens/tenant.token';
 import { USER } from '../injector/tokens/user.token';
 import { CASE_REPOSITORY, ENGINE_CLIENT, EngineClient } from '../engine/engine.client';
@@ -202,12 +202,26 @@ export class CasesService {
     return rows.map(({ kase, workflowName }) => this.summary(kase, workflowName));
   }
 
+  /** Workflows whose active version declares stages: the columns of the pipeline board. */
+  async pipelines() {
+    const rows = await this.db.select({ workflowId: workflowVersions.workflowId, yaml: workflowVersions.yaml, name: sysWorkflows.name }).from(workflowVersions)
+      .innerJoin(sysWorkflows, eq(sysWorkflows.id, workflowVersions.workflowId))
+      .where(eq(workflowVersions.status, 'active'));
+    // Busiest first (the board opens on it): cases in the member's scope per workflow.
+    const counts = await this.db.select({ workflowId: cases.workflowId, count: sql<number>`count(*)::int` }).from(cases).where(this.scope()).groupBy(cases.workflowId);
+    const countOf = (id: string) => counts.find((c) => c.workflowId === id)?.count ?? 0;
+    return rows.map((row) => ({ id: row.workflowId, name: row.name, stages: parseDefinition(row.yaml).stages, cases: countOf(row.workflowId) }))
+      .filter((p) => p.stages.length > 0).sort((a, b) => b.cases - a.cases || a.name.localeCompare(b.name));
+  }
+
   private summary(kase: CaseRow, workflowName?: string | null) {
     return {
       id: kase.id,
       reference: kase.reference,
       title: kase.title,
       status: kase.status,
+      /** Business stage set by the workflow (`case.update`), e.g. underwriting, funding. */
+      stage: kase.stage,
       outcome: kase.outcome,
       riskLevel: kase.riskLevel,
       flags: kase.flags,
@@ -222,6 +236,12 @@ export class CasesService {
     };
   }
 
+  /** 404 unless the caller may see the case (cheap check for sub-resources). */
+  async assertVisible(caseId: string) {
+    const [row] = await this.db.select({ id: cases.id }).from(cases).where(and(eq(cases.id, caseId), this.scope())).limit(1);
+    if (!row) throw new NotFoundError('Case not found');
+  }
+
   /** A case the caller may see (404 otherwise, so existence is not revealed). */
   async get(caseId: string) {
     const [row] = await this.db.select({ kase: cases, workflowName: sysWorkflows.name }).from(cases)
@@ -230,8 +250,11 @@ export class CasesService {
     if (!row) throw new NotFoundError('Case not found');
     const taskRows = await this.repository.tasksOfCase(this.tenant.id, caseId);
     const emails = await this.emailsOf(taskRows.map((t) => t.assigneeId).filter(Boolean) as string[]);
+    const version = await this.repository.version(this.tenant.id, row.kase.workflowId, row.kase.workflowVersion);
     return {
       ...this.summary(row.kase, row.workflowName),
+      // The workflow's stages (labels for the stage bar), in order.
+      stages: version ? parseDefinition(version.yaml).stages : [],
       data: row.kase.data,
       calculations: await calculationsOf(this.repository, this.tenant.id, row.kase),
       tasks: taskRows.map((t) => toTaskSummary(t, emails)),
@@ -248,7 +271,7 @@ export class CasesService {
   }
 
   async timeline(caseId: string) {
-    await this.get(caseId);
+    await this.assertVisible(caseId);
     return this.audit.list(this.tenant.id, { caseId, order: 'asc' });
   }
 

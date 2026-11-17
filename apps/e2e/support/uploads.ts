@@ -16,6 +16,15 @@ export async function pdfBytes(text = 'Utility bill — 1 High Street', opts: { 
   return opts.trailer ? Buffer.concat([bytes, Buffer.from(`\n%${opts.trailer}\n`)]) : bytes;
 }
 
+/** A digital document (pay stub, buyer's order…): one line of text per entry, readable by text extraction. */
+export async function documentPdf(lines: string[]) {
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([595, 842]);
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  lines.forEach((line, i) => page.drawText(line, { x: 50, y: 780 - i * 22, size: i === 0 ? 16 : 12, font }));
+  return Buffer.from(await doc.save({ useObjectStreams: false }));
+}
+
 export interface UploadOutcome {
   id: string;
   status: string;

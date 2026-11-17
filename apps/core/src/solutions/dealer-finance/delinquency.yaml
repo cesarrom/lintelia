@@ -1,0 +1,38 @@
+schemaVersion: "1"
+name: "Servicing: missed payment"
+description: Runs when LoanPro marks a loan past due — a reminder in the borrower's app with a pay button and a call task for collections.
+caseTitle: "Past due: {{input.displayId}} ({{input.daysPastDue}} days)"
+startOn: ["connector:loanpro/loan.delinquent"]
+clientVisibility: requests_only
+inputs: []
+steps:
+  - { id: start, name: Start, type: start, events: [{ name: finished, outputs: [], next: [known] }] }
+  - id: known
+    name: Borrower in the app?
+    type: conditional
+    config: { expression: "$exists(case.applicant.id) and case.applicant.id != null" }
+    events: [{ name: "true", outputs: [], next: [remind] }, { name: "false", outputs: [], next: [call] }]
+  - id: remind
+    name: Reminder
+    type: client.notify
+    config:
+      title: Your payment is past due
+      body: "Your loan is {{input.daysPastDue}} days past due. Pay ${{input.nextPaymentAmount | money}} now in the app, or tell us if you are having difficulties — we can help."
+      tone: warning
+      page: loan
+      email: true
+    events: [{ name: done, outputs: [], next: [call] }]
+  - id: call
+    name: Call the borrower
+    type: task
+    config:
+      title: "Collections: {{input.displayId}} is {{input.daysPastDue}} days past due"
+      description: "Balance ${{input.balance | money}}. Call the borrower, offer a payment plan or a due-date change if they are in hardship."
+      assignTo: { role: reviewer }
+    events: [{ name: done, outputs: [], next: [done] }]
+  - id: done
+    name: Done
+    type: case.decision
+    config: { status: completed, outcome: contacted, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]

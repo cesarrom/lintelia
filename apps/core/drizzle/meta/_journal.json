@@ -141,6 +141,20 @@
       "when": 1794689348029,
       "tag": "0019_directory_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1794805421787,
+      "tag": "0020_client_apps",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1794843107163,
+      "tag": "0021_case_stages_signals",
+      "breakpoints": true
     }
   ]
 }

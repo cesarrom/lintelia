@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../support/test';
 import { Api, expectForbidden, expectStatus } from '../../support/api';
 import { addClient, createTenant, deleteTenant, login, staffSession, uniqueKey, type TenantHandle } from '../../support/factories';
 import { SYSTEM_ROLES } from '../../support/catalog';

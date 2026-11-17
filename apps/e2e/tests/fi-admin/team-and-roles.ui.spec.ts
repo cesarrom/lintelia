@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../support/test';
 import { Api } from '../../support/api';
 import { createTenant, deleteTenant, uniqueEmail, type TenantHandle } from '../../support/factories';
 import { linkWithParam, waitForEmail } from '../../support/mailbox';
@@ -60,12 +60,13 @@ test.describe('FIA-04 Manage the team (invite, roles, deactivate)', { tag: ['@fi
       await expect(nav.getByRole('link', { name: hidden })).toHaveCount(0);
     }
 
-    // Deactivating signs the member out everywhere.
+    // Deactivating signs the member out everywhere. (The session is read first: once deactivated, the invitee's page
+    // may notice on its next request and drop it.)
+    const session = JSON.parse((await invitee.evaluate(() => localStorage.getItem('fintivio.session')))!);
     await page.reload();
     const row = page.getByTestId('member-row').filter({ hasText: email });
     await row.getByRole('button', { name: 'Deactivate' }).click();
     await expect(row).toContainText('Deactivated');
-    const session = JSON.parse((await invitee.evaluate(() => localStorage.getItem('fintivio.session')))!);
     expect((await Api.as(session).get('/tasks')).status).toBe(401);
   });
 

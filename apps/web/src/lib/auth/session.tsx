@@ -11,7 +11,13 @@ import type { User } from '@repo/fintivio/schemas';
  */
 
 export const API_BASE_URL = import.meta.env.VITE_FILES_API_BASE_URL as string;
-const STORAGE_KEY = 'fintivio.session';
+/**
+ * The client app embedded in another site (`/embed/app`, SDK) keeps its own session for the tab only: it never mixes
+ * with a session of the full site in the same browser, and ends with the host page.
+ */
+export const EMBEDDED_APP = typeof window !== 'undefined' && /^\/embed\/app(\/|$)/.test(window.location.pathname);
+const STORAGE_KEY = EMBEDDED_APP ? 'fintivio.embedded-session' : 'fintivio.session';
+const storage = (): Storage => (EMBEDDED_APP ? window.sessionStorage : window.localStorage);
 const REFRESH_MARGIN_MS = 60_000;
 
 export interface PublicTenant {
@@ -46,13 +52,13 @@ const SessionContext = createContext<SessionContextValue | undefined>(undefined)
 
 const readStoredSession = (): StoredSession | null => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = storage().getItem(STORAGE_KEY);
     if (!raw) return null;
     const session = JSON.parse(raw) as StoredSession;
     if (!session.token) return null;
     // An expired access token is still useful while the refresh token is valid.
     if (session.expiresAt <= Date.now() && !session.refreshToken) {
-      localStorage.removeItem(STORAGE_KEY);
+      storage().removeItem(STORAGE_KEY);
       return null;
     }
     return session;
@@ -91,8 +97,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   sessionRef.current = session;
 
   const setSession = useCallback((next: StoredSession | null) => {
-    if (next) localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    else localStorage.removeItem(STORAGE_KEY);
+    if (next) storage().setItem(STORAGE_KEY, JSON.stringify(next));
+    else storage().removeItem(STORAGE_KEY);
     sessionRef.current = next;
     setSessionState(next);
   }, []);
@@ -201,7 +207,8 @@ export const useAuthActions = () => {
       setSession(next);
       return next;
     },
-    register: async (tenant: string, input: { email: string; password: string; name?: string }) => {
+    /** `profile` and `consents`: what the client app's sign-up asks for (GET /auth/client/registration). */
+    register: async (tenant: string, input: { email: string; password: string; name?: string; profile?: Record<string, string>; consents?: Array<{ key: string; version: string }> }) => {
       const next = await authRequest<StoredSession>('/auth/register', input, tenant);
       setSession(next);
       return next;

@@ -1,0 +1,43 @@
+schemaVersion: "1"
+name: "Servicing: loan paid off"
+description: Runs when a loan is paid in full — congratulations in the app and a task to release the lien on the title.
+caseTitle: "Paid off: {{input.displayId}}"
+startOn: ["connector:loanpro/loan.paid_off"]
+clientVisibility: requests_only
+inputs: []
+steps:
+  - { id: start, name: Start, type: start, events: [{ name: finished, outputs: [], next: [known] }] }
+  - id: known
+    name: Borrower in the app?
+    type: conditional
+    config: { expression: "$exists(case.applicant.id) and case.applicant.id != null" }
+    events: [{ name: "true", outputs: [], next: [congratulate] }, { name: "false", outputs: [], next: [release] }]
+  - id: congratulate
+    name: Congratulations
+    type: client.notify
+    config:
+      title: Your loan is paid off
+      body: "Congratulations! We are releasing our lien; the title will be sent to you within 10 business days."
+      tone: success
+      page: loan
+      email: true
+    events: [{ name: done, outputs: [], next: [segment] }]
+  - id: segment
+    name: Mark as paid off
+    type: client.profile
+    config: { addSegments: [paid_off] }
+    events: [{ name: done, outputs: [], next: [release] }]
+  - id: release
+    name: Release the lien
+    type: task
+    config:
+      title: "Release the lien for {{input.displayId}}"
+      description: The loan is paid in full. Release our lien with the DMV and send the title to the borrower.
+      assignTo: { role: senior_reviewer }
+    events: [{ name: done, outputs: [], next: [done] }]
+  - id: done
+    name: Done
+    type: case.decision
+    config: { status: completed, outcome: lien_released, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]

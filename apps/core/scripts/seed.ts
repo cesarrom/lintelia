@@ -20,21 +20,30 @@
  *     client@demo-bank.test        a client (end user)
  *     senior@demo-bank.test        senior_reviewer (second approvals)
  *   admin@acme-credit.test         Acme Credit Union administrator (tenant key: acme-credit)
+ *   Demo Auto Finance (tenant key demo-auto, dealer finance — docs/plans/12):
+ *     admin@demo-auto.test, designer@demo-auto.test, underwriter@demo-auto.test (reviewer), funding@demo-auto.test
+ *     (senior_reviewer), integrations@demo-auto.test; dealer@sunrise-motors.test: a dealer (client, segment dealer)
  *
  * Demo Bank content: the loan pre-approval and suspicious-activity workflows (published) and the loan application
  * form, published for the demo website (`bun run demo:site`, http://localhost:4000).
  */
 import { eq, sql } from 'drizzle-orm';
 import { createDatabases } from '../src/clients/database.client';
-import { platformMfaFactors, platformUsers, publicFormKeys, roles, sysForms, sysWorkflows, tenantSecurityPolicies, tenants, userRoles, users, workflowVersions } from '../src/entities';
+import { apiClientIndex, apiClients, clientProfiles, platformMfaFactors, platformUsers, publicFormKeys, roles, sysForms, sysWorkflows, tenantSecurityPolicies, tenants, userRoles, users, workflowVersions } from '../src/entities';
 import { encryptSecret } from '../src/auth/data-encryption';
 
 /** TOTP secret of the seeded staff account (development only; base32). */
 export const DEV_STAFF_TOTP_SECRET = process.env.SEED_STAFF_TOTP_SECRET || 'FINTIVIODEVSTAFFSECRETAAAAAAAAAA';
 import { templateYaml } from '../src/engine/templates';
+import { installClientAppTemplate } from '../src/client-apps/templates';
+import { seedBankingCustomer } from '../src/client-apps/templates/banking-demo-data';
+import { ensureProfile } from '../src/client-apps/profiles';
+import { loadApp } from '../src/client-apps/runtime-data';
 import { parseDefinition } from '../src/engine/definition';
 import type { Databases } from '../src/clients/database.client';
 import { hashPassword } from '../src/auth/passwords';
+import { hashSecret } from '../src/api-clients/api-clients';
+import { randomUUID } from 'node:crypto';
 import { provisionTenant, syncSystemRoles } from '../src/tenancy/provisioning';
 
 export const DEFAULT_SEED_PASSWORD = 'fintivio-dev-password';
@@ -43,6 +52,13 @@ export const DEFAULT_SEED_PASSWORD = 'fintivio-dev-password';
 export const DEMO_LOAN_FORM_KEY = 'pf_demo_loan_form';
 /** Origin of the demo bank website (`bun run demo:site`), allowed to embed the loan form. */
 export const DEMO_SITE_ORIGIN = 'http://localhost:4000';
+
+/**
+ * API client of the demo website's backend (`bun run demo:site`): opens client sessions for the embedded banking app.
+ * Development credentials only.
+ */
+export const DEMO_SITE_API_CLIENT_ID = 'fc_demo_site';
+export const DEMO_SITE_API_CLIENT_SECRET = process.env.DEMO_SITE_API_CLIENT_SECRET ?? 'fcs_demo_site_development_secret';
 
 /** Published workflows from the templates, and the loan application form published for the demo website. */
 async function seedDemoContent(databases: Databases, tenantId: string) {
@@ -85,6 +101,49 @@ async function seedDemoContent(databases: Databases, tenantId: string) {
     await databases.platform.insert(publicFormKeys).values({ key: DEMO_LOAN_FORM_KEY, tenantId, formId: created.id }).onConflictDoNothing();
     console.log(`seeded published form "Personal loan pre-approval" (${DEMO_LOAN_FORM_KEY}, embeddable on ${DEMO_SITE_ORIGIN})`);
   }
+
+  // The client app (docs/plans/11): the banking app template with its journey workflows, published; Chris Client is an
+  // existing customer with accounts, cards and two months of transactions.
+  // Kept up to date with the template (workflows and app the seed created and nobody changed since).
+  const app = await loadApp(db);
+  if (!app || app.updatedBy === 'seed') {
+    const installed = await installClientAppTemplate(db, { template: 'banking', by: 'seed', publish: true, institution: 'Demo Bank', refresh: true });
+    if (installed.version) console.log(`seeded the client app "Banking app" (published v${installed.version}, ${Object.keys(installed.workflows).length} journey workflows)`);
+  }
+  const [siteClient] = await db.select({ id: apiClients.id }).from(apiClients).where(eq(apiClients.clientId, DEMO_SITE_API_CLIENT_ID));
+  if (!siteClient) {
+    await db.insert(apiClients).values({
+      name: 'Demo website (embedded banking app)', clientId: DEMO_SITE_API_CLIENT_ID, permissions: ['clients:provision', 'clients:records'], createdByEmail: 'seed',
+      secrets: [{ id: randomUUID(), hash: hashSecret(DEMO_SITE_API_CLIENT_SECRET), prefix: DEMO_SITE_API_CLIENT_SECRET.slice(0, 8), createdAt: new Date().toISOString(), expiresAt: null }],
+    });
+    await databases.platform.insert(apiClientIndex).values({ clientId: DEMO_SITE_API_CLIENT_ID, tenantId }).onConflictDoNothing();
+    console.log(`seeded API client ${DEMO_SITE_API_CLIENT_ID} (demo website: client sessions for the embedded app)`);
+  }
+  const [chris] = await db.select({ id: users.id, name: users.name }).from(users).where(sql`lower(${users.email}) = 'client@demo-bank.test'`);
+  if (chris && await seedBankingCustomer(db, chris.id, { name: chris.name, externalId: 'C-1001' })) console.log('seeded banking data of client@demo-bank.test (accounts, cards, transactions)');
+  // Chris accepted the app's terms when he became a customer (new clients accept them in the app).
+  if (chris) {
+    const profile = await ensureProfile(db, chris.id);
+    if (!profile.consents.length) {
+      const acceptedAt = new Date().toISOString();
+      await db.update(clientProfiles).set({ consents: [{ key: 'terms', version: '2026-01', acceptedAt }, { key: 'privacy', version: '2026-01', acceptedAt }] }).where(eq(clientProfiles.id, profile.id));
+    }
+  }
+}
+
+/** Sunrise Motors' user is an approved dealer (segment `dealer`) who accepted the portal's terms. */
+async function seedDealer(databases: Databases, tenantId: string) {
+  const db = databases.forTenant(tenantId);
+  const [dealer] = await db.select({ id: users.id }).from(users).where(sql`lower(${users.email}) = 'dealer@sunrise-motors.test'`);
+  if (!dealer) return;
+  const profile = await ensureProfile(db, dealer.id);
+  if (profile.segments.includes('dealer')) return;
+  const acceptedAt = new Date().toISOString();
+  await db.update(clientProfiles).set({
+    segments: ['dealer'], attributes: { ...profile.attributes, dealerName: 'Sunrise Motors', dealerLicense: 'P-100231', dealerState: 'TX', phone: '+1 512 555 0100' },
+    consents: [{ key: 'terms', version: '2026-01', acceptedAt }, { key: 'privacy', version: '2026-01', acceptedAt }],
+  }).where(eq(clientProfiles.id, profile.id));
+  console.log('seeded dealer@sunrise-motors.test as a dealer of Demo Auto Finance (Sunrise Motors)');
 }
 
 type SeedUser = { email: string; name: string; kind: 'member' | 'client'; roles: string[] };
@@ -108,6 +167,23 @@ const TENANTS: Array<{ domain: string; name: string; allowedDomains: string[]; p
       { email: 'support@demo-bank.test', name: 'Sam Support', kind: 'member', roles: ['support_agent'] },
       { email: 'auditor@demo-bank.test', name: 'Aud Itor', kind: 'member', roles: ['auditor'] },
       { email: 'client@demo-bank.test', name: 'Chris Client', kind: 'client', roles: [] },
+    ],
+  },
+  {
+    // Dealer finance (docs/plans/12): `bun run stack` connects it to the local fakes and installs the dealer & borrower
+    // portal (scripts/demo-auto-finance.ts).
+    domain: 'demo-auto',
+    name: 'Demo Auto Finance',
+    allowedDomains: ['demo-auto.localhost:3001'],
+    pallette: { primary: '#0f766e', secondary: '#ecfdf5', accent: '#f97316' },
+    extraRoles: [],
+    users: [
+      { email: 'admin@demo-auto.test', name: 'Adrian Admin', kind: 'member', roles: ['admin'] },
+      { email: 'designer@demo-auto.test', name: 'Dee Designer', kind: 'member', roles: ['flow_designer'] },
+      { email: 'underwriter@demo-auto.test', name: 'Uma Underwriter', kind: 'member', roles: ['reviewer'] },
+      { email: 'funding@demo-auto.test', name: 'Frank Funding', kind: 'member', roles: ['senior_reviewer'] },
+      { email: 'integrations@demo-auto.test', name: 'Ingrid Integrations', kind: 'member', roles: ['integration_manager'] },
+      { email: 'dealer@sunrise-motors.test', name: 'Sam Sunrise', kind: 'client', roles: [] },
     ],
   },
   {
@@ -171,6 +247,7 @@ export async function seedDevelopmentData(urls: { app: string; platform: string 
         console.log(`seeded ${user.email} (${spec.domain})`);
       }
       if (spec.domain === 'demo-bank') await seedDemoContent(databases, tenant.id);
+      if (spec.domain === 'demo-auto') await seedDealer(databases, tenant.id);
     }
 
     if (!process.env.SEED_PASSWORD) {

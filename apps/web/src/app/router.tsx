@@ -5,6 +5,7 @@ import { OnboardingLayout } from "./modules/private/onboarding/layout";
 import { lazy } from 'react';
 import BaseLayout from "./modules/BaseLayout";
 import { PortalLayout } from "./modules/portal/PortalLayout";
+import NotFoundPage from "./modules/public/NotFoundPage";
 
 const TablePage = lazy(() => import("./modules/private/database/TablePage"));
 const LandingPage = lazy(() => import("./modules/public/landing/page"));
@@ -38,11 +39,18 @@ const ClientsPage = lazy(() => import("./modules/private/clients/ClientsPage"));
 const ClientPage = lazy(() => import("./modules/private/clients/ClientPage"));
 const AuditPage = lazy(() => import("./modules/private/audit/AuditPage"));
 const InstitutionsPage = lazy(() => import("./modules/private/platform/InstitutionsPage"));
-const PortalHomePage = lazy(() => import("./modules/portal/PortalHomePage"));
 const PortalCasePage = lazy(() => import("./modules/portal/PortalCasePage"));
 const PortalRequestsPage = lazy(() => import("./modules/portal/PortalRequestsPage"));
 const JoinPage = lazy(() => import("./modules/portal/JoinPage"));
 const PortalPrivacyPage = lazy(() => import("./modules/portal/PortalPrivacyPage"));
+const PortalIndex = lazy(() => import("./modules/portal/PortalIndex"));
+const ClientAppPageRoute = lazy(() => import("@/client-app/pages").then((m) => ({ default: m.ClientAppPageRoute })));
+const StudioPage = lazy(() => import("./modules/private/experience/StudioPage"));
+const MapPage = lazy(() => import("./modules/private/map/MapPage"));
+const StudioPreviewFrame = lazy(() => import("@/client-app/preview"));
+const EmbedAppFrame = lazy(() => import("@/client-app/embed"));
+const ClientJourneyRoute = lazy(() => import("@/client-app/pages").then((m) => ({ default: m.ClientJourneyRoute })));
+const ClientStartJourneyRoute = lazy(() => import("@/client-app/pages").then((m) => ({ default: m.ClientStartJourneyRoute })));
 const DataRequestsPage = lazy(() => import("./modules/private/data-requests/DataRequestsPage"));
 const StaffPage = lazy(() => import("./modules/private/platform/StaffPage"));
 const PlatformAuditPage = lazy(() => import("./modules/private/platform/PlatformAuditPage"));
@@ -57,6 +65,7 @@ export const router = createBrowserRouter([
   {
     path: "/",
     Component: BaseLayout,
+    ErrorBoundary: NotFoundPage,
     children: [
       {
         index: true,
@@ -83,16 +92,42 @@ export const router = createBrowserRouter([
         path: 'embed/forms/:publicKey',
         Component: EmbedFormPage
       },
+      // The client app embedded in the institution's site or mobile app (@fintivio/client-sdk).
+      {
+        path: 'embed/app',
+        Component: EmbedAppFrame,
+        children: [
+          { index: true, Component: ClientAppPageRoute },
+          { path: 'p/:page', Component: ClientAppPageRoute },
+          { path: 'journeys/:caseId', Component: ClientJourneyRoute },
+          { path: 'start/:journey', Component: ClientStartJourneyRoute },
+          { path: 'cases/:caseId', Component: PortalCasePage },
+          { path: 'requests', Component: PortalRequestsPage },
+        ],
+      },
       { path: 'join', Component: JoinPage },
       {
         path: 'portal',
         Component: PortalLayout,
         children: [
-          { index: true, Component: PortalHomePage },
+          { index: true, Component: PortalIndex },
+          // Client app (docs/plans/11): its pages and journeys.
+          { path: 'p/:page', Component: ClientAppPageRoute },
+          { path: 'journeys/:caseId', Component: ClientJourneyRoute },
+          { path: 'start/:journey', Component: ClientStartJourneyRoute },
           { path: 'cases/:caseId', Component: PortalCasePage },
           { path: 'requests', Component: PortalRequestsPage },
           { path: 'privacy', Component: PortalPrivacyPage },
         ]
+      },
+      // The studio's canvas: the client app in a frame (no back-office chrome).
+      {
+        path: 'app/experience/preview',
+        Component: StudioPreviewFrame,
+        children: [
+          { index: true, Component: ClientAppPageRoute },
+          { path: 'p/:page', Component: ClientAppPageRoute },
+        ],
       },
       {
         path: 'app/forms/:formId/instances/:instanceId/answers/new',
@@ -127,6 +162,8 @@ export const router = createBrowserRouter([
               { path: 'platform/support-access', Component: SupportAccessRequestsPage },
               { path: 'support-access', Component: SupportAccessPage },
               { path: 'integrations', Component: IntegrationsPage },
+              { path: 'experience', Component: StudioPage },
+              { path: 'map', Component: MapPage },
               { path: 'platform/connectors', Component: ConnectorsPage },
               {
                 path: 'database',
@@ -224,7 +261,8 @@ export const router = createBrowserRouter([
             ]
           },
         ]
-      }
+      },
+      { path: '*', Component: NotFoundPage },
     ]
   },
 ]);

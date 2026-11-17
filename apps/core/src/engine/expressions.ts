@@ -6,7 +6,8 @@ import { get } from 'lodash';
  *  - a config string starting with `=` is a JSONata expression (`= input.amount > 50000 ? 'high' : 'standard'`);
  *    JSONata is a safe, side-effect-free query language (also used by AWS Step Functions), never `eval`;
  *  - `{{ path }}` inside text interpolates a value (`{{input.fullName}}`, `{{steps.estimate.maxAmount}}`);
- *  - a string that is exactly one `{{ path }}` resolves to the raw value (number, object...).
+ *  - a string that is exactly one `{{ path }}` resolves to the raw value (number, object...);
+ *  - a format after a pipe: `{{ steps.offer.monthly | money }}` → `1,234.50`; `| number`, `| date`, `| upper`.
  */
 export async function evaluate(expression: string, vars: Record<string, unknown>): Promise<unknown> {
   const source = expression.trim().replace(/^=/, '');
@@ -22,9 +23,26 @@ const display = (value: unknown) => {
   return String(value);
 };
 
+const FORMATS: Record<string, (value: unknown) => string> = {
+  money: (value) => (Number.isFinite(Number(value)) && value !== '' && value !== null ? Number(value).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : display(value)),
+  number: (value) => (Number.isFinite(Number(value)) && value !== '' && value !== null ? Number(value).toLocaleString('en-GB', { maximumFractionDigits: 2 }) : display(value)),
+  date: (value) => {
+    const date = new Date(String(value));
+    return value && !Number.isNaN(date.getTime()) ? date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : display(value);
+  },
+  upper: (value) => display(value).toUpperCase(),
+};
+
+/** `path` or `path | format`. */
+function placeholder(expression: string, vars: Record<string, unknown>): string {
+  const [path, format] = expression.split('|').map((part) => part.trim());
+  const value = get(vars, path);
+  return format && FORMATS[format] ? FORMATS[format](value) : display(value);
+}
+
 export function interpolate(template: string, vars: Record<string, unknown>, options: { html?: boolean } = {}): string {
-  return template.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, path: string) => {
-    const text = display(get(vars, path));
+  return template.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, expression: string) => {
+    const text = placeholder(expression, vars);
     return options.html ? escapeHtml(text) : text;
   });
 }
@@ -33,7 +51,7 @@ export function interpolate(template: string, vars: Record<string, unknown>, opt
 export async function resolveConfig<T>(value: T, vars: Record<string, unknown>): Promise<T> {
   if (typeof value === 'string') {
     if (value.trim().startsWith('=')) return (await evaluate(value, vars)) as T;
-    const single = value.match(/^\{\{\s*([^}]+?)\s*\}\}$/);
+    const single = value.match(/^\{\{\s*([^}|]+?)\s*\}\}$/);
     if (single) return get(vars, single[1]) as T;
     return interpolate(value, vars) as T;
   }

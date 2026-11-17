@@ -25,6 +25,8 @@ export const manifest: ManifestInput = {
         properties: {
           templateId: { type: 'string', title: 'Template', 'x-options': 'templates' },
           documentKind: { type: 'string', title: 'Document kind on the case', default: 'signed_agreement' },
+          title: { type: 'string', title: 'Title of the task', description: 'what the person sees, e.g. The buyer signs the contract' },
+          instructions: { type: 'string', title: 'Instructions', 'x-widget': 'textarea' },
         },
       },
       inputSchema: {

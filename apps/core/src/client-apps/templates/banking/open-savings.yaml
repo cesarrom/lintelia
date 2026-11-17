@@ -1,0 +1,127 @@
+schemaVersion: "1"
+name: "App: open a savings account"
+description: Client chooses a savings product and funds it from a current account; the new account appears in the app at once.
+caseTitle: "Savings account: {{applicant}}"
+inputs: []
+steps:
+  - { id: start, name: Start, type: start, events: [{ name: finished, outputs: [], next: [product] }] }
+  - id: product
+    name: Choose a product
+    type: client.screen
+    config:
+      title: Choose your savings account
+      description: Both accounts pay interest monthly. Your money is protected up to £85,000.
+      stage: product
+      fields:
+        - { key: product, label: Account, type: choice, required: true, options: ["Easy Access Saver · 3.10% AER · withdraw any time", "1-Year Fixed Saver · 4.20% AER · fixed for 12 months"] }
+        - { key: nickname, label: Give it a name (optional), type: text, placeholder: "e.g. Holiday fund" }
+      buttons: [{ key: continue, label: Continue, style: primary }]
+    events: [{ name: continue, outputs: [], next: [accounts] }]
+  - id: accounts
+    name: Current accounts
+    type: client.data
+    config: { collection: accounts, filter: 'type = "current" and status = "active"' }
+    events: [{ name: done, outputs: [], next: [fund] }]
+  - id: fund
+    name: First deposit
+    type: client.screen
+    config:
+      title: Add money to your new account
+      stage: fund
+      fields:
+        - { key: fromAccount, label: From, type: select, required: true, optionsFrom: accounts, optionFilter: 'type = "current" and status = "active"', optionLabel: "{{item.name}} · £{{item.balance | money}} available", optionValue: "{{item.key}}" }
+        - { key: deposit, label: Amount, type: money, required: true, min: 1 }
+      buttons: [{ key: continue, label: Continue, style: primary }, { key: back, label: Back, style: secondary, skipValidation: true }]
+    events: [{ name: continue, outputs: [], next: [check] }, { name: back, outputs: [], next: [product] }]
+  - id: check
+    name: Check the balance
+    type: calculate
+    config:
+      outputs:
+        balance: "$number(steps.accounts.records[key = $$.input.fromAccount].balance)"
+        fromName: "steps.accounts.records[key = $$.input.fromAccount].name"
+        deposit: "$round($number(input.deposit), 2)"
+        enough: "$number(input.deposit) > 0 and $number(input.deposit) <= $number(steps.accounts.records[key = $$.input.fromAccount].balance)"
+        fixed: "$contains(input.product, 'Fixed')"
+        accountKey: "'sav-' & $substring(case.reference, 7)"
+    events: [{ name: done, outputs: [], next: [enough] }]
+  - id: enough
+    name: Enough money?
+    type: conditional
+    config: { expression: "steps.check.enough" }
+    events: [{ name: "true", outputs: [], next: [confirm] }, { name: "false", outputs: [], next: [too_much] }]
+  - id: too_much
+    name: Not enough money
+    type: client.screen
+    config:
+      title: That is more than you have available
+      content: "= 'Your ' & steps.check.fromName & ' has £' & $formatNumber(steps.check.balance, '#,##0.00') & ' available. Choose a smaller amount.'"
+      stage: fund
+      buttons: [{ key: back, label: Change the amount, style: primary, skipValidation: true }]
+    events: [{ name: back, outputs: [], next: [fund] }]
+  - id: confirm
+    name: Confirm
+    type: client.screen
+    config:
+      title: Check and confirm
+      stage: confirm
+      content: "**{{input.product}}**\n\nFirst deposit of **£{{steps.check.deposit | money}}** from your **{{steps.check.fromName}}**."
+      fields:
+        - { key: terms, label: "I have read the savings account terms and the summary box", type: checkbox, required: true }
+      buttons: [{ key: open, label: Open my account, style: primary }, { key: back, label: Back, style: secondary, skipValidation: true }]
+    events: [{ name: open, outputs: [], next: [create] }, { name: back, outputs: [], next: [fund] }]
+  - id: create
+    name: New savings account
+    type: client.record
+    config:
+      collection: accounts
+      key: "{{steps.check.accountKey}}"
+      mode: upsert
+      data:
+        name: "= $exists(input.nickname) and input.nickname != '' ? input.nickname : (steps.check.fixed ? '1-Year Fixed Saver' : 'Easy Access Saver')"
+        type: savings
+        number: "= '•• ' & $substring(case.reference, 9)"
+        balance: "= steps.check.deposit"
+        currency: GBP
+        rate: "= steps.check.fixed ? 4.2 : 3.1"
+        status: active
+        openedAt: "= $now()"
+    events: [{ name: done, outputs: [], next: [debit] }]
+  - id: debit
+    name: Take the deposit
+    type: client.record
+    config:
+      collection: accounts
+      key: "{{input.fromAccount}}"
+      mode: merge
+      data: { balance: "= $round(steps.check.balance - steps.check.deposit, 2)" }
+    events: [{ name: done, outputs: [], next: [tx_out] }]
+  - id: tx_out
+    name: Transaction out
+    type: client.record
+    config:
+      collection: transactions
+      key: "= 'tx-' & case.reference & '-out'"
+      mode: upsert
+      data: { account: "{{input.fromAccount}}", date: "= $now()", description: "Transfer to your new savings account", amount: "= -steps.check.deposit", currency: GBP, category: Savings, status: posted }
+    events: [{ name: done, outputs: [], next: [tx_in] }]
+  - id: tx_in
+    name: Transaction in
+    type: client.record
+    config:
+      collection: transactions
+      key: "= 'tx-' & case.reference & '-in'"
+      mode: upsert
+      data: { account: "{{steps.check.accountKey}}", date: "= $now()", description: "Opening deposit", amount: "= steps.check.deposit", currency: GBP, category: Savings, status: posted }
+    events: [{ name: done, outputs: [], next: [notify] }]
+  - id: notify
+    name: Tell the client
+    type: client.notify
+    config: { title: "Your savings account is open", body: "We moved £{{steps.check.deposit | money}} into it. Interest is paid monthly.", tone: success, page: account, params: { key: "{{steps.check.accountKey}}" } }
+    events: [{ name: done, outputs: [], next: [done] }]
+  - id: done
+    name: Done
+    type: case.decision
+    config: { status: completed, outcome: account_opened, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]

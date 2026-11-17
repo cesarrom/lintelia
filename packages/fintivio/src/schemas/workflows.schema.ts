@@ -555,6 +555,12 @@ export const workflowYamlSchema = z.object({
   caseTitle: z.string().optional(),
   /** `requests_only`: applicants only see requests addressed to them, never the case (investigations). */
   clientVisibility: z.enum(['full', 'requests_only']).optional(),
+  /** Business stages the case moves through (`case.update` with `stage`), shown on the case, the board and to clients. */
+  stages: z.array(z.object({ key: z.string(), label: z.string(), clientLabel: z.string().optional(), exit: z.boolean().optional() })).optional(),
+  /** A function: other workflows use it as a step (`function:<workflow id>`), with its inputs and `outputs`. */
+  function: z.boolean().optional(),
+  /** What the case gives back to its caller: name → JSONata evaluated when it ends. */
+  outputs: z.record(z.string()).optional(),
 });
 
 export type WorkflowYaml = z.infer<typeof workflowYamlSchema>;
@@ -572,6 +578,9 @@ export const WorkflowSchema = z.object({
   startOn: z.array(z.string()).optional(),
   caseTitle: z.string().optional(),
   clientVisibility: z.enum(['full', 'requests_only']).optional(),
+  stages: z.array(z.object({ key: z.string(), label: z.string(), clientLabel: z.string().optional(), exit: z.boolean().optional() })).optional(),
+  function: z.boolean().optional(),
+  outputs: z.record(z.string()).optional(),
 });
 
 export type WorkflowSchema = z.infer<typeof WorkflowSchema>;

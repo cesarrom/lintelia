@@ -1,0 +1,41 @@
+schemaVersion: "1"
+name: "App: contact us"
+description: A secure message from the app; the team answers from its task queue and the answer lands in the client's notifications.
+caseTitle: "Message: {{applicant}} · {{input.topic}}"
+inputs: []
+steps:
+  - { id: start, name: Start, type: start, events: [{ name: finished, outputs: [], next: [form] }] }
+  - id: form
+    name: Message
+    type: client.screen
+    config:
+      title: How can we help?
+      description: We answer within one working day, here in the app.
+      stage: message
+      fields:
+        - { key: topic, label: Topic, type: select, required: true, options: [Cards, Payments, Savings, Loans, My details, Something else] }
+        - { key: message, label: Your message, type: textarea, required: true }
+      buttons: [{ key: send, label: Send message, style: primary }]
+    events: [{ name: send, outputs: [], next: [answer] }]
+  - id: answer
+    name: Answer the client
+    type: review
+    config:
+      title: "Message from {{case.applicant.name}}: {{input.topic}}"
+      description: "{{input.message}}"
+      assignTo: { role: reviewer }
+      sla: PT24H
+      escalateTo: { role: senior_reviewer }
+      outcomes: [{ key: answered, label: Send the answer, requiresReason: true }]
+    events: [{ name: answered, outputs: [], next: [reply] }]
+  - id: reply
+    name: Reply
+    type: client.notify
+    config: { title: "We answered your message about {{input.topic}}", body: "{{steps.answer.reason}}", tone: info, email: true }
+    events: [{ name: done, outputs: [], next: [done] }]
+  - id: done
+    name: Done
+    type: case.decision
+    config: { status: completed, outcome: answered, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]

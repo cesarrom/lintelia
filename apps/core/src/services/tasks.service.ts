@@ -1,5 +1,5 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
-import { and, asc, eq, inArray, isNull, ne, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, ne, or, sql, type SQL } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import type { Tenant, User } from '@repo/fintivio/schemas';
 import { caseFiles, caseParties, cases, sysForms, tasks, users } from '../entities';
@@ -129,7 +129,10 @@ export class TasksService {
   async get(taskId: string) {
     const { task, kase } = await this.load(taskId);
     const emails = await this.emailsOf([task.assigneeId].filter(Boolean) as string[]);
-    return { ...this.present(task, kase, emails), caseData: kase.data, calculations: await calculationsOf(this.repository, this.tenant.id, kase) };
+    // The case's documents (stipulations, signed contracts, answers): what the decision is based on.
+    const files = (await this.db.select().from(caseFiles).where(eq(caseFiles.caseId, kase.id)).orderBy(desc(caseFiles.createdAt)))
+      .map((f) => ({ id: f.id, name: f.name, size: f.size, contentType: f.contentType, kind: f.kind, source: f.source, taskId: f.taskId, itemKey: f.itemKey, createdAt: f.createdAt, sanitization: f.report?.sanitization?.actions ?? [], scan: f.report?.scan?.result ?? null }));
+    return { ...this.present(task, kase, emails), caseData: kase.data, calculations: await calculationsOf(this.repository, this.tenant.id, kase), files };
   }
 
   async claim(taskId: string) {
@@ -240,7 +243,7 @@ export class TasksService {
 
 /** Client side of tasks: requests addressed to the applicant (portal). */
 /** What the portal needs to run a connector's client step (only http(s) URLs are passed on). */
-const clientActionView = (action: NonNullable<TaskRow['clientAction']>) => {
+export const clientActionView = (action: NonNullable<TaskRow['clientAction']>) => {
   const url = typeof action.url === 'string' && /^https?:\/\//.test(action.url) ? action.url : null;
   return url ? { type: action.type, sdk: action.sdk ?? null, url, title: action.title ?? null, instructions: action.instructions ?? null } : null;
 };
@@ -272,7 +275,7 @@ export class ClientTasksService {
     const taskRows = await this.repository.tasksOfCase(this.tenant.id, caseId);
     const confirmation = taskRows.find((t) => t.kind === 'confirmation' && t.status === 'open');
     const requests = taskRows.filter((t) => t.audience === 'client' && t.kind !== 'confirmation').map((t) => ({
-      id: t.id, title: t.title, description: t.description, status: t.status, items: t.requestItems ?? [], dueAt: t.dueAt, answeredAt: t.status === 'completed' ? t.updatedAt : null,
+      id: t.id, kind: t.kind, title: t.title, description: t.description, status: t.status, items: t.requestItems ?? [], dueAt: t.dueAt, answeredAt: t.status === 'completed' ? t.updatedAt : null,
       // Steps run by a connector in the client's browser (identity verification, signature): what to open.
       action: t.status === 'open' && t.clientAction ? clientActionView(t.clientAction) : null,
     }));
@@ -345,6 +348,7 @@ export class ClientTasksService {
       .orderBy(sql`${tasks.createdAt} desc`);
     return rows.map(({ task, kase }) => ({
       id: task.id,
+      kind: task.kind,
       title: task.title,
       description: task.description,
       status: task.status,
@@ -379,6 +383,8 @@ export class ClientTasksService {
     const task = await this.repository.getTask(this.tenant.id, taskId);
     if (!task || task.caseId !== caseId || task.audience !== 'client' || task.assigneeId !== this.user.userId) throw new NotFoundError('Request not found');
     if (task.status !== 'open') throw new ConflictError(`This request is ${task.status}`);
+    // App screens are answered through the app (per-field validation, buttons): POST /me/app/cases/:id/screens/:task.
+    if (task.kind === 'screen') throw new ConflictError('Continue this in the app');
     response = { ...(response ?? {}) };
     const missing = (task.requestItems ?? []).filter((item) => {
       const value = response[item.key];

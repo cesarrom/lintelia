@@ -41,4 +41,6 @@ export interface Calculation {
 export interface TaskDetail extends TaskSummary {
   caseData: Record<string, unknown>;
   calculations: Calculation[];
+  /** The case's documents. */
+  files?: Array<{ id: string; name: string; size: number; contentType: string; source: string; createdAt: string; scan: string | null; sanitization: string[] }>;
 }

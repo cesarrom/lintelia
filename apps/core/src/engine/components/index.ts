@@ -2,6 +2,7 @@ import Ajv, { type ValidateFunction } from 'ajv';
 import type { ComponentDefinition } from '@repo/fintivio/schemas';
 import { BUILTIN_COMPONENTS } from './builtin';
 import type { EngineComponent } from './types';
+import { functionComponent } from './parties';
 
 /**
  * The component registry (docs/plans/01): built-in components plus those contributed by connectors (03). The editor
@@ -15,9 +16,15 @@ export type ComponentResolver = (type: string) => EngineComponent | null;
 const resolvers: ComponentResolver[] = [];
 export const registerComponentResolver = (resolver: ComponentResolver) => resolvers.push(resolver);
 
+const FUNCTION_TYPE = /^function:([0-9a-f-]{36})$/;
+
 export function getComponent(type: string): EngineComponent | null {
+  const fn = FUNCTION_TYPE.exec(type);
+  if (fn) return functionComponent(fn[1]);
   return builtins.get(type) ?? resolvers.map((resolve) => resolve(type)).find(Boolean) ?? null;
 }
+
+export const functionWorkflowId = (type: string) => FUNCTION_TYPE.exec(type)?.[1] ?? null;
 
 export const builtinDefinitions = (): ComponentDefinition[] => BUILTIN_COMPONENTS.map((c) => c.definition);
 

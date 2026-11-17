@@ -12,8 +12,9 @@ Multi-tenant onboarding and KYC workflow platform for financial institutions.
 | `apps/web` | Vite + React app (platform staff app, tenant back-office, client-facing forms). |
 | `packages/fintivio` | Shared Drizzle schema (entities + RLS policies), zod schemas, workflow utilities. |
 | `packages/connector-sdk` | Build connectors: manifest, signed core requests, core client, encrypted secrets, settings pages. |
-| `integrations/*` | Connectors (separate services with their own databases): smtp-mailer, postgres-datasource, didit, documenso, screening. |
-| `fake-services/*` | Local stand-ins for vendors (WorkOS, OIDC IdP, Didit, Documenso, mailbox, webhook receiver, scanner, sanitiser). |
+| `integrations/*` | Connectors (separate services with their own databases): smtp-mailer, postgres-datasource, didit, documenso, screening, http (any REST API + its webhooks), ai (document extraction, summaries), loanpro (loan servicing). |
+| `fake-services/*` | Local stand-ins for vendors (WorkOS, OIDC IdP, Didit, Documenso, screening, LLM, LoanPro, QuickBooks, Google Sheets, mailbox, webhook receiver, DNS, scanner, sanitiser). |
+| `apps/core/src/solutions` | Ready-made solutions (workflows, functions and a client app wired to the institution's connections): dealer finance. |
 | `apps/e2e` | Playwright suite (API and UI journeys per persona and flow). |
 | `dev/`, `scripts/stack.ts` | The one-command local stack. |
 
@@ -28,7 +29,9 @@ bun run stack            # installs, creates .env files, starts everything, migr
 
 `bun run stack --detach` runs it in the background; then `bun run stack:status`, `bun run stack:logs [service]`,
 `bun run stack:restart <service>`, `bun run stack:stop`; `bun run stack:reset` wipes local state; `bun run stack:doctor`
-checks the machine; `bun run stack:test [-- <playwright args>]` runs the e2e suite against it. Services, ports and
+checks the machine. **`bun e2e`** runs the end-to-end suite: it attaches to the running stack or starts it (a partially
+up stack is refused: `bun e2e --force` restarts everything), and on a machine with a screen the browser tests run in
+windows you can watch (`--headed` / `--headless` to choose; [docs/testing/e2e.md](docs/testing/e2e.md#running-the-suite)). Services, ports and
 dependencies: [dev/stack.config.ts](dev/stack.config.ts), [dev/ports.json](dev/ports.json); logs in `.data/stack/logs/`.
 Demo data helpers (`bun run demo:workflows`, `demo:case`, `demo:token`, `demo:files`) and every local credential are in
 [TESTING.md](TESTING.md).
@@ -38,8 +41,9 @@ Demo data helpers (`bun run demo:workflows`, `demo:case`, `demo:token`, `demo:fi
 | Back office, portal, platform console | http://localhost:3001, http://demo-bank.localhost:3001 | web app (Vite) |
 | API | http://localhost:8000 | NestJS on Hono (Bun); Restate endpoint `/restate` |
 | Mailbox | http://localhost:8025 | every e-mail the stack sends (SMTP :1025), with a REST API for tests |
-| Connectors | :4101 smtp-mailer, :4102 didit, :4103 documenso, :4104 postgres-datasource, :4105 screening | separate services, own databases |
-| Fakes | :9300 WorkOS, :9400 OIDC IdP, :9401 Didit, :9402 Documenso, :9404 webhook receiver, :9407 screening, :9408 DNS, :9501 scanner, :9502 sanitiser | vendors we cannot reach locally, same APIs |
+| Connectors | :4101 smtp-mailer, :4102 didit, :4103 documenso, :4104 postgres-datasource, :4105 screening, :4106 http, :4107 ai, :4108 loanpro | separate services, own databases |
+| Fakes | :9300 WorkOS, :9400 OIDC IdP, :9401 Didit, :9402 Documenso, :9404 webhook receiver, :9407 screening, :9408 DNS, :9409 LLM, :9410 LoanPro, :9411 QuickBooks, :9412 Google Sheets, :9501 scanner, :9502 sanitiser | vendors we cannot reach locally, same APIs |
+| Demo Auto Finance | http://demo-auto.localhost:3001 | dealer finance: the dealer & borrower portal, wired to the fakes by the stack |
 | Demo Bank website | http://localhost:4000 | the loan form embedded on a third-party site |
 | Restate admin | http://localhost:9070 | durable executions |
 
@@ -53,33 +57,59 @@ Seeded accounts (password `fintivio-dev-password`, override with `SEED_PASSWORD`
 | | `lead@demo-bank.test`, `senior@demo-bank.test` | senior reviewers (second approvals, investigations) |
 | | `analyst@demo-bank.test` | reviewer (first-line queue) |
 | | `rm@demo-bank.test` | relationship manager (assisted applications, flags clients) |
-| | `designer@demo-bank.test` | flow designer (forms, workflows) |
+| | `designer@demo-bank.test` | flow designer (forms, workflows, the client app studio) |
 | | `integrations@demo-bank.test`, `support@demo-bank.test`, `auditor@demo-bank.test` | integration manager, support agent, auditor |
-| | `client@demo-bank.test` | Demo Bank client (portal; or "Email me a code") |
+| | `client@demo-bank.test` | Chris Client, an existing Demo Bank customer: the banking app (accounts, cards, transactions) at `/portal` |
 | http://acme-credit.localhost:3001/sign-on | `admin@acme-credit.test` | Acme Credit Union administrator |
+| http://demo-auto.localhost:3001/sign-on | `underwriter@demo-auto.test`, `funding@demo-auto.test`, `admin@`, `designer@`, `integrations@demo-auto.test` | Demo Auto Finance: underwriting (reviewer), funding (senior reviewer), admin, designer, integrations |
+| | `dealer@sunrise-motors.test` | a dealer (Sunrise Motors) in the dealer portal at `/portal` |
 
 The seeded institutions do not require a second factor for their members (development convenience); new
 institutions do (members enrol an authenticator app on first sign-in).
 
 Try the journeys (each is an e2e test in `apps/e2e/tests`):
 
-1. **Loan pre-approval from the bank's website**: open http://localhost:4000 (Demo Bank's public site with the form
+1. **The experience map** ([docs/changes/0009](docs/changes/0009-experience-map.md)): as `designer@demo-auto.test` or
+   `designer@demo-bank.test`, *Build → Map* — the app's layout, pages, journeys with their screens and what happens
+   in between, workflows, functions, forms and events on one canvas; click inside a frame to follow a link, *Edit* to
+   open the right editor.
+
+2. **UI building blocks** ([docs/changes/0011](docs/changes/0011-ui-building-blocks.md)): as `client@demo-bank.test`,
+   the amber **Pay** button opens *Pay with a QR code* full screen — scan a code from `bun run demo:files`
+   (`.data/demo-files/pay-*.gif`: camera, photo or typed); codes with an amount continue by themselves after a
+   countdown. *Pay with QR* in the quick actions opens it as a sheet. As `designer@demo-bank.test`, *Client app →
+   Settings → Appearance*: presets, accent, fonts, button shapes, colours from the logo, a readability check.
+
+3. **The banking app** (client apps, [docs/changes/0007](docs/changes/0007-client-apps.md)): sign in as `client` at
+   http://demo-bank.localhost:3001/portal — balances, transactions, insights; *Move money*, freeze a card, apply for a
+   loan. Sign up as a new client ("Create account") and *Open your first account* (upload any PDF; `analyst` approves the
+   KYC review). As `designer`, *Build → Client app* is the studio (live preview, publish). The same app embedded in the
+   bank's own site with the SDK: http://localhost:4000/online-banking.
+
+4. **Dealer finance** ([docs/changes/0008](docs/changes/0008-dealer-finance.md), journey J19 in
+   [TESTING.md](TESTING.md)): as `dealer@sunrise-motors.test` at http://demo-auto.localhost:3001/portal *Submit a deal*
+   with the stipulations from `bun run demo:files`; `underwriter` sees the AI's reading and the numbers (*Cases →
+   Pipeline*, *Tasks*), asks for more, approves; contracts are signed (Documenso), `funding` funds; QuickBooks
+   (:9411), the deal log (:9412) and LoanPro (:9410) fill up; the buyer signs in to their new app and pays. Watch the
+   whole story in browser windows: `bun e2e --headed tests/scenarios/dealer-finance.ui.spec.ts`.
+
+5. **Loan pre-approval from the bank's website**: open http://localhost:4000 (Demo Bank's public site with the form
    embedded). Apply, confirm with the code e-mailed to you (open http://localhost:8025). Up to 10,000 and affordable:
    pre-approved at once; above: `analyst` decides in *Tasks*; above 50,000: `lead` **and** `senior` must both approve.
-2. **Suspicious activity**: as `rm`, *Clients → Chris Client → Flag suspicious activity*; `analyst` triages, `lead`
+6. **Suspicious activity**: as `rm`, *Clients → Chris Client → Flag suspicious activity*; `analyst` triages, `lead`
    investigates (can ask the client for documents), `compliance` files the SAR / exits / closes. The client never sees
    the investigation.
-3. **Connect a system**: as `integrations`, *Integrations → SMTP mailer → Connect*: you land on the connector's own page
+7. **Connect a system**: as `integrations`, *Integrations → SMTP mailer → Connect*: you land on the connector's own page
    (host `localhost`, port `1025`, any user/password except `wrong`); back in Fintivio the connection is active and the
    workflow editor offers "Send e-mail (your server)". Didit, Documenso and PostgreSQL data sources work the same way.
-4. **Identity verification and signature**: a workflow with `connector:didit/kyc.verify` and
+8. **Identity verification and signature**: a workflow with `connector:didit/kyc.verify` and
    `connector:documenso/signature.request` steps (see `apps/e2e/fixtures/workflows/retail-account-opening.yaml`): the
    client verifies and signs inside the portal on the vendors' (fake) pages; decisions arrive by signed webhooks.
-5. **Documents**: a `client.request` step with a `file` item: the client uploads in the portal; files are scanned
+9. **Documents**: a `client.request` step with a `file` item: the client uploads in the portal; files are scanned
    (EICAR is refused), sanitised (PDF scripts removed) and only then reach the case.
-6. **API clients and webhooks**: *API clients* (OAuth client credentials) and *Webhooks* (Standard Webhooks, retries,
+10. **API clients and webhooks**: *API clients* (OAuth client credentials) and *Webhooks* (Standard Webhooks, retries,
    delivery log). Webhook deliveries can be watched at http://localhost:9404.
-7. **Single sign-on**: *Settings → Security*: open the Admin Portal (WorkOS emulator), add a domain, "publish" its TXT
+11. **Single sign-on**: *Settings → Security*: open the Admin Portal (WorkOS emulator), add a domain, "publish" its TXT
    record with `POST http://localhost:9300/__control/dns`, and connect the fake IdP (register a client with
    `POST http://localhost:9400/__control/clients`). The e2e helper `apps/e2e/support/sso.ts` does exactly this.
 
@@ -131,5 +161,5 @@ bun run totp            # current second-factor code of the seeded staff account
 - [TESTING.md](TESTING.md): how to test everything locally — what changed, start the stack, credentials, validation
   commands, supporting/demo commands and step-by-step journeys
 - [docs/README.md](docs/README.md): index (personas, flows, architecture, testing, change log)
-- End-to-end suite: `bun run e2e` (stack running), progress per flow: `bun run e2e:status` →
+- End-to-end suite: `bun e2e` (starts or attaches to the stack), progress per flow: `bun run e2e:status` →
   [docs/testing/flow-status.md](docs/testing/flow-status.md)

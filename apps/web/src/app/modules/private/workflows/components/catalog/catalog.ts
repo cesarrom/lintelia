@@ -28,12 +28,42 @@ const display = (value: unknown): string => {
   return String(value);
 };
 
-/** Render a summary template such as "Queue {{assignTo.role}} · SLA {{sla}}" against a step config. */
+/**
+ * Render a summary template such as "Queue {{assignTo.role}} · SLA {{sla}}" against a step config. Parts (separated
+ * by " · ") whose values are all unset are left out, when another part says something ("Stage {{stage}} · Risk
+ * {{riskLevel}}" without a stage reads "Risk high").
+ */
 export function renderSummary(template: string | undefined, config: Record<string, unknown> | undefined) {
   if (!template) return '';
-  return template.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, path: string) => display(getPath(config ?? {}, path)));
+  const parts = template.split(' · ').map((part) => {
+    let placeholders = 0;
+    let unset = 0;
+    const text = part.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, path: string) => {
+      placeholders += 1;
+      const shown = display(getPath(config ?? {}, path));
+      if (shown === '—') unset += 1;
+      return shown;
+    });
+    return { text, empty: placeholders > 0 && unset === placeholders };
+  });
+  const kept = parts.some((p) => !p.empty) ? parts.filter((p) => !p.empty) : parts;
+  return kept.map((p) => p.text).join(' · ');
 }
 
 export const CATEGORY_LABELS: Record<string, string> = {
-  flow: 'Flow', data: 'Data', people: 'People', client: 'Client', case: 'Case', communication: 'Communication', connector: 'Connectors',
+  flow: 'Flow', data: 'Data', people: 'People', client: 'Client', case: 'Case', communication: 'Communication', connector: 'Connectors', function: 'Your functions',
 };
+
+/** Colour of each component category (palette tiles, node icons and accents), light and dark. */
+export const CATEGORY_STYLES: Record<string, { tile: string; accent: string }> = {
+  people: { tile: 'bg-violet-500/10 text-violet-600 dark:text-violet-300', accent: 'bg-violet-500' },
+  client: { tile: 'bg-sky-500/10 text-sky-600 dark:text-sky-300', accent: 'bg-sky-500' },
+  case: { tile: 'bg-amber-500/15 text-amber-700 dark:text-amber-300', accent: 'bg-amber-500' },
+  flow: { tile: 'bg-slate-500/10 text-slate-600 dark:text-slate-300', accent: 'bg-slate-400' },
+  data: { tile: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-300', accent: 'bg-emerald-500' },
+  communication: { tile: 'bg-pink-500/10 text-pink-600 dark:text-pink-300', accent: 'bg-pink-500' },
+  connector: { tile: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-300', accent: 'bg-indigo-500' },
+  // Published workflows marked as functions: the institution's own building blocks (docs/plans/12).
+  function: { tile: 'bg-teal-500/10 text-teal-600 dark:text-teal-300', accent: 'bg-teal-500' },
+};
+export const categoryStyle = (category: string | undefined) => CATEGORY_STYLES[category ?? ''] ?? CATEGORY_STYLES.flow;

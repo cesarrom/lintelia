@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
+import { FullScreenLoader } from '@/components/app/loading';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { useNavigate } from 'react-router';
 
@@ -14,7 +15,7 @@ export const ProtectedRoute = ({ children, requiredPermissions }: ProtectedRoute
   const router = useNavigate();
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <FullScreenLoader />;
   }
 
   if (!isAuthenticated) {

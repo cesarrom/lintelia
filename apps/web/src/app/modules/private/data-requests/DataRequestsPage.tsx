@@ -32,8 +32,8 @@ export default function DataRequestsPage() {
   return (
     <PageContainer>
       <PageHeader title="Data requests" description="Clients asking for a copy of their data or its erasure. Answer within one month." />
-      {!isLoading && requests.length === 0 ? <EmptyState>No requests.</EmptyState> : (
-        <div className="rounded-md border">
+      {!isLoading && requests.length === 0 ? <EmptyState art="shield">No requests.</EmptyState> : (
+        <div className="overflow-hidden rounded-xl border bg-card shadow-card">
           <Table>
             <TableHeader>
               <TableRow><TableHead>Client</TableHead><TableHead>Request</TableHead><TableHead>Received</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Action</TableHead></TableRow>

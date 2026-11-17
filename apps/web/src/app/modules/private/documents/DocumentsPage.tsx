@@ -20,7 +20,7 @@ export default function DocumentsPage() {
     <PageContainer>
       <PageHeader title="Documents" description="Agreement templates come from your e-signature provider; signed documents are attached to their cases." />
       {signing.length === 0 ? (
-        <EmptyState>
+        <EmptyState art="documents">
           No e-signature provider is connected. <Button variant="link" asChild className="px-1"><Link to="/app/integrations">Connect Documenso</Link></Button> to use its templates in workflows.
         </EmptyState>
       ) : (

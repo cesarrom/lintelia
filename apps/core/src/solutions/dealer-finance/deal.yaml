@@ -1,0 +1,360 @@
+schemaVersion: "1"
+name: "Dealer: deal"
+description: A dealer submits a deal with its documents; AI reads them, the numbers are checked and the deal is logged; underwriting decides and may ask the dealer for more as many times as needed; contracts are signed; the funding package is audited; the dealer is paid; the loan is boarded in LoanPro and the buyer gets their app.
+caseTitle: "Deal from {{applicant}}"
+stages:
+  - { key: submitted, label: Deal details }
+  - { key: documents, label: Documents }
+  - { key: underwriting, label: Underwriting }
+  - { key: conditions, label: Conditions }
+  - { key: contracting, label: Contracts }
+  - { key: funding, label: Funding }
+  - { key: funded, label: Funded }
+  - { key: boarded, label: Boarded }
+  - { key: declined, label: Declined, exit: true }
+inputs: []
+steps:
+  - { id: start, name: Start, type: start, events: [{ name: finished, outputs: [], next: [deal] }] }
+
+  # --- the dealer submits -------------------------------------------------------------------------------------------
+  - id: deal
+    name: Deal details
+    type: client.screen
+    config:
+      title: The deal
+      description: The buyer, the vehicle and the structure you propose.
+      stage: submitted
+      fields:
+        - { key: dealerName, label: Dealership, type: text, required: true, default: "{{me.dealerName}}" }
+        - { key: buyerName, label: Buyer's full name, type: text, required: true }
+        - { key: buyerEmail, label: Buyer's e-mail, type: email, required: true }
+        - { key: buyerPhone, label: Buyer's mobile, type: phone }
+        - { key: year, label: Vehicle year, type: number, required: true, min: 2000, max: 2030 }
+        - { key: make, label: Make, type: text, required: true }
+        - { key: model, label: Model, type: text, required: true }
+        - { key: vin, label: VIN, type: text, required: true, placeholder: 17 characters }
+        - { key: salePrice, label: Sale price, type: money, required: true, min: 1000 }
+        - { key: downPayment, label: Down payment, type: money, required: true, min: 0 }
+        - { key: amountFinanced, label: Amount financed, type: money, required: true, min: 1000 }
+        - { key: termMonths, label: Term, type: select, required: true, options: ["36|36 months", "48|48 months", "60|60 months", "72|72 months"] }
+        - { key: apr, label: APR (%), type: number, required: true, min: 0, max: 36 }
+        - { key: statedIncome, label: Buyer's gross monthly income (as declared), type: money, required: true, min: 0 }
+      buttons: [{ key: continue, label: Continue, style: primary }]
+    events: [{ name: continue, outputs: [], next: [docs] }]
+  - id: docs
+    name: Stipulations
+    type: client.screen
+    config:
+      title: Documents we need
+      description: Upload them as PDF or photos; they are checked for malware, then read for underwriting.
+      stage: documents
+      fields:
+        - { key: payStub, label: Buyer's latest pay stub, type: file, required: true }
+        - { key: buyersOrder, label: Buyer's order (signed), type: file, required: true }
+        - { key: license, label: Buyer's driver's license, type: file, required: true }
+      buttons: [{ key: submit, label: Submit the deal, style: primary }, { key: back, label: Back, style: secondary, skipValidation: true }]
+    events: [{ name: submit, outputs: [], next: [to_underwriting] }, { name: back, outputs: [], next: [deal] }]
+  - id: to_underwriting
+    name: In underwriting
+    type: case.update
+    config:
+      stage: underwriting
+      title: "= 'Deal: ' & input.buyerName & ' · ' & $string(input.year) & ' ' & input.make & ' ' & input.model & ' (' & (input.dealerName ? input.dealerName : case.applicant.name) & ')'"
+      data: { dealer: "= input.dealerName", vehicle: "= $string(input.year) & ' ' & input.make & ' ' & input.model" }
+    events: [{ name: done, outputs: [], next: [read_paystub] }]
+
+  # --- automation before people ---------------------------------------------------------------------------------------
+  - id: read_paystub
+    name: Read the pay stub (AI)
+    type: "connector:ai/document.extract"
+    config:
+      connection: ${AI}
+      documentType: pay stub
+      fields:
+        - { name: employer, description: employer name, type: string }
+        - { name: grossMonthlyIncome, description: gross monthly income, type: number }
+        - { name: employeeName, description: employee name, type: string }
+        - { name: payDate, description: pay date, type: date }
+      input: { file: "= input.payStub" }
+    events: [{ name: extracted, outputs: [], next: [read_order] }, { name: incomplete, outputs: [], next: [read_order] }, { name: failed, outputs: [], next: [read_order] }]
+  - id: read_order
+    name: Read the buyer's order (AI)
+    type: "connector:ai/document.extract"
+    config:
+      connection: ${AI}
+      documentType: buyer's order
+      fields:
+        - { name: vin, description: vehicle identification number VIN, type: string }
+        - { name: salePrice, description: sale price, type: number }
+        - { name: amountFinanced, description: amount financed, type: number }
+        - { name: buyerName, description: buyer name, type: string }
+      input: { file: "= input.buyersOrder" }
+    events: [{ name: extracted, outputs: [], next: [numbers] }, { name: incomplete, outputs: [], next: [numbers] }, { name: failed, outputs: [], next: [numbers] }]
+  - id: numbers
+    name: Check the numbers
+    type: calculate
+    config:
+      outputs:
+        rate: "$number(input.apr) / 100 / 12"
+        payment: "$round(result.rate = 0 ? $number(input.amountFinanced) / $number(input.termMonths) : $number(input.amountFinanced) * result.rate / (1 - $power(1 + result.rate, -$number(input.termMonths))), 2)"
+        income: "$exists(steps.read_paystub.grossMonthlyIncome) and steps.read_paystub.grossMonthlyIncome != null ? steps.read_paystub.grossMonthlyIncome : $number(input.statedIncome)"
+        pti: "$round(result.payment / result.income * 100, 1)"
+        ltv: "$round($number(input.amountFinanced) / $number(input.salePrice) * 100, 1)"
+        incomeGap: "$exists(steps.read_paystub.grossMonthlyIncome) and steps.read_paystub.grossMonthlyIncome != null ? $round($abs($number(input.statedIncome) - steps.read_paystub.grossMonthlyIncome) / $number(input.statedIncome) * 100, 1) : null"
+        vinMatches: "$exists(steps.read_order.vin) and steps.read_order.vin != null ? $uppercase($trim(steps.read_order.vin)) = $uppercase($trim(input.vin)) : false"
+        amountMatches: "$exists(steps.read_order.amountFinanced) and steps.read_order.amountFinanced != null ? $abs(steps.read_order.amountFinanced - $number(input.amountFinanced)) < 1 : false"
+        flags: "$append($append($append($append([], result.pti > 20 ? ['Payment-to-income above 20%'] : []), result.ltv > 120 ? ['Loan-to-value above 120%'] : []), result.incomeGap != null and result.incomeGap > 10 ? ['Declared income differs from the pay stub by ' & $string(result.incomeGap) & '%'] : []), ($not(result.vinMatches) ? ['VIN on the buyer order does not match'] : []))"
+    events: [{ name: done, outputs: [], next: [summary] }]
+  - id: summary
+    name: Summary for the analyst (AI)
+    type: "connector:ai/text.generate"
+    config:
+      connection: ${AI}
+      instructions: Summarise this auto loan deal for a credit analyst in three short sentences, pointing out risks.
+      maxWords: 90
+      input:
+        text: "= 'Deal: ' & input.buyerName & ', ' & $string(input.year) & ' ' & input.make & ' ' & input.model & '\nAmount financed: $' & $formatNumber($number(input.amountFinanced), '#,##0.00') & ' over ' & input.termMonths & ' months at ' & $string(input.apr) & '%\nMonthly payment: $' & $formatNumber(steps.numbers.payment, '#,##0.00') & '\nIncome: $' & $formatNumber(steps.numbers.income, '#,##0.00') & ' (' & (steps.read_paystub.employer ? steps.read_paystub.employer : 'employer unknown') & ')\nPayment to income: ' & $string(steps.numbers.pti) & '%, loan to value: ' & $string(steps.numbers.ltv) & '%\nFlags: ' & ($count(steps.numbers.flags) > 0 ? $join(steps.numbers.flags, '; ') : 'none')"
+    events: [{ name: done, outputs: [], next: [log_submitted] }, { name: failed, outputs: [], next: [log_submitted] }]
+  - id: log_submitted
+    name: Log the deal
+    type: function:${FN_LOG_DEAL}
+    config:
+      inputs: { reference: "= case.reference", dealer: "= input.dealerName", buyer: "= input.buyerName", vehicle: "= $string(input.year) & ' ' & input.make & ' ' & input.model", amount: "= $string(input.amountFinanced)", status: In underwriting }
+    events: [{ name: completed, outputs: [], next: [underwriting] }, { name: failed, outputs: [], next: [underwriting] }]
+
+  # --- underwriting (as many questions to the dealer as needed) -------------------------------------------------------
+  - id: underwriting
+    name: Credit decision
+    type: review
+    config:
+      title: "Credit decision: {{input.buyerName}} · ${{input.amountFinanced | money}}"
+      description: "= (steps.summary.text ? steps.summary.text & '\n\n' : '') & 'Payment $' & $formatNumber(steps.numbers.payment, '#,##0.00') & '/month · PTI ' & $string(steps.numbers.pti) & '% · LTV ' & $string(steps.numbers.ltv) & '%\nPay stub (AI): ' & (steps.read_paystub.employer ? steps.read_paystub.employer : '—') & ', $' & (steps.read_paystub.grossMonthlyIncome ? $formatNumber(steps.read_paystub.grossMonthlyIncome, '#,##0.00') : '—') & '/month (declared $' & $formatNumber($number(input.statedIncome), '#,##0.00') & ')\nBuyer order (AI): VIN ' & (steps.numbers.vinMatches ? 'matches' : 'DOES NOT MATCH') & ', amount ' & (steps.numbers.amountMatches ? 'matches' : 'differs') & ($count(steps.numbers.flags) > 0 ? '\n\nFlags: ' & $join(steps.numbers.flags, '; ') : '')"
+      assignTo: { role: reviewer }
+      sla: PT4H
+      escalateTo: { role: senior_reviewer }
+      outcomes:
+        - { key: approve, label: Approve }
+        - { key: counter, label: Approve with conditions, requiresReason: true }
+        - { key: request_info, label: Ask the dealer, requiresReason: true }
+        - { key: decline, label: Decline, requiresReason: true }
+    events: [{ name: approve, outputs: [], next: [to_contracting] }, { name: counter, outputs: [], next: [to_conditions] }, { name: decline, outputs: [], next: [to_declined] }]
+  - id: to_conditions
+    name: Conditions
+    type: case.update
+    config: { stage: conditions }
+    events: [{ name: done, outputs: [], next: [conditions] }]
+  - id: conditions
+    name: Conditions for the dealer
+    type: client.screen
+    config:
+      title: Approved with conditions
+      description: The deal is approved if you accept these conditions.
+      stage: conditions
+      content: "{{steps.underwriting.reason}}"
+      buttons: [{ key: accept, label: Accept the conditions, style: primary }, { key: withdraw, label: Withdraw the deal, style: secondary, skipValidation: true }]
+    events: [{ name: accept, outputs: [], next: [to_contracting] }, { name: withdraw, outputs: [], next: [withdrawn] }]
+  - id: withdrawn
+    name: Withdrawn
+    type: case.decision
+    config: { status: withdrawn, outcome: withdrawn_by_dealer, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]
+  - id: to_declined
+    name: Declined
+    type: case.update
+    config: { stage: declined }
+    events: [{ name: done, outputs: [], next: [tell_declined] }]
+  - id: tell_declined
+    name: Tell the dealer
+    type: client.notify
+    config: { title: "Deal declined: {{input.buyerName}}", body: "{{steps.underwriting.reason}}", tone: warning, email: true }
+    events: [{ name: done, outputs: [], next: [log_declined] }]
+  - id: log_declined
+    name: Log the decline
+    type: function:${FN_LOG_DEAL}
+    config:
+      inputs: { reference: "= case.reference", dealer: "= input.dealerName", buyer: "= input.buyerName", vehicle: "= $string(input.year) & ' ' & input.make & ' ' & input.model", amount: "= $string(input.amountFinanced)", status: Declined }
+    events: [{ name: completed, outputs: [], next: [rejected] }, { name: failed, outputs: [], next: [rejected] }]
+  - id: rejected
+    name: Rejected
+    type: case.decision
+    config: { status: rejected, outcome: declined, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]
+
+  # --- contracts ---------------------------------------------------------------------------------------------------
+  - id: to_contracting
+    name: Contracts
+    type: case.update
+    config: { stage: contracting }
+    events: [{ name: done, outputs: [], next: [tell_approved] }]
+  - id: tell_approved
+    name: Tell the dealer
+    type: client.notify
+    config: { title: "Approved: {{input.buyerName}}", body: "Have the buyer sign the retail installment contract, then sign the assignment.", tone: success, email: true }
+    events: [{ name: done, outputs: [], next: [buyer_signs] }]
+  - id: buyer_signs
+    name: Buyer signs the contract
+    type: "connector:documenso/signature.request"
+    config:
+      connection: ${DOCUMENSO}
+      templateId: retail-installment-contract
+      documentKind: retail_installment_contract
+      title: "The buyer signs the retail installment contract"
+      instructions: "With the buyer, at your dealership: they read and sign the contract."
+      input: { signerEmail: "= input.buyerEmail", signerName: "= input.buyerName" }
+    events: [{ name: signed, outputs: [], next: [dealer_signs] }, { name: declined, outputs: [], next: [withdrawn] }, { name: expired, outputs: [], next: [withdrawn] }]
+  - id: dealer_signs
+    name: Dealer signs the assignment
+    type: "connector:documenso/signature.request"
+    config:
+      connection: ${DOCUMENSO}
+      templateId: dealer-assignment
+      documentKind: dealer_assignment
+      title: "Sign the assignment of the contract"
+      instructions: "You assign the signed contract to us; funding follows the audit of the funding package."
+      input: { signerEmail: "= case.applicant.email", signerName: "= input.dealerName" }
+    events: [{ name: signed, outputs: [], next: [to_funding] }, { name: declined, outputs: [], next: [withdrawn] }, { name: expired, outputs: [], next: [withdrawn] }]
+
+  # --- funding -----------------------------------------------------------------------------------------------------
+  - id: to_funding
+    name: Funding
+    type: case.update
+    config: { stage: funding }
+    events: [{ name: done, outputs: [], next: [funding_package] }]
+  - id: funding_package
+    name: Funding package
+    type: client.request
+    config:
+      title: Funding package
+      description: "Upload these to get paid for {{input.buyerName}}'s contract."
+      items:
+        - { key: title, label: Title or title application with our lien, type: file }
+        - { key: insurance, label: Proof of insurance, type: file }
+      remindAfter: P2D
+      expiresAfter: P30D
+    events: [{ name: completed, outputs: [], next: [funding_audit] }, { name: expired, outputs: [], next: [withdrawn] }]
+  - id: funding_audit
+    name: Funding audit
+    type: review
+    config:
+      title: "Funding audit: {{input.buyerName}} · ${{input.amountFinanced | money}}"
+      description: "Check the signed contract, the assignment, the title (our lien) and the insurance, then fund the dealer."
+      assignTo: { role: senior_reviewer }
+      sla: PT8H
+      outcomes:
+        - { key: fund, label: Fund the dealer }
+        - { key: request_info, label: Ask the dealer, requiresReason: true }
+        - { key: reject, label: Do not fund, requiresReason: true }
+    events: [{ name: fund, outputs: [], next: [pay_dealer] }, { name: reject, outputs: [], next: [to_declined] }]
+  - id: pay_dealer
+    name: Pay the dealer
+    type: function:${FN_PAY_DEALER}
+    config:
+      inputs:
+        dealerName: "= input.dealerName"
+        dealerEmail: "= case.applicant.email"
+        amount: "= $string($round($number(input.amountFinanced) - ${DEALER_FEE}, 2))"
+        reference: "= case.reference"
+        memo: "= 'Contract ' & case.reference & ' · ' & input.buyerName"
+    events: [{ name: completed, outputs: [], next: [paid] }, { name: failed, outputs: [], next: [pay_manually] }]
+  - id: paid
+    name: Paid?
+    type: conditional
+    config: { expression: "steps.pay_dealer.paid = true" }
+    events: [{ name: "true", outputs: [], next: [to_funded] }, { name: "false", outputs: [], next: [pay_manually] }]
+  - id: pay_manually
+    name: Pay the dealer by hand
+    type: task
+    config:
+      title: "Pay {{input.dealerName}} for {{case.reference}} by hand"
+      description: The automatic payment in QuickBooks did not go through.
+      assignTo: { role: senior_reviewer }
+    events: [{ name: done, outputs: [], next: [to_funded] }]
+  - id: to_funded
+    name: Funded
+    type: case.update
+    config: { stage: funded, data: { fundedAmount: "= $round($number(input.amountFinanced) - ${DEALER_FEE}, 2)", quickbooksBill: "= steps.pay_dealer.billId" } }
+    events: [{ name: done, outputs: [], next: [tell_funded] }]
+  - id: tell_funded
+    name: Tell the dealer
+    type: client.notify
+    config: { title: "Funded: {{input.buyerName}}", body: "We paid ${{steps.to_funded.data.fundedAmount | money}} for this contract.", tone: success, email: true }
+    events: [{ name: done, outputs: [], next: [borrower] }]
+
+  # --- servicing: the buyer becomes our client ------------------------------------------------------------------------
+  - id: borrower
+    name: The buyer's account
+    type: client.upsert
+    config:
+      email: "= input.buyerEmail"
+      name: "= input.buyerName"
+      addSegments: [borrower]
+      attributes: { phone: "= input.buyerPhone", dealer: "= input.dealerName" }
+      invite: true
+      inviteMessage: "Your auto loan for the {{input.year}} {{input.make}} {{input.model}} is with us. Sign in with this e-mail address to see your balance, your payments and to pay online."
+    events: [{ name: created, outputs: [], next: [board] }, { name: existing, outputs: [], next: [board] }]
+  - id: board
+    name: Board the loan (LoanPro)
+    type: "connector:loanpro/loan.board"
+    config:
+      connection: ${LOANPRO}
+      loanClass: car
+      input:
+        firstName: "= $substringBefore(input.buyerName, ' ')"
+        lastName: "= $substringAfter(input.buyerName, ' ')"
+        email: "= input.buyerEmail"
+        phone: "= input.buyerPhone"
+        amount: "= $string(input.amountFinanced)"
+        apr: "= $string(input.apr)"
+        termMonths: "= $string(input.termMonths)"
+        vin: "= input.vin"
+        year: "= $string(input.year)"
+        make: "= input.make"
+        model: "= input.model"
+        reference: "= case.reference"
+        clientId: "= steps.borrower.clientId"
+    events: [{ name: boarded, outputs: [], next: [to_boarded] }, { name: failed, outputs: [], next: [board_manually] }]
+  - id: board_manually
+    name: Board the loan by hand
+    type: task
+    config:
+      title: "Board {{case.reference}} in LoanPro by hand"
+      description: "Automatic boarding failed: {{steps.board.error}}"
+      assignTo: { role: senior_reviewer }
+    events: [{ name: done, outputs: [], next: [to_boarded] }]
+  - id: to_boarded
+    name: Boarded
+    type: case.update
+    config: { stage: boarded, data: { loanId: "= steps.board.loanId", monthlyPayment: "= steps.board.payment", firstPaymentDate: "= steps.board.firstPaymentDate" } }
+    events: [{ name: done, outputs: [], next: [welcome_borrower] }]
+  - id: welcome_borrower
+    name: Welcome the buyer
+    type: client.notify
+    config:
+      client: "= steps.borrower.clientId"
+      title: Your auto loan is ready
+      body: "First payment of ${{steps.board.payment | money}} due on {{steps.board.firstPaymentDate | date}}. You can pay here in the app."
+      tone: success
+      page: home
+    events: [{ name: done, outputs: [], next: [log_funded] }]
+  - id: log_funded
+    name: Log the funding
+    type: function:${FN_LOG_DEAL}
+    config:
+      inputs: { reference: "= case.reference", dealer: "= input.dealerName", buyer: "= input.buyerName", vehicle: "= $string(input.year) & ' ' & input.make & ' ' & input.model", amount: "= $string(input.amountFinanced)", status: Funded }
+    events: [{ name: completed, outputs: [], next: [title] }, { name: failed, outputs: [], next: [title] }]
+  - id: title
+    name: Track the title
+    type: workflow.call
+    config:
+      workflowId: ${WF_TITLE}
+      wait: false
+      inputs: { reference: "= case.reference", vin: "= input.vin", buyer: "= input.buyerName", dealer: "= input.dealerName" }
+    events: [{ name: started, outputs: [], next: [funded] }]
+  - id: funded
+    name: Funded and boarded
+    type: case.decision
+    config: { status: approved, outcome: funded, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]

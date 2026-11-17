@@ -3,7 +3,9 @@
  * The local stack in one command (docs/plans/08 §One command).
  *
  *   bun run stack [--profile core|full|e2e] [--only a,b] [--skip a,b] [--detach]
- *   bun run stack:status | stack:logs [service] | stack:restart <service> | stack:stop | stack:reset | stack:doctor | stack:test [--keep] [-- <playwright args>]
+ *   bun run stack:status | stack:logs [service] | stack:restart <service> | stack:stop | stack:reset | stack:doctor
+ *
+ * The e2e suite has its own entry point that uses this one: `bun e2e` (scripts/e2e.ts; `stack:test` is an alias).
  *
  * Services are declared in dev/stack.config.ts; ports in dev/ports.json. Services that are already healthy (started
  * elsewhere) are reused, not started twice. Logs go to .data/stack/logs/<service>.log and, in the foreground, to the
@@ -131,7 +133,17 @@ async function doctor(quiet = false) {
     if (!existsSync(join(ROOT, file))) notes.push(`${file} missing: created from its .env.example on first run`);
   }
   const browsers = process.env.PLAYWRIGHT_BROWSERS_PATH;
-  if (!browsers) notes.push('PLAYWRIGHT_BROWSERS_PATH not set: run `bunx playwright install chromium` once before `stack:test`');
+  if (!browsers) notes.push('PLAYWRIGHT_BROWSERS_PATH not set: run `bunx playwright install chromium` once before `bun e2e`');
+  try {
+    // Can the e2e browser tests run in visible windows here? (apps/e2e/support/visual; opens a window off-screen briefly)
+    const { detectVisual } = await import('../apps/e2e/support/visual/detect');
+    const visual = detectVisual();
+    notes.push(visual.enabled
+      ? `e2e visual mode: on (${visual.reason}): browser tests run in windows you can watch; E2E_VISUAL=0 for headless`
+      : `e2e visual mode: off (${visual.reason}): browser tests run headless`);
+  } catch (error) {
+    notes.push(`e2e visual mode: not checked (${(error as Error).message.split('\n')[0]})`);
+  }
   const free = spawnSync('df', ['-Pk', ROOT], { encoding: 'utf8' }).stdout?.split('\n')[1]?.split(/\s+/)[3];
   if (free && Number(free) < 2_000_000) problems.push(`less than 2 GB free disk space at ${ROOT}`);
   const ports = JSON.parse(readFileSync(join(ROOT, 'dev/ports.json'), 'utf8')).services as Record<string, { port: number }>;
@@ -479,18 +491,10 @@ async function reset() {
   if (!flag('no-start')) await detach();
 }
 
-async function test() {
-  const keep = flag('keep');
-  const separator = args.indexOf('--');
-  const playwrightArgs = separator >= 0 ? args.slice(separator + 1) : [];
-  const wasRunning = readState();
-  if (!wasRunning || !alive(wasRunning.supervisorPid)) {
-    args.push('--profile', 'e2e');
-    await detach();
-  }
-  const result = spawnSync('bunx', ['playwright', 'test', ...playwrightArgs], { cwd: join(ROOT, 'apps/e2e'), stdio: 'inherit' });
-  spawnSync('node', ['scripts/flow-status.mjs'], { cwd: join(ROOT, 'apps/e2e'), stdio: 'inherit' });
-  if (!keep && (!wasRunning || !alive(wasRunning.supervisorPid))) await stop();
+/** Kept for compatibility: the e2e suite's entry point is `bun e2e` (scripts/e2e.ts), which this forwards to. */
+function test() {
+  const forwarded = args.filter((a) => a !== '--');
+  const result = spawnSync('bun', [join(ROOT, 'scripts/e2e.ts'), ...forwarded], { cwd: ROOT, stdio: 'inherit' });
   process.exit(result.status ?? 1);
 }
 

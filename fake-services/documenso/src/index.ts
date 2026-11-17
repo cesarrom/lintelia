@@ -22,6 +22,8 @@ const service = createFakeService({ name: 'documenso', port, recordPaths: (p) =>
 const TEMPLATES = [
   { id: 101, title: 'Retail account agreement', externalId: 'retail-account-agreement', recipients: [{ id: 1, role: 'SIGNER', email: '', name: 'Account holder' }] },
   { id: 102, title: 'Loan agreement', externalId: 'loan-agreement', recipients: [{ id: 1, role: 'SIGNER', email: '', name: 'Borrower' }] },
+  { id: 103, title: 'Retail installment contract', externalId: 'retail-installment-contract', recipients: [{ id: 1, role: 'SIGNER', email: '', name: 'Buyer' }] },
+  { id: 104, title: 'Dealer assignment of contract', externalId: 'dealer-assignment', recipients: [{ id: 1, role: 'SIGNER', email: '', name: 'Dealer' }] },
 ];
 const state = jsonState<{ documents: Document[]; webhooks: Record<string, { url: string; secret: string }>; outcomes: Record<string, 'signed' | 'declined' | 'none'> }>(
   'documenso', 'state.json', { documents: [], webhooks: {}, outcomes: {} },

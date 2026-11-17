@@ -17,6 +17,10 @@ the status column below says what is left.
 | 08 | [08-local-development-and-fake-services.md](08-local-development-and-fake-services.md) | local mailbox (the missing verification e-mail), `fake-services/*`, one command to run the stack | done |
 | 09 | [09-custom-domains.md](09-custom-domains.md) | deferred: what custom domains need per edge provider | ownership verification done (TXT, fake DNS); left: edge provider (TLS, routing), periodic re-checks |
 | 10 | [10-infrastructure-gaps.md](10-infrastructure-gaps.md) | "if AWS then …, if Azure then …, if GCP then …" for every piece of the platform | reference |
+| 11 | [11-client-experience-builder.md](11-client-experience-builder.md) | institutions build their clients' app: registration, journeys (screens as workflow steps), pages, data and actions, custom widgets | v1 shipped ([0007](../changes/0007-client-apps.md)) |
+| 12 | [12-dealer-finance.md](12-dealer-finance.md) | dealer finance (indirect auto lending) end to end, and what the platform needed for it: stages, functions, signals, a generic HTTP connector, AI, LoanPro, workflows that create clients | v1 shipped ([0008](../changes/0008-dealer-finance.md)) |
+| 13 | [13-experience-map.md](13-experience-map.md) | a Figma-like map of everything built: layout, pages, journeys and their screens, workflows, functions, forms, events — navigable, each frame opening its editor | v1 shipped as an experiment ([0009](../changes/0009-experience-map.md)) |
+| 14 | [14-ui-building-blocks.md](14-ui-building-blocks.md) | cheap, high-leverage building blocks for designers: how journeys open (dialog, sheet, full screen, FAB, deep links), scanner / signature / OTP / slider / calculated and conditional fields, screens that continue by themselves, branding (presets, accent, fonts, shapes, logo colours, readability), region | v1 shipped ([0011](../changes/0011-ui-building-blocks.md)); catalogue of what is left |
 
 ## Proposed order
 

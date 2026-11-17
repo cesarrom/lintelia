@@ -1,4 +1,4 @@
-import { test, expect, type Browser, type Page } from '@playwright/test';
+import { test, expect, type Browser, type Page } from '../../support/test';
 import { Api } from '../../support/api';
 import { addClient, deleteTenant, DEFAULT_PASSWORD } from '../../support/factories';
 import { emailsTo as mailboxEmails, waitForEmail } from '../../support/mailbox';

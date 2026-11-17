@@ -85,6 +85,9 @@ export function workflowToYaml(workflow: Workflow, nodes: Node<NodeData>[], edge
     ...(workflow.startOn?.length ? { startOn: workflow.startOn } : {}),
     ...(workflow.caseTitle ? { caseTitle: workflow.caseTitle } : {}),
     ...(workflow.clientVisibility ? { clientVisibility: workflow.clientVisibility } : {}),
+    ...(workflow.stages?.length ? { stages: workflow.stages } : {}),
+    ...(workflow.function ? { function: true } : {}),
+    ...(workflow.outputs && Object.keys(workflow.outputs).length ? { outputs: workflow.outputs } : {}),
 
     // Convert triggers
     triggers: triggers,
@@ -172,10 +175,13 @@ export function yamlToWorkflow(yamlContent: string, options: { id?: string } = {
     startOn: schema.startOn,
     caseTitle: schema.caseTitle,
     clientVisibility: schema.clientVisibility,
+    stages: schema.stages,
+    function: schema.function,
+    outputs: schema.outputs,
   };
 
   // Convert to triggers
-  const triggers: WorkflowTrigger[] = schema.triggers;
+  const triggers: WorkflowTrigger[] = schema.triggers ?? [];
 
   // Convert steps to nodes and edges
   const nodes: Node<NodeData>[] = ensureStartNode(schema.steps.map((step, index) => {
@@ -227,7 +233,7 @@ export function yamlToWorkflow(yamlContent: string, options: { id?: string } = {
 
   // Create edges from event connections
   const edges: Edge[] = schema.steps.flatMap(step =>
-    step.events.flatMap(event =>
+    (step.events ?? []).flatMap(event =>
       (event.next || []).map(targetId => ({
         id: `${step.id}-${event.name}-${targetId}`,
         source: step.id,
@@ -261,16 +267,17 @@ export function validateWorkflowYaml(yamlContent: string): boolean {
     const schema = yaml.parse(yamlContent) as WorkflowYaml;
 
     // Basic validation
-    if (!schema.name || !schema.version || !Array.isArray(schema.steps)) {
+    // `version` is legacy (versions are numbered at publication): optional.
+    if (!schema.name || !Array.isArray(schema.steps)) {
       return false;
     }
 
     // Validate inputs
-    if (!Array.isArray(schema.inputs)) {
+    if (schema.inputs !== undefined && !Array.isArray(schema.inputs)) {
       return false;
     }
 
-    for (const input of schema.inputs) {
+    for (const input of schema.inputs ?? []) {
       if (!input.id || !input.name || !input.type) {
         return false;
       }
@@ -283,7 +290,7 @@ export function validateWorkflowYaml(yamlContent: string): boolean {
       }
 
       // Validate events reference existing steps
-      for (const event of step.events) {
+      for (const event of step.events ?? []) {
         if (!Array.isArray(event.next)) {
           return false;
         }

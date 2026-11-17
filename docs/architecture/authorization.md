@@ -55,6 +55,9 @@ principal ──has──▶ role assignments ──▶ roles ──▶ permissi
 | `roles:manage` | create, change and delete custom roles |
 | `clients:read` | see client profiles (PII) in scope |
 | `clients:update` | contact notes, resend links, update contact details |
+| `clients:provision` | register clients from the institution's systems and open their sessions for the embedded app (`POST /client-sessions`), update their app profile |
+| `clients:records` | write the records clients see in the client app (`PUT /clients/:client/records/…`) |
+| `experience:read` / `experience:manage` / `experience:publish` | see / edit the draft / publish and roll back the client app (studio, docs/plans/11) |
 | `forms:read` / `forms:manage` / `forms:publish` | see / edit / publish and embed forms |
 | `workflows:read` / `workflows:manage` / `workflows:publish` | see / edit drafts / publish versions of workflows |
 | `templates:manage` | e-mail and document templates |
@@ -68,6 +71,7 @@ principal ──has──▶ role assignments ──▶ roles ──▶ permissi
 | `cases:read_all` | see every case of the institution |
 | `cases:lookup` | look up any client-facing application (never investigations) to help the client, e.g. support agents |
 | `cases:create` | start an application on behalf of a client (assisted onboarding) |
+| `cases:signal` | signal a running case from the institution's systems (`POST /cases/:id/signals/:name`: a `webhook.wait` step continues) |
 | `tasks:work` | claim and decide tasks routed to me: approve / reject / request information, within authority |
 | `tasks:assign` | reassign tasks, manage queues |
 | `cases:approve_high_risk` | decisions above the authority threshold and second approvals |
@@ -92,6 +96,9 @@ principal ──has──▶ role assignments ──▶ roles ──▶ permissi
 | roles:manage | ✓ | | | | | | | | |
 | clients:read | ✓ | ✓ | ✓ | ✓ | ✓ (own) | | | ✓ | ✓ |
 | clients:update | ✓ | ✓ | | | ✓ (own) | | | ✓ | |
+| clients:provision, clients:records | ✓ | | | | | | ✓ | | |
+| experience:read | ✓ | | | | | ✓ | ✓ | | ✓ |
+| experience:manage, experience:publish | ✓ | | | | | ✓ | | | |
 | forms:read | ✓ | ✓ | ✓ | ✓ | | ✓ | | | ✓ |
 | forms:manage, forms:publish | ✓ | | | | | ✓ | | | |
 | workflows:read | ✓ | ✓ | ✓ | ✓ | | ✓ | ✓ | | ✓ |
@@ -108,6 +115,7 @@ principal ──has──▶ role assignments ──▶ roles ──▶ permissi
 | cases:read_all | ✓ | ✓ | ✓ | | | | | | ✓ |
 | cases:lookup | ✓ | | | | | | | ✓ | |
 | cases:create | ✓ | ✓ | | | ✓ | | | | |
+| cases:signal | ✓ | | | | | | ✓ | | |
 | tasks:work | ✓ | ✓ | ✓ | ✓ | | | | | |
 | tasks:assign | ✓ | ✓ | ✓ | | | | | | |
 | cases:approve_high_risk | ✓ | ✓ | ✓ | | | | | | |
@@ -133,6 +141,10 @@ The migration renames today's permission ids (`workflows:view` → `workflows:re
 | platform.support_access:request | ✓ | | ✓ | |
 | platform.audit:read | ✓ | | | ✓ |
 | platform.connectors:manage | ✓ | | | |
+
+Routes that accept either of two permissions use `@RequireAny(...)` — e.g. reading a client's app records needs
+`clients:read` (the team) or `clients:records` (the system that writes them). Previewing the client app as a real
+client needs `clients:read` on top of `experience:read` and is audited (`client_app.previewed`).
 
 ## Conditions (the attribute layer)
 

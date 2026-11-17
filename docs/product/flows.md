@@ -1,7 +1,7 @@
 # Flow catalogue
 
 Every flow has an id used as a tag in the e2e suite (`apps/e2e`, e.g. `@FIA-04`), so
-`bun run --cwd apps/e2e test --grep @FIA-04` runs it and `bun run --cwd apps/e2e flow-status` reports progress.
+`bun e2e --grep @FIA-04` runs it and `bun run --cwd apps/e2e flow-status` reports progress.
 Personas are described in [personas.md](personas.md); contracts in
 [../architecture/cases-and-workflows.md](../architecture/cases-and-workflows.md),
 [../architecture/authorization.md](../architecture/authorization.md),
@@ -245,6 +245,41 @@ core and any connector; the INT flows above cover the first-party connectors.
 
 Acceptance for the client flows is spelled out in the scenario tests below and in `apps/e2e/tests/clients`.
 
+## Client apps (APP)
+
+What an institution's clients see and do in the institution's own app, built in the studio (docs/plans/11,
+[0007](../changes/0007-client-apps.md)).
+
+| Id | Flow | Status | Tech |
+| --- | --- | --- | --- |
+| APP-01 | Build the client app in the studio: template, pages of widgets, live preview (computer, phone) | works | client app definition, widget catalogue, preview frame |
+| APP-02 | Publish, version and roll back the app; broken apps are not published | works | validation (references, data sources, JSONata syntax) |
+| APP-03 | Clients read their own data, only what the app declares | works | `/me/app/data` allow-list, client records |
+| APP-04 | Run a journey: screens, checks, branching, records and messages (move money, freeze a card) | works | `client.screen`, `client.record`, `client.notify` |
+| APP-05 | Onboarding from the app: details, identity document, the team's check, account and card created | works | journeys with reviews, uploads, `client.profile` |
+| APP-06 | Sign up on the app with profile fields and consents; welcome workflow | works | registration settings, `client.registered` |
+| APP-07 | The institution's systems register clients, open their sessions and push their data | works | `POST /client-sessions`, records API, API clients |
+| APP-08 | Sign in with the institution's identity provider (token exchange) | works | JWKS verification, identity mapping |
+| APP-09 | Embed the app in the institution's site or mobile app | works | `@fintivio/client-sdk`, `/embed/app`, frame-ancestors |
+| APP-10 | Who may build, publish and preview the app | works | `experience:*`, audited preview as a client |
+| APP-11 | See and navigate everything built on one map: layout, pages, journeys with their screens and what happens in between, workflows, functions, forms, events; follow links, personas, layers, open each editor and come back | works | `GET /experience-map`, React Flow canvas, client-app runtime frames ([0009](../changes/0009-experience-map.md)) |
+| APP-12 | UI building blocks: journeys that open as a dialog, a sheet or full screen (floating button, quick action, deep link); a QR / barcode scanner that reads payment codes; screens that continue by themselves after a countdown; signatures, one-time codes, sliders, calculated and conditional fields, format rules; branding (presets, accent, fonts, button shapes, light/dark, colours from the logo, readability) and region | works | `client.screen` field types and `autoSubmit`, journey `presentation`, `fab` / `qr-code` widgets, theme and region ([0011](../changes/0011-ui-building-blocks.md)) |
+
+## Automation building blocks (AUT)
+
+What workflows use to reach other systems and each other, beyond dedicated connectors (docs/plans/12,
+[0008](../changes/0008-dealer-finance.md)).
+
+| Id | Flow | Status | Tech |
+| --- | --- | --- | --- |
+| AUT-01 | Business stages: a workflow declares its stages, `case.update` moves the case; the case page, the pipeline board and clients show them | works | `stages`, `case.update.stage`, `/cases/pipelines` |
+| AUT-02 | Functions: a published workflow marked `function: true` is a step of other workflows (inputs → outputs); start a workflow without waiting | works | `function:<workflow id>`, `outputs`, `workflow.call wait: false` |
+| AUT-03 | Signals: a case waits for another system (title service, bank, DMS) to call it back on its signed hook URL or the API; early signals kept; deadline | works | `webhook.wait`, `case_signals`, `POST /cases/:id/signals/:name`, `/hooks/cases/...` |
+| AUT-04 | Any REST API with the HTTP connector (credentials kept in the connector), and that system's webhooks start workflows | works | `connector:http/request`, `connector:http/webhook.<key>` |
+| AUT-05 | AI reads documents into fields (or says what is missing) and writes summaries for reviewers | works | `connector:ai/document.extract`, `text.generate`, OpenAI-compatible API |
+| AUT-06 | Loan servicing in LoanPro: boarding, payments from the app, servicing events (payment, delinquency, payoff) start workflows | works | `connector:loanpro/*`, signed LoanPro webhooks, client records |
+| AUT-07 | Workflows create clients (a borrower from a deal), invite them and serve their app | works | `client.upsert`, `client` target on client steps |
+
 ## Cross-cutting (X)
 
 | Id | Flow | Status | Tech |
@@ -277,3 +312,4 @@ scenarios"). Workflow definitions live in `apps/e2e/fixtures/workflows` and use 
 | SCN-09 | Business onboarding with two UBOs who verify themselves | CLI-08, CMP-01 |
 | SCN-10 | Loan pre-approval from a form embedded on the bank's website: automatic pre-approval of small affordable loans, reviewer approval of mid-size loans, four-eyes above 50,000, automatic decline when unaffordable; applicants follow in the portal (UI) | DES-01/02/03/05, CLI-03/07, REV-01/02, SUP-01 |
 | SCN-11 | Suspicious activity: an RM flags a client → L1 triage (false positive / escalate) → investigation with a request to the client → MLRO decision (SAR / exit / no action), without tipping off the client (UI) | RM-03, REV-02/03, CMP-04, CLI-05, AUD-01 |
+| SCN-12 | Dealer finance (indirect auto lending): a dealer applies and submits deals with stipulations; AI reads them, the numbers and flags are computed, the deal is logged (Google Sheets); underwriting asks the dealer for more as often as needed, then decides; buyer and dealer sign (Documenso); the funding package is audited; the dealer is paid (QuickBooks, through a function of HTTP steps); the loan is boarded in LoanPro; the buyer becomes a client, pays from their app; LoanPro servicing events reach them; the title arrives by signal (API and UI) | AUT-01…07, APP-01/04, REV-02/03, SUP-01, CLI-05/06 |

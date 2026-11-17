@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from '../../support/test';
 import { Api, expectStatus } from '../../support/api';
 import { createTenant, deleteTenant, login, type TenantHandle } from '../../support/factories';
 import { idpUser, setUpSso, ssoSignInWithoutBrowser } from '../../support/sso';

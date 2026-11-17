@@ -120,6 +120,20 @@ export class CoreClient {
       }),
   };
 
+  readonly documents = {
+    /** A document of the step's case (needs the `files:read` scope), e.g. to extract data from it. */
+    read: async (fileId: string, callbackToken: string) => {
+      const file = await this.call<{ id: string; name: string; contentType: string; size: number; contentBase64: string }>('GET', `/files/${encodeURIComponent(fileId)}?callbackToken=${encodeURIComponent(callbackToken)}`);
+      return { ...file, content: Buffer.from(file.contentBase64, 'base64') };
+    },
+  };
+
+  readonly clientRecords = {
+    /** Records of a client shown in the client app (needs `client-records:write`). */
+    write: (input: { client: { id?: string; externalId?: string; source?: string; email?: string }; collection: string; records: Array<{ key: string; data: Record<string, unknown> }>; mode?: 'upsert' | 'merge'; replace?: boolean }) =>
+      this.call<{ clientId: string; collection: string; written: number }>('PUT', '/client-records', input),
+  };
+
   readonly events = {
     publish: (event: { id: string; type: string; subject?: string; data?: Record<string, unknown>; applicantEmail?: string }) =>
       this.call<{ duplicate: boolean; started: Array<{ id: string; reference: string }> }>('POST', '/events', event),

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AuthShell, usePublicTenant } from '@/components/auth/AuthShell';
+import { Spinner } from '@/components/app/loading';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useDomain } from '@/lib/providers/TenantProvider';
 import { API_BASE_URL, useAuthActions } from '@/lib/auth/session';
@@ -8,6 +9,7 @@ import { API_BASE_URL, useAuthActions } from '@/lib/auth/session';
 /** A related party (co-applicant, guarantor, beneficial owner…) opens their invitation link: signed in, then their part. */
 export default function JoinPage() {
   const domain = useDomain();
+  const { tenant } = usePublicTenant();
   const navigate = useNavigate();
   const { adopt } = useAuthActions();
   const [error, setError] = useState<string | null>(null);
@@ -31,11 +33,10 @@ export default function JoinPage() {
   }, [domain, adopt, navigate]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader><CardTitle>Joining the application…</CardTitle></CardHeader>
-        <CardContent>{error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}</CardContent>
-      </Card>
-    </div>
+    <AuthShell tenant={tenant} institution={!!domain} title="Joining the application…" description="You were invited to take part in an application. We are opening your part of it.">
+      {error
+        ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>
+        : <p className="flex items-center gap-2.5 text-sm text-muted-foreground"><Spinner className="text-primary" />Checking your invitation</p>}
+    </AuthShell>
   );
 }
