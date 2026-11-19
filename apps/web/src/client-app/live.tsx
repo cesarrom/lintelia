@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { JourneyPresentation } from '@repo/fintivio/schemas';
 import { useLocation, useNavigate } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { apiErrorMessage } from '@/lib/services/api';
 import { useAxios } from '@/lib/services/axios';
+import { useLive, useLiveInvalidate, usePollInterval } from '@/lib/live';
 import { RuntimeProvider, sourcesOf, type AppRuntime, type StartOptions } from './runtime';
 import { JourneyOverlay, type JourneyOverlayState } from './JourneyOverlay';
 import { journeyKey } from './JourneyRunner';
@@ -17,12 +18,54 @@ const API_BASE_URL = import.meta.env.VITE_FILES_API_BASE_URL as string;
 export function useAppData(sources: string[], key: string, options: { refetchInterval?: number } = {}) {
   const { axios, ready } = useAxios();
   const sorted = [...new Set(sources)].sort();
+  // Live updates refresh the data as it changes (docs/plans/17); polling is the fallback while they are down.
+  const refetchInterval = usePollInterval(options.refetchInterval ?? 15_000, 120_000);
   return useQuery<AppData>({
     queryKey: ['client-app', 'data', key, sorted],
     queryFn: async () => (await axios.post(`${API_BASE_URL}/me/app/data`, { sources: sorted })).data,
     enabled: ready && sorted.length > 0,
-    refetchInterval: options.refetchInterval ?? 15_000,
+    refetchInterval,
   });
+}
+
+/** Cases whose result the client is already looking at (a journey on screen, a one-tap result toasted): their notifications do not pop up again. */
+const followed = new Map<string, number>();
+export const followCase = (caseId: string) => followed.set(caseId, Date.now());
+const isFollowed = (caseId: string | undefined) => !!caseId && (followed.get(caseId) ?? 0) > Date.now() - 60_000;
+
+/**
+ * The client's app listens for what concerns them (docs/plans/17 §4.7): their records (a balance the core banking system
+ * changes), notifications (shown as they arrive), applications and profile — the screen fetches its data again at
+ * once — and the messages workflows send them.
+ */
+function LiveClientApp() {
+  const { user } = useAuth();
+  const { axios } = useAxios();
+  const me = user?.kind === 'client' ? user.userId : null;
+  useLiveInvalidate(me ? [`client/${me}/records/*`, `client/${me}/cases`, `client/${me}/profile`, `client/${me}/notifications`] : [], [['client-app', 'data']]);
+  const shown = useRef<Set<string> | null>(null);
+  const since = useRef(Date.now());
+  useLive(me ? [`client/${me}/notifications`] : [], (event) => {
+    if (event.kind !== 'change') return;
+    void axios.post<AppData>(`${API_BASE_URL}/me/app/data`, { sources: ['notifications'] }).then(async ({ data }) => {
+      shown.current ??= new Set();
+      // A journey the client just ran answers with its result a moment later: give it that moment.
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      for (const n of (data.notifications ?? []).slice().reverse()) {
+        if (n.read || shown.current.has(n.id) || new Date(n.createdAt).getTime() < since.current - 5_000) continue;
+        shown.current.add(n.id);
+        if (isFollowed(n.link?.caseId)) continue;
+        const show = n.tone === 'success' ? toast.success : n.tone === 'warning' ? toast.warning : toast.info;
+        show(n.title, { description: n.body ?? undefined });
+      }
+    }).catch(() => undefined);
+  });
+  useLive(me ? [`client/${me}/messages`] : [], (event) => {
+    if (event.kind !== 'message') return;
+    const { text, title, body } = event.payload as { text?: string; title?: string; body?: string };
+    toast.info(String(title ?? text ?? 'New message'), { description: title ? String(body ?? text ?? '') || undefined : body });
+  });
+  return null;
 }
 
 /** Where the app lives: `/portal` (signed-in clients) or `/embed/app` (SDK, in a frame). */
@@ -86,6 +129,7 @@ export function LiveRuntime({ app, base, children, onSignOut, onEvent, overlays 
     setStarting(journey);
     try {
       const { data } = await axios.post<JourneyState>(`${API_BASE_URL}/me/app/journeys/${journey}/start`, { input });
+      followCase(data.case.id);
       queryClient.setQueryData(journeyKey(data.case.id), data);
       onEvent?.('journey.started', { journey, caseId: data.case.id, reference: data.case.reference });
       if (data.state === 'done') {
@@ -135,6 +179,7 @@ export function LiveRuntime({ app, base, children, onSignOut, onEvent, overlays 
   return (
     <BaseContext.Provider value={base}>
       <RuntimeProvider runtime={runtime}>
+        <LiveClientApp />
         {children}
         {overlay && <JourneyOverlay overlay={overlay} onClose={closeOverlay} />}
       </RuntimeProvider>

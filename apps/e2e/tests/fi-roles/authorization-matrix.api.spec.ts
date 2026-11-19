@@ -36,6 +36,9 @@ const PROBES: Partial<Record<TenantPermission, Probe>> = {
   'tasks:assign': (api) => api.get('/tasks?view=all'),
   'audit:read': (api) => api.get('/audit'),
   'data_requests:manage': (api) => api.get('/data-requests'),
+  'backoffice:read': (api) => api.get('/backoffice/current'),
+  'backoffice:manage': (api) => api.put('/backoffice/current/draft', { definition: { name: 'Back office' } }),
+  'events:publish': (api) => api.post('/events', { id: `probe-${stamp()}`, type: 'probe.event', data: {} }),
 };
 
 let bank: TenantHandle;

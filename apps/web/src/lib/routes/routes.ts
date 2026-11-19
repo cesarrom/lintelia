@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   AppWindow, Building2, Map as MapIcon, Cable, ClipboardCheck, Plug, FileLock2, LifeBuoy, FileIcon, FolderKanban, FormInput, KeyIcon, LayoutDashboard, Logs, MailIcon, ScrollText,
-  Settings, Shield, UserRound, Users, WebhookIcon, Workflow,
+  PanelsTopLeft, Settings, Shield, ShieldCheck, UserRound, Users, WebhookIcon, Workflow,
 } from 'lucide-react';
 
 export interface AppRoute {
@@ -23,6 +23,7 @@ export const memberRoutes: AppRoute[] = [
   { name: 'Forms', href: '/app/forms', icon: FormInput, permissions: ['forms:read'], section: 'Build' },
   { name: 'Workflows', href: '/app/workflows', icon: Workflow, permissions: ['workflows:read'], section: 'Build' },
   { name: 'Client app', href: '/app/experience', icon: AppWindow, permissions: ['experience:read'], section: 'Build' },
+  { name: 'Back office', href: '/app/back-office', icon: PanelsTopLeft, permissions: ['backoffice:read'], section: 'Build' },
   { name: 'Email Templates', href: '/app/emails', icon: MailIcon, permissions: ['templates:manage'], section: 'Build' },
   { name: 'Documents', href: '/app/documents', icon: FileIcon, permissions: ['templates:manage'], section: 'Build' },
   { name: 'Integrations', href: '/app/integrations', icon: Plug, permissions: ['integrations:read'], section: 'Build' },
@@ -30,6 +31,7 @@ export const memberRoutes: AppRoute[] = [
   { name: 'API clients', href: '/app/keys', icon: KeyIcon, permissions: ['api_clients:manage'], section: 'Build' },
   { name: 'Team', href: '/app/users', icon: Users, permissions: ['members:read'], section: 'Administration' },
   { name: 'Roles', href: '/app/roles', icon: Shield, permissions: ['roles:read'], section: 'Administration' },
+  { name: 'Access changes', href: '/app/access-changes', icon: ShieldCheck, permissions: ['roles:read', 'security:manage', 'audit:read'], section: 'Administration' },
   { name: 'Audit log', href: '/app/audit', icon: ScrollText, permissions: ['audit:read'], section: 'Administration' },
   { name: 'Data requests', href: '/app/data-requests', icon: FileLock2, permissions: ['data_requests:manage'], section: 'Administration' },
   { name: 'Support access', href: '/app/support-access', icon: LifeBuoy, permissions: ['support_access:approve'], section: 'Administration' },

@@ -159,6 +159,9 @@ apps/e2e
     ├── fi-roles/             DES-*, REV-*, SUP-*, CMP-*, RM-*, AGT-*, INT-*, AUD-*, authorization matrix (X-02)
     ├── clients/              CLI-*
     ├── client-app/           APP-* (the client app: studio, banking app journeys, identity, SDK embedding)
+    ├── back-office/          BOA-* (the institution's own back office: studio mode, gating, actions, staff screens)
+    ├── automation/           AUT-* (stages, functions, signals, connectors, events by business key, polling)
+    ├── live/                 LIVE-* (live updates: streams, who may listen, workflows' messages)
     ├── cross-cutting/        X-*
     └── scenarios/            SCN-* (banking stories across personas)
 ```

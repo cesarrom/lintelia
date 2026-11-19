@@ -135,4 +135,6 @@ export interface User {
   permissions: string[];
   /** Platform role keys (staff only). */
   platformRoles?: string[];
+  /** Member attributes declared by the institution (branch, region…), used by access conditions (docs/plans/15 §5.5). */
+  attributes?: Record<string, unknown>;
 }

@@ -147,7 +147,11 @@ steps:
     events:
       - { name: done, outputs: [], next: [] }
 `);
-    const client = await bank.adminApi.post('/api-clients', { name: 'Core banking', permissions: ['cases:create', 'cases:read'] });
+    // Publishing events is its own permission (docs/plans/17 §3.7): starting cases by hand (cases:create) is not enough.
+    const starter = await bank.adminApi.post('/api-clients', { name: 'Case starter', permissions: ['cases:create'] });
+    const starterToken = await Api.anonymous().post('/oauth/token', new URLSearchParams({ grant_type: 'client_credentials', client_id: starter.body.clientId, client_secret: starter.body.clientSecret }));
+    expectStatus(await Api.withToken(starterToken.body.access_token, bank.key).post('/events', { id: `evt-x-${Date.now()}`, type, data: {} }), 403);
+    const client = await bank.adminApi.post('/api-clients', { name: 'Core banking', permissions: ['events:publish', 'cases:read'] });
     expectStatus(client, 201);
     const token = await Api.anonymous().post('/oauth/token', new URLSearchParams({ grant_type: 'client_credentials', client_id: client.body.clientId, client_secret: client.body.clientSecret }));
     expectStatus(token, 200);

@@ -75,11 +75,59 @@ function OnboardDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o
   );
 }
 
+/**
+ * Restore an administrator of an institution that locked itself out (docs/plans/15 §14). Only after verifying the
+ * request out of band: the ticket is recorded in both audit logs, and the institution's administrators are told.
+ */
+function RecoverAccessDialog({ tenant, onOpenChange }: { tenant: Tenant; onOpenChange: (open: boolean) => void }) {
+  const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [reason, setReason] = useState('');
+  const [ticket, setTicket] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const recover = useApiMutation<void>(({ axios, url }) => axios.post(url(`/platform/tenants/${tenant.domain}/recover-access`), { email, name, reason, ticket }));
+  const submit = async () => {
+    setError(null);
+    try {
+      await recover.mutateAsync();
+      toast.success(`Invitation sent to ${email} as administrator of ${tenant.name}`);
+      onOpenChange(false);
+    } catch (e) {
+      setError(apiErrorMessage(e));
+    }
+  };
+  return (
+    <Dialog open onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Restore access to {tenant.name}</DialogTitle>
+          <DialogDescription>
+            For institutions locked out of their own workspace (no administrator left, identity provider gone). Verify the request out of band first:
+            the person is invited as an administrator with a local account, the ticket goes to both audit logs and every administrator is told.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1.5"><Label htmlFor="recover-email">Administrator's e-mail</Label><Input id="recover-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label htmlFor="recover-name">Name</Label><Input id="recover-name" value={name} onChange={(e) => setName(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label htmlFor="recover-ticket">Support ticket (where the request was verified)</Label><Input id="recover-ticket" value={ticket} onChange={(e) => setTicket(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label htmlFor="recover-reason">Reason</Label><Input id="recover-reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. the only administrator left the bank" /></div>
+        </div>
+        {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={submit} disabled={recover.isPending || !email || !ticket || reason.trim().length < 10}>Restore access</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 /** Platform console: the institutions (tenants) operated on Fintivio. Staff never see tenant data from here. */
 export default function InstitutionsPage() {
   const { hasPermission } = useAuth();
   const { data: tenants = [], isLoading } = useApiQuery<Tenant[]>(['platform', 'tenants'], '/tenants/all');
   const [onboarding, setOnboarding] = useState(false);
+  const [recovering, setRecovering] = useState<Tenant | null>(null);
   const setStatus = useApiMutation<{ domain: string; status: 'active' | 'suspended' }>(
     ({ axios, url }, { domain, status }) => axios.put(url(`/tenants/${domain}`), { data: { status } }), [['platform', 'tenants']],
   );
@@ -116,7 +164,10 @@ export default function InstitutionsPage() {
                   <TableCell className="text-sm">{t.allowedDomains.join(', ') || '—'}</TableCell>
                   <TableCell><StatusBadge status={t.status} /></TableCell>
                   <TableCell className="text-sm">{formatDate(t.createdAt as any)}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="space-x-2 whitespace-nowrap text-right">
+                    {hasPermission('platform.tenants:recover') && t.status === 'active' && (
+                      <Button size="sm" variant="ghost" onClick={() => setRecovering(t)}>Restore access</Button>
+                    )}
                     {hasPermission('platform.tenants:update') && (
                       <Button size="sm" variant={t.status === 'active' ? 'outline' : 'default'} onClick={() => toggle(t)} disabled={setStatus.isPending}>
                         {t.status === 'active' ? 'Suspend' : 'Reactivate'}
@@ -130,6 +181,7 @@ export default function InstitutionsPage() {
         </div>
       )}
       <OnboardDialog open={onboarding} onOpenChange={setOnboarding} />
+      {recovering && <RecoverAccessDialog tenant={recovering} onOpenChange={(open) => !open && setRecovering(null)} />}
     </PageContainer>
   );
 }

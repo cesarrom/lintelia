@@ -28,7 +28,8 @@
     "connectors:databases": "bun ./scripts/connectors.ts databases",
     "connectors:register": "bun ./scripts/connectors.ts register",
     "demo:files": "bun ./scripts/demo.ts files",
-    "demo:auto-finance": "bun ./scripts/demo-auto-finance.ts"
+    "demo:auto-finance": "bun ./scripts/demo-auto-finance.ts",
+    "live:load": "bun ./scripts/live-load.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.9",

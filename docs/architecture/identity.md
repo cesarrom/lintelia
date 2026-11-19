@@ -65,8 +65,16 @@ configures the connection and verifies its e-mail domains in the broker's **Admi
 - **Platform staff** sign in through the company IdP the same way (`/platform/sso`, *Platform → Staff*); staff
   accounts are only created by invitation; enforcement refuses staff passwords for the company domain except for the
   break-glass accounts (`STAFF_BREAK_GLASS_EMAILS`, password + TOTP).
-- *Planned*: IdP group → role mapping, SAML IdP fake, deleting the broker organization when an institution is
-  deleted, running directory sync as a Restate workflow per organization.
+- **Roles and attributes from the IdP** ([0012](../changes/0012-access-control.md), plans/15 §5.4–5.5): the ID
+  token's `groups` (at every SSO sign-in) and the SCIM directory groups (`dsync.group.user_added/removed`; the user's
+  groups are re-read from the broker, so out-of-order events cannot leave stale roles) are stored on the member and
+  mapped to roles (`role_mappings`): as soon as single sign-on is linked (a verified domain), people of that domain hold
+  exactly the mapped roles (or the JIT default roles when none maps) from the first time the IdP tells us about them,
+  and manual assignment is refused for them — local accounts (emergency administrators, consultants) keep manual roles.
+  Linking a first domain is audited (`sso.domains_verified`) and e-mailed to the administrators. Member attributes declared by the institution can be read
+  from SSO claims or SCIM attributes (JSONata), read-only in the app. A sync never removes the last administrator.
+- *Planned*: SAML IdP fake, deleting the broker organization when an institution is deleted, running directory sync as
+  a Restate workflow per organization.
 
 ## Client (end-user) authentication
 

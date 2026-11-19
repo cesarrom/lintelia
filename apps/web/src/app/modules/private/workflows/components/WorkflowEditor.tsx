@@ -20,6 +20,7 @@ import 'reactflow/dist/style.css';
 import { Button } from '@/components/ui/button';
 import { Save, FileEdit, Play, LayoutGrid, ShieldCheck, Rocket, Settings2, SquareFunction } from 'lucide-react';
 import { toast } from 'sonner';
+import { announceChange } from '@/lib/access';
 import { CatalogContext, useComponentCatalog } from './catalog/catalog';
 import { ComponentNode, UnknownNode } from './catalog/ComponentNode';
 import { Palette } from './catalog/Palette';
@@ -67,7 +68,7 @@ function WorkflowEditorContent({ workflowId }: { workflowId?: string }) {
     : []), [nodes, nodeTypes, catalogList.length]);
   const [validationErrors, setValidationErrors] = useState<string[] | null>(null);
   const validate = useApiMutation<void, { errors: string[] }>(({ axios, url }) => axios.get(url(`/workflows/${workflowId}/validation`)));
-  const publish = useApiMutation<void, { version: number }>(({ axios, url }) => axios.post(url(`/workflows/${workflowId}/publish`)), [['workflows']]);
+  const publish = useApiMutation<void, unknown>(({ axios, url }) => axios.post(url(`/workflows/${workflowId}/publish`)), [['workflows'], ['access-changes']]);
 
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const fitted = useRef(false);
@@ -187,7 +188,8 @@ function WorkflowEditorContent({ workflowId }: { workflowId?: string }) {
     try {
       const result = await publish.mutateAsync();
       setValidationErrors(null);
-      toast.success(`Published as version ${result.version}`);
+      // A change of who may use it waits for an administrator (docs/plans/15 §5.3).
+      announceChange(result, `Published as version ${(result as { version?: number }).version}`);
     } catch (error) {
       const details = apiErrorDetails(error);
       if (details.length) setValidationErrors(details);

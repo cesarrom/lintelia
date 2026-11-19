@@ -13,6 +13,8 @@ import { createFakeService, devPort, escapeHtml, jsonState, page } from '@repo/f
  *   POST /portal/generate_link                     Admin Portal link → `/portal/{token}` (configure OIDC, verify domains)
  *   GET  /sso/authorize                            → the organization's IdP → back with a code
  *   POST /sso/token                                code → `{ access_token, profile }`
+ *   /scim/v2/{directory}/Users, /Groups            SCIM 2.0 per directory → `dsync.user.*`, `dsync.group.*` events (GET /events)
+ *   GET  /directory_groups?user=                   a directory user's groups (Directory Sync API)
  *
  * Domain verification uses DNS TXT records; locally the "DNS" is `/__control/dns` (tests and the portal page set it).
  * Control API: `/__control/organizations`, `/__control/dns`, `/__control/connections` (create without the portal).
@@ -29,13 +31,14 @@ const service = createFakeService({ name: 'workos', port, recordPaths: (p) => !p
 interface Directory { object: 'directory'; id: string; organization_id: string; name: string; type: 'generic scim v2.0'; state: 'linked'; token: string; created_at: string }
 interface DirectoryUser { object: 'directory_user'; id: string; directory_id: string; organization_id: string; idp_id: string; email: string; first_name: string | null; last_name: string | null; state: 'active' | 'inactive'; raw_attributes: Record<string, unknown>; custom_attributes: Record<string, unknown>; groups: unknown[]; created_at: string; updated_at: string }
 interface WorkOsEvent { object: 'event'; id: string; event: string; data: Record<string, unknown>; created_at: string; organization_id: string }
+interface DirectoryGroup { object: 'directory_group'; id: string; idp_id: string; directory_id: string; organization_id: string; name: string; raw_attributes: Record<string, unknown>; created_at: string; updated_at: string; members: string[] }
 
-const store = jsonState<{ organizations: Organization[]; connections: Connection[]; portals: Record<string, { organizationId: string; intent: string; returnUrl: string | null; expiresAt: number }>; dns: Record<string, string[]>; directories: Directory[]; users: DirectoryUser[]; events: WorkOsEvent[] }>(
-  'workos', 'state.json', { organizations: [], connections: [], portals: {}, dns: {}, directories: [], users: [], events: [] },
+const store = jsonState<{ organizations: Organization[]; connections: Connection[]; portals: Record<string, { organizationId: string; intent: string; returnUrl: string | null; expiresAt: number }>; dns: Record<string, string[]>; directories: Directory[]; users: DirectoryUser[]; groups: DirectoryGroup[]; events: WorkOsEvent[] }>(
+  'workos', 'state.json', { organizations: [], connections: [], portals: {}, dns: {}, directories: [], users: [], groups: [], events: [] },
 );
 const authRequests = new Map<string, AuthRequest>();
 const codes = new Map<string, { profile: Profile; clientId: string; expiresAt: number }>();
-service.onReset(() => { store.set({ organizations: [], connections: [], portals: {}, dns: {}, directories: [], users: [], events: [] }); authRequests.clear(); codes.clear(); });
+service.onReset(() => { store.set({ organizations: [], connections: [], portals: {}, dns: {}, directories: [], users: [], groups: [], events: [] }); authRequests.clear(); codes.clear(); });
 
 const id = (prefix: string) => `${prefix}_${randomBytes(13).toString('hex').toUpperCase()}`;
 const now = () => new Date().toISOString();
@@ -255,6 +258,8 @@ app.patch('/scim/v2/:directory/Users/:id', async (c) => {
     if ('active' in value) next.state = value.active === false || value.active === 'False' ? 'inactive' : 'active';
     if (typeof value['name.givenName'] === 'string') next.first_name = value['name.givenName'] as string;
     if (typeof value['name.familyName'] === 'string') next.last_name = value['name.familyName'] as string;
+    // Everything else (title, the enterprise extension's department…) lands in the raw attributes, as at WorkOS.
+    next.raw_attributes = { ...next.raw_attributes, ...value };
   }
   save({ users: (store.get().users ?? []).map((u) => (u.id === user.id ? next : u)) });
   emit('dsync.user.updated', next);
@@ -266,9 +271,103 @@ app.delete('/scim/v2/:directory/Users/:id', (c) => {
   if (!directory) return scimError(401, 'Invalid SCIM token');
   const user = (store.get().users ?? []).find((u) => u.id === c.req.param('id') && u.directory_id === directory.id);
   if (!user) return scimError(404, 'User not found');
+  for (const group of (store.get().groups ?? []).filter((g) => g.members.includes(user.id))) setMembers(group, group.members.filter((m) => m !== user.id));
   save({ users: (store.get().users ?? []).filter((u) => u.id !== user.id) });
   emit('dsync.user.deleted', { ...user, state: 'inactive' });
   return c.body(null, 204);
+});
+
+// SCIM Groups: membership in the IdP's groups (roles follow them in the app) and the Directory Sync group API.
+const groupOf = (g: DirectoryGroup) => { const { members: _m, ...rest } = g; return rest; };
+const userData = (u: DirectoryUser) => { const { groups: _g, ...data } = u; return { ...data, groups: [] }; };
+const scimGroup = (g: DirectoryGroup) => ({
+  schemas: ['urn:ietf:params:scim:schemas:core:2.0:Group'], id: g.id, displayName: g.name,
+  members: g.members.map((value) => ({ value })), meta: { resourceType: 'Group', created: g.created_at, lastModified: g.updated_at },
+});
+function emitGroup(event: string, group: DirectoryGroup, user?: DirectoryUser) {
+  const data = user ? { directory_id: group.directory_id, user: userData(user), group: groupOf(group) } : groupOf(group);
+  save({ events: [...(store.get().events ?? []), { object: 'event', id: id('event'), event, data: data as Record<string, unknown>, created_at: now(), organization_id: group.organization_id }] });
+}
+const directoryUser = (directoryId: string, userId: string) => (store.get().users ?? []).find((u) => u.id === userId && u.directory_id === directoryId);
+const saveGroup = (group: DirectoryGroup) => save({ groups: [...(store.get().groups ?? []).filter((g) => g.id !== group.id), group] });
+function setMembers(group: DirectoryGroup, members: string[]) {
+  const before = new Set(group.members);
+  const after = new Set(members.filter((m) => directoryUser(group.directory_id, m)));
+  const next = { ...group, members: [...after], updated_at: now() };
+  saveGroup(next);
+  for (const m of after) if (!before.has(m)) emitGroup('dsync.group.user_added', next, directoryUser(group.directory_id, m));
+  for (const m of before) if (!after.has(m)) { const u = directoryUser(group.directory_id, m); if (u) emitGroup('dsync.group.user_removed', next, u); }
+  return next;
+}
+
+app.post('/scim/v2/:directory/Groups', async (c) => {
+  const directory = directoryOf(c);
+  if (!directory) return scimError(401, 'Invalid SCIM token');
+  const body = await c.req.json<{ displayName?: string; externalId?: string; members?: Array<{ value: string }> }>();
+  if (!body.displayName) return scimError(400, 'displayName is required');
+  const group: DirectoryGroup = {
+    object: 'directory_group', id: id('directory_group'), idp_id: body.externalId ?? body.displayName, directory_id: directory.id, organization_id: directory.organization_id,
+    name: body.displayName, raw_attributes: body as Record<string, unknown>, created_at: now(), updated_at: now(), members: [],
+  };
+  saveGroup(group);
+  emitGroup('dsync.group.created', group);
+  const saved = setMembers(group, (body.members ?? []).map((m) => m.value));
+  return new Response(JSON.stringify(scimGroup(saved)), { status: 201, headers: { 'Content-Type': 'application/scim+json' } });
+});
+
+app.get('/scim/v2/:directory/Groups/:id', (c) => {
+  const directory = directoryOf(c);
+  if (!directory) return scimError(401, 'Invalid SCIM token');
+  const group = (store.get().groups ?? []).find((g) => g.id === c.req.param('id') && g.directory_id === directory.id);
+  return group ? c.json(scimGroup(group)) : scimError(404, 'Group not found');
+});
+
+/** PatchOp: `add`/`remove` members (`path: members`, or `members[value eq "id"]`), `replace` displayName or members. */
+app.patch('/scim/v2/:directory/Groups/:id', async (c) => {
+  const directory = directoryOf(c);
+  if (!directory) return scimError(401, 'Invalid SCIM token');
+  let group = (store.get().groups ?? []).find((g) => g.id === c.req.param('id') && g.directory_id === directory.id);
+  if (!group) return scimError(404, 'Group not found');
+  const body = await c.req.json<{ Operations?: Array<{ op: string; path?: string; value?: unknown }> }>();
+  let members = [...group.members];
+  for (const operation of body.Operations ?? []) {
+    const op = operation.op.toLowerCase();
+    const values = (Array.isArray(operation.value) ? operation.value : operation.value ? [operation.value] : []) as Array<{ value?: string; displayName?: string; members?: Array<{ value: string }> }>;
+    const filtered = operation.path?.match(/^members\[value eq "([^"]+)"\]$/);
+    if (op === 'add' && operation.path === 'members') members = [...new Set([...members, ...values.map((v) => v.value!).filter(Boolean)])];
+    else if (op === 'remove' && filtered) members = members.filter((m) => m !== filtered[1]);
+    else if (op === 'remove' && operation.path === 'members') members = values.length ? members.filter((m) => !values.some((v) => v.value === m)) : [];
+    else if (op === 'replace' && operation.path === 'members') members = values.map((v) => v.value!).filter(Boolean);
+    else if (op === 'replace' && (operation.path === 'displayName' || (!operation.path && (operation.value as { displayName?: string })?.displayName))) {
+      const name = operation.path ? String(operation.value) : String((operation.value as { displayName: string }).displayName);
+      group = { ...group, name, updated_at: now() };
+      saveGroup(group);
+      emitGroup('dsync.group.updated', group);
+    }
+  }
+  const saved = setMembers(group, members);
+  return c.json(scimGroup(saved));
+});
+
+app.delete('/scim/v2/:directory/Groups/:id', (c) => {
+  const directory = directoryOf(c);
+  if (!directory) return scimError(401, 'Invalid SCIM token');
+  const group = (store.get().groups ?? []).find((g) => g.id === c.req.param('id') && g.directory_id === directory.id);
+  if (!group) return scimError(404, 'Group not found');
+  setMembers(group, []);
+  save({ groups: (store.get().groups ?? []).filter((g) => g.id !== group.id) });
+  emitGroup('dsync.group.deleted', group);
+  return c.body(null, 204);
+});
+
+app.use('/directory_groups', async (c, next) => (authorised(c.req.header('authorization')) ? next() : apiError('Unauthorized', 401, 'unauthorized')));
+/** Directory Sync API: the groups of a directory, or of one directory user (`?user=`). */
+app.get('/directory_groups', (c) => {
+  const q = new URL(c.req.url).searchParams;
+  const user = q.get('user');
+  const directory = q.get('directory');
+  const groups = (store.get().groups ?? []).filter((g) => (!user || g.members.includes(user)) && (!directory || g.directory_id === directory));
+  return c.json(list(groups.map(groupOf)));
 });
 
 app.use('/events', async (c, next) => (authorised(c.req.header('authorization')) ? next() : apiError('Unauthorized', 401, 'unauthorized')));

@@ -8,6 +8,8 @@ import { IdentityService } from './auth/identity.service';
 import { TenantDirectory } from './services/tenant-directory.service';
 import { corsMiddleware } from './http/cors';
 import { machineTraffic } from './http/machine-traffic';
+import { redis } from './clients/redis.client';
+import { liveTicketKey } from './handlers/live.controller';
 
 /** Register (or refresh) this deployment with the Restate server so it can invoke the handlers at /restate. */
 async function registerWithRestate() {
@@ -39,7 +41,11 @@ async function bootstrap() {
     const started = performance.now();
     // Restate invocations authenticate per invocation (see RestateHandler); everything else is resolved here.
     if (!c.req.path.startsWith('/restate')) {
-      (c.req as any).auth = await identity.resolve(c.req.raw.headers);
+      // Live streams opened with EventSource (no headers) carry a single-use ticket instead (docs/plans/17 §4.5).
+      const ticket = c.req.path === '/live' ? c.req.query('ticket') : undefined;
+      const held = ticket ? await redis().send('GETDEL', [liveTicketKey(ticket)]).catch(() => null) : null;
+      const fallback = held ? JSON.parse(String(held)) as { token?: string; tenant?: string } : {};
+      (c.req as any).auth = await identity.resolve(c.req.raw.headers, fallback);
     }
     await next();
     if (!c.req.path.startsWith('/restate') || env.NODE_ENV !== 'local') {

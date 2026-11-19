@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, gt, inArray, sql } from 'drizzle-orm';
 import { createHash, randomBytes, randomInt } from 'node:crypto';
-import { resolvePermissions, resolvePlatformPermissions, type Tenant, type User } from '@repo/fintivio/schemas';
+import { isCustomPermission, resolvePlatformPermissions, type Tenant, type User } from '@repo/fintivio/schemas';
+import { activeCustomKeys, memberAccess } from '../access/catalog';
 import { apiClientIndex, apiClients, mfaFactors, platformMfaFactors, platformSettings, platformUsers, roles, supportGrants, sysInvitations, tenantSecurityPolicies, tenantSsoSettings, userRoles, users } from '../entities';
 import { encryptSecret, decryptSecret } from './data-encryption';
 import { hashRecoveryCode, matchTotp, newRecoveryCodes, newTotpSecret, otpauthUri } from './mfa';
@@ -159,6 +160,11 @@ export class IdentityService {
       userTenants: [{ tenantId: tenant.id, tenantName: tenant.name, roleNames: [] }],
       permissions: client.permissions.filter((p) => scope.has(p)),
     };
+    // Custom permissions the institution archived since grant nothing any more.
+    if (user.permissions.some(isCustomPermission)) {
+      const active = new Set(await activeCustomKeys(this.databases.forTenant(tenant.id)));
+      user.permissions = user.permissions.filter((p) => !isCustomPermission(p) || active.has(p));
+    }
     return { claims, token, user, tenant, requestedTenant };
   }
 
@@ -279,7 +285,15 @@ export class IdentityService {
   /** The institution's security policy (defaults when it never changed it: MFA required). */
   async securityPolicy(tenantId: string) {
     const [row] = await this.databases.forTenant(tenantId).select().from(tenantSecurityPolicies).limit(1);
-    return { requireMfa: row?.requireMfa ?? true, updatedAt: row?.updatedAt ?? null, updatedBy: row?.updatedByEmail ?? null };
+    return {
+      requireMfa: row?.requireMfa ?? true,
+      /** Access changes that grant something wait for a second administrator (docs/plans/15 §14). */
+      accessApproval: row?.accessApproval ?? 'off',
+      accessNotify: row?.accessNotify ?? [],
+      /** Who opened which client through the back office's custom pages is recorded (docs/plans/16 §5.5). */
+      readAudit: row?.readAudit ?? false,
+      updatedAt: row?.updatedAt ?? null, updatedBy: row?.updatedByEmail ?? null,
+    };
   }
 
   private async factorOf(subject: MfaSubject) {
@@ -547,7 +561,7 @@ export class IdentityService {
    * Invite a member into a tenant: creates (or reuses) the user in `invited` state, assigns the roles and stores an
    * invitation whose token is returned once (only its hash is stored). The caller sends the link.
    */
-  async createInvitation(db: TenantDatabase, input: { email: string; name?: string; roleKeys: string[]; invitedBy: string }) {
+  async createInvitation(db: TenantDatabase, input: { email: string; name?: string; roleKeys: string[]; invitedBy: string; source?: 'manual' | 'recovery' }) {
     const email = input.email.trim();
     const token = randomBytes(32).toString('base64url');
     const tokenHash = hashInvitationToken(token);
@@ -562,7 +576,7 @@ export class IdentityService {
         const roleRows = await tx.select({ id: roles.id, key: roles.key }).from(roles).where(inArray(roles.key, input.roleKeys));
         const missing = input.roleKeys.filter((key) => !roleRows.some((r) => r.key === key));
         if (missing.length) throw new AuthError(`Unknown role(s): ${missing.join(', ')}`, 400);
-        await tx.insert(userRoles).values(roleRows.map((r) => ({ userId: user.id, roleId: r.id }))).onConflictDoNothing();
+        await tx.insert(userRoles).values(roleRows.map((r) => ({ userId: user.id, roleId: r.id, source: input.source ?? 'manual', grantedByEmail: input.invitedBy }))).onConflictDoNothing();
       }
 
       const data = { tokenHash, userId: user.id, roles: input.roleKeys, invitedBy: input.invitedBy, expiresAt: Date.now() + INVITATION_TTL_MS };
@@ -640,18 +654,14 @@ export class IdentityService {
 
   async loadTenantUser(tenant: Tenant, userId: string): Promise<User | null> {
     const db = this.databases.forTenant(tenant.id);
-    const result = await db.transaction(async (tx) => {
-      const [row] = await tx.select().from(users).where(eq(users.id, userId)).limit(1);
-      if (!row) return null;
-      const roleRows = await tx.select({ key: roles.key, isSystem: roles.isSystem, permissions: roles.permissions }).from(userRoles)
-        .innerJoin(roles, and(eq(roles.id, userRoles.roleId), eq(roles.tenantId, userRoles.tenantId)))
-        .where(eq(userRoles.userId, userId));
-      return { row, roleRows };
-    });
-    if (!result) return null;
+    const [row] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!row) return null;
+    // Roles and permissions are resolved per request (revocations, expiries and new grants apply at once): active
+    // assignments only, custom permissions of the institution included (docs/plans/15 §5.1).
+    const access = await memberAccess(db, userId);
     // Clients act on their own resources only; they never hold institution permissions.
-    const permissions = result.row.kind === 'member' ? resolvePermissions(result.roleRows) : [];
-    return toTenantUser(result.row, tenant, result.roleRows.map((r) => r.key), permissions);
+    const permissions = row.kind === 'member' ? access.permissions : [];
+    return { ...toTenantUser(row, tenant, access.roleKeys, permissions), ...(row.kind === 'member' ? { attributes: row.attributes ?? {} } : {}) };
   }
 
   async loadStaffUser(userId: string): Promise<User | null> {

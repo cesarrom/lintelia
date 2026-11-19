@@ -18,6 +18,7 @@ import { useAuth } from '@/lib/auth/AuthContext';
 import { apiErrorMessage, useApiMutation, useApiQuery } from '@/lib/services/api';
 import type { CaseSummary } from '../cases/types';
 import { ClientAppData } from './ClientAppData';
+import { SlotActions, SlotTabs } from '@/back-office/pages';
 
 interface ClientDetail {
   id: string;
@@ -170,12 +171,15 @@ export default function ClientPage() {
               <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">{client.email} · client since {formatDate(client.createdAt)} · <StatusBadge status={client.status} /></p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {/* Buttons the institution added to this page (its back office, docs/plans/16). */}
+            <SlotActions scope="client" context={{ client: client.id }} />
             {hasPermission('cases:create') && <Button variant="outline" onClick={() => setStartOpen(true)}><Plus className="h-4 w-4" />Start application</Button>}
             {hasPermission('clients:update') && <Button variant="outline" className="border-destructive/30 text-destructive hover:border-destructive/50 hover:bg-destructive/[0.06] hover:text-destructive" onClick={() => setFlagOpen(true)}><Flag className="h-4 w-4" />Flag suspicious activity</Button>}
           </div>
         </div>
       </div>
+      <SlotTabs scope="client" context={{ client: client.id }}>
       <Card>
         <CardHeader>
           <CardTitle>Cases</CardTitle>
@@ -200,6 +204,7 @@ export default function ClientPage() {
         </CardContent>
       </Card>
       <ClientAppData clientId={client.id} />
+      </SlotTabs>
       <FlagDialog client={client} open={flagOpen} onOpenChange={setFlagOpen} />
       {startOpen && <StartCaseDialog client={client} open={startOpen} onOpenChange={setStartOpen} />}
     </PageContainer>

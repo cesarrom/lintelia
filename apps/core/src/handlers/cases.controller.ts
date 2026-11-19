@@ -1,7 +1,8 @@
+import { caseLive } from '../live/topics';
 import { Controller, Get, Inject, Param, Post, Res, Scope } from '@nestjs/common';
 import type { Context } from 'hono';
 import type { Tenant, User } from '@repo/fintivio/schemas';
-import { Public, Require } from '../auth/access';
+import { Access, Public, Require } from '../auth/access';
 import { IdentityService } from '../auth/identity.service';
 import { CasesService } from '../services/cases.service';
 import { SignalsService } from '../services/signals.service';
@@ -68,7 +69,7 @@ export class CasesHandler {
    * assisted application: the client confirms it in their portal before the workflow starts. Without one, the
    * workflow starts at once (e.g. an internal review). Body: `{ workflowId, client?, inputs? }`.
    */
-  @Require('cases:create')
+  @Access('member', 'api_client')
   @Post()
   start(@Res() ctx: Context) {
     return handle(ctx, async () => {
@@ -80,6 +81,8 @@ export class CasesHandler {
         applicant?: { email?: string; name?: string };
       }>();
       if (!body?.workflowId) throw new BadRequestError('workflowId is required');
+      // The workflow's start rule (docs/plans/15 §5.3), or cases:create when it has none.
+      await this.cases.assertCanStart(body.workflowId);
       const inputs = body.inputs ?? body.data ?? {};
       const person = body.client ?? body.applicant;
       const kase = person?.email
@@ -91,7 +94,9 @@ export class CasesHandler {
           workflowId: body.workflowId, data: inputs, source: 'manual',
           initiatedBy: { type: 'member', id: this.user.userId, email: this.user.email },
         });
-      return this.cases.get(kase.id);
+      // Whoever may start a workflow does not necessarily see its cases (its `access.cases` rule).
+      const started = await this.cases.get(kase.id).catch(() => ({ id: kase.id, reference: kase.reference, title: kase.title, status: kase.status }));
+      return { ...started, live: caseLive(kase.id) };
     }, 'Failed to start the case', 201);
   }
 

@@ -1,19 +1,12 @@
 import { Controller, Get, Res } from '@nestjs/common';
 import type { Context } from 'hono';
-import { PLATFORM_ROLES, TENANT_PERMISSION_CATALOG, PLATFORM_PERMISSION_CATALOG } from '@repo/fintivio/schemas';
-import { Access, RequirePlatform } from '../auth/access';
+import { PLATFORM_ROLES, PLATFORM_PERMISSION_CATALOG } from '@repo/fintivio/schemas';
+import { RequirePlatform } from '../auth/access';
 import { json } from '../http/respond';
 
-/** The authorization catalogue (docs/architecture/authorization.md). */
+/** The platform's authorization catalogue (the institutions' own catalogue is `GET /permissions`, AccessHandler). */
 @Controller()
 export class CatalogHandler {
-  /** The permission catalogue is not sensitive: every member may read it (role and API client dialogs use it). */
-  @Access('member')
-  @Get('/permissions')
-  permissions(@Res() ctx: Context) {
-    json(ctx, TENANT_PERMISSION_CATALOG);
-  }
-
   @RequirePlatform('platform.tenants:read')
   @Get('/platform/roles')
   platformRoles(@Res() ctx: Context) {

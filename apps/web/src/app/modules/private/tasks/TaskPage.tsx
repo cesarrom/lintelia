@@ -1,4 +1,9 @@
 import { useState } from 'react';
+import { useLiveInvalidate, usePollInterval } from '@/lib/live';
+import { useQueryClient } from '@tanstack/react-query';
+import { ScreenForm, type FieldErrors } from '@/client-app/ScreenForm';
+import type { ScreenView } from '@/client-app/types';
+import { useAxios } from '@/lib/services/axios';
 import { DetailLoader } from '@/components/app/loading';
 import { useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
@@ -18,6 +23,8 @@ import { apiErrorMessage, useApiMutation, useApiQuery } from '@/lib/services/api
 import { cn } from '@/lib/utils';
 import type { TaskDetail } from './types';
 
+const API_BASE_URL = import.meta.env.VITE_FILES_API_BASE_URL as string;
+
 const ACTIONABLE = ['open', 'claimed', 'escalated', 'pending_second_approval'];
 
 /** One task: the case it belongs to, what was decided so far, and the decision controls. */
@@ -25,7 +32,9 @@ export default function TaskPage() {
   const { taskId } = useParams();
   const navigate = useNavigate();
   const { user, hasPermission } = useAuth();
-  const { data: task, error, isLoading } = useApiQuery<TaskDetail>(['tasks', 'detail', taskId], `/tasks/${taskId}`, { refetchInterval: 4000 });
+  const { data: task, error, isLoading } = useApiQuery<TaskDetail>(['tasks', 'detail', taskId], `/tasks/${taskId}`, { refetchInterval: usePollInterval(4000) });
+  // The task's case moving (a decision elsewhere, the client answering): fetched again at once.
+  useLiveInvalidate([task?.caseId && `case/${task.caseId}`], [['tasks', 'detail', taskId]]);
   const { data: members = [] } = useApiQuery<Array<{ id: string; email: string; name: string; roles: string[]; status: string }>>(
     ['users'], '/users', { enabled: hasPermission('tasks:assign') && hasPermission('members:read') },
   );
@@ -162,6 +171,9 @@ export default function TaskPage() {
         </div>
 
         <div className="space-y-6 lg:sticky lg:top-4">
+          {task.kind === 'screen' && task.screen && ['open', 'claimed', 'escalated'].includes(task.status) && (mine || !task.assignee) ? (
+            <ScreenTaskCard taskId={task.id} screen={{ ...task.screen, taskId: task.id }} />
+          ) : (
           <Card className={cn(canDecide && 'border-primary/30 shadow-raised')}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Gavel className="h-4 w-4 text-primary" />Decision</CardTitle>
@@ -229,6 +241,7 @@ export default function TaskPage() {
               )}
             </CardContent>
           </Card>
+          )}
 
           {hasPermission('tasks:assign') && actionable && (
             <Card>
@@ -249,6 +262,36 @@ export default function TaskPage() {
         </div>
       </div>
     </PageContainer>
+  );
+}
+
+/** A staff screen (`team.screen`) to fill: the workflow continues with the button pressed (docs/plans/16 §5.6). */
+function ScreenTaskCard({ taskId, screen }: { taskId: string; screen: ScreenView }) {
+  const { axios } = useAxios();
+  const queryClient = useQueryClient();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [error, setError] = useState<string | null>(null);
+  const submit = async (event: string, values: Record<string, unknown>) => {
+    setBusy(event);
+    setErrors({});
+    setError(null);
+    try {
+      await axios.post(`${API_BASE_URL}/backoffice/screens/${taskId}`, { event, values });
+      toast.success('Sent');
+      await Promise.all([queryClient.invalidateQueries({ queryKey: ['tasks'] }), queryClient.invalidateQueries({ queryKey: ['cases'] })]);
+    } catch (e) {
+      const details = (e as { response?: { data?: { errors?: Array<{ field: string; message: string }> } } })?.response?.data?.errors;
+      if (Array.isArray(details)) setErrors(Object.fromEntries(details.map((d) => [d.field, d.message.replace(/^[^:]+:\s*/, '')])));
+      setError(apiErrorMessage(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+  return (
+    <Card className="border-primary/30 shadow-raised" data-testid="screen-task">
+      <CardContent className="pt-6"><ScreenForm screen={screen} onSubmit={(event, values) => void submit(event, values)} busy={busy} errors={errors} error={error} /></CardContent>
+    </Card>
   );
 }
 

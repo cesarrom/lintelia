@@ -6,9 +6,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { AccessRuleEditor, type AccessRule } from '@/components/access/AccessRuleEditor';
 
 type Stage = { key: string; label: string; clientLabel?: string };
-type Settings = Pick<WorkflowSchema, 'function' | 'stages' | 'outputs' | 'caseTitle'>;
+type Settings = Pick<WorkflowSchema, 'function' | 'stages' | 'outputs' | 'caseTitle' | 'access'>;
 
 const stageKey = (label: string) => label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40);
 
@@ -26,8 +27,12 @@ export function WorkflowSettingsDialog({ open, onOpenChange, workflow, onSave }:
   const [caseTitle, setCaseTitle] = useState('');
   const [stages, setStages] = useState<Stage[]>([]);
   const [outputs, setOutputs] = useState<Array<{ name: string; expression: string }>>([]);
+  const [start, setStart] = useState<AccessRule | undefined>();
+  const [cases, setCases] = useState<AccessRule | undefined>();
   useEffect(() => {
     if (!open) return;
+    setStart(workflow.access?.start);
+    setCases(workflow.access?.cases);
     setIsFunction(!!workflow.function);
     setCaseTitle(workflow.caseTitle ?? '');
     setStages(workflow.stages ?? []);
@@ -43,6 +48,7 @@ export function WorkflowSettingsDialog({ open, onOpenChange, workflow, onSave }:
       caseTitle: caseTitle.trim() || undefined,
       stages: stages.filter((s) => s.key && s.label).map((s) => ({ key: s.key, label: s.label, ...(s.clientLabel ? { clientLabel: s.clientLabel } : {}) })),
       outputs: Object.fromEntries(outputs.filter((o) => o.name && o.expression).map((o) => [o.name, o.expression])),
+      access: start || cases ? { ...(start ? { start } : {}), ...(cases ? { cases } : {}) } : undefined,
     });
     onOpenChange(false);
   };
@@ -76,6 +82,15 @@ export function WorkflowSettingsDialog({ open, onOpenChange, workflow, onSave }:
             ))}
             {duplicate && <p className="text-xs text-destructive">Each stage needs its own key.</p>}
             <Button type="button" variant="outline" size="sm" onClick={() => setStages([...stages, { key: '', label: '' }])}><Plus className="h-4 w-4" />Add a stage</Button>
+          </section>
+
+          <section className="space-y-3" data-testid="wf-access">
+            <div>
+              <h3 className="text-sm font-semibold">Who may use it</h3>
+              <p className="text-xs text-muted-foreground">Who may start it by hand, from a button or by API, and who may see its cases. It is an administrator's decision: publishing a change here waits for an administrator unless you are one.</p>
+            </div>
+            <AccessRuleEditor label="Who may start it" defaultLabel="Everyone who may start cases" value={start} onChange={setStart} testId="wf-access-start" />
+            <AccessRuleEditor label="Who may see its cases" defaultLabel="Case scope (assigned, queued, started)" value={cases} onChange={setCases} testId="wf-access-cases" />
           </section>
 
           <section className="space-y-3 rounded-xl border p-4">

@@ -25,7 +25,16 @@ export interface WorkflowDefinition {
   description: string;
   version: number;
   allowedRoles: string[];
+  /** Event types that start the workflow (the types of `startRules`). */
   startOn: string[];
+  /**
+   * How each event starts it (docs/plans/17 §3.4): `startOn: [api:loan.payment]`, or
+   * `startOn: [{ event: api:loan.payment, correlate: { loan: "= data.loanId" } }]` — start-or-deliver: an open case of
+   * this workflow holding that key gets the event instead of a new case starting.
+   */
+  startRules: Array<{ event: string; correlate?: Record<string, string> }>;
+  /** Business keys of the case (JSONata or {{templates}} over `input`, `case`, `steps`), kept while it is open. */
+  correlation: Record<string, string>;
   /** `requests_only`: the applicant never sees the case itself (e.g. investigations), only requests addressed to them. */
   clientVisibility: 'full' | 'requests_only';
   inputs: Array<{ id: string; name: string; type: string; required?: boolean; label?: string; description?: string }>;
@@ -45,6 +54,20 @@ export interface WorkflowDefinition {
 }
 
 const asArray = <T>(value: unknown): T[] => (Array.isArray(value) ? value as T[] : []);
+
+const stringMap = (value: unknown): Record<string, string> =>
+  value && typeof value === 'object' && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).map(([k, v]) => [k, String(v)])) : {};
+
+function startRulesOf(value: unknown): WorkflowDefinition['startRules'] {
+  return asArray<unknown>(value).map((entry) => {
+    if (typeof entry === 'string') return { event: entry };
+    if (entry && typeof entry === 'object' && typeof (entry as { event?: unknown }).event === 'string') {
+      const correlate = stringMap((entry as { correlate?: unknown }).correlate);
+      return { event: String((entry as { event: string }).event), ...(Object.keys(correlate).length ? { correlate } : {}) };
+    }
+    return null;
+  }).filter((r): r is { event: string; correlate?: Record<string, string> } => !!r);
+}
 
 /**
  * Parsed YAML of recent definitions: versions are immutable and read on every case page, task and engine step, and
@@ -70,7 +93,9 @@ export function parseDefinition(yaml: string): WorkflowDefinition {
     description: String(raw.description ?? ''),
     version: Number(raw.version ?? 1),
     allowedRoles: asArray<string>(raw.allowedRoles),
-    startOn: asArray<string>(raw.startOn),
+    startRules: startRulesOf(raw.startOn),
+    startOn: startRulesOf(raw.startOn).map((r) => r.event),
+    correlation: stringMap(raw.correlation),
     clientVisibility: raw.clientVisibility === 'requests_only' ? 'requests_only' : 'full',
     inputs: asArray(raw.inputs),
     stages: asArray<any>(raw.stages).filter((s) => s && s.key).map((s) => ({ key: String(s.key), label: String(s.label ?? s.key), ...(s.clientLabel ? { clientLabel: String(s.clientLabel) } : {}), ...(s.exit ? { exit: true } : {}) })),

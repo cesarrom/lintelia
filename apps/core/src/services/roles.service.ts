@@ -1,6 +1,6 @@
 import { Injectable, Inject, Scope } from "@nestjs/common";
-import { and, asc, eq, inArray, ne } from "drizzle-orm";
-import { TENANT_PERMISSION_CATALOG, TENANT_PERMISSION_IDS, resolvePermissions, type Permission, type Role, type Tenant, type User, type UserInput, type UserRoleInput } from "@repo/fintivio/schemas";
+import { and, asc, eq, sql } from "drizzle-orm";
+import { ACCESS_ADMINISTRATION_PERMISSIONS, SYSTEM_ROLES, TENANT_PERMISSION_IDS, isCustomPermission, resolvePermissions, type Role, type Tenant, type User, type UserInput } from "@repo/fintivio/schemas";
 import { AbstractService } from "./service";
 import { TENANT } from "../injector/tokens/tenant.token";
 import { TENANT_CONNECTION } from "../injector/tokens/tenant-connection.token";
@@ -8,30 +8,33 @@ import { USER } from "../injector/tokens/user.token";
 import type { TenantDatabase } from "../clients/database.client";
 import { roles, userRoles, users } from "../entities";
 import { AuditWriter } from "./audit.writer";
-import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "../http/errors";
+import { ConflictError, ForbiddenError, NotFoundError } from "../http/errors";
+import { AccessChanges, actorOf, type SubmitResult } from "../access/changes";
+import { activeAssignment, activeCustomKeys, tenantCatalog } from "../access/catalog";
+import { AccessNotifier } from "../access/notify";
+
+export { roleKeyFromName } from "../access/change-kinds";
 
 type RoleRow = typeof roles.$inferSelect;
 
-/** Effective permissions of a role row: system roles from the catalogue, custom roles from the database. */
-export const rolePermissions = (row: Pick<RoleRow, 'key' | 'isSystem' | 'permissions'>) => resolvePermissions([row]);
+/** Effective permissions of a role row (custom permissions need the institution's active keys). */
+export const rolePermissions = (row: Pick<RoleRow, 'key' | 'isSystem' | 'permissions'>, customKeys: readonly string[] = []) =>
+  resolvePermissions([row], TENANT_PERMISSION_IDS, undefined, customKeys);
 
-const toRole = (row: RoleRow): Role => ({
-  // Roles are referenced by key (workflow routing, invitations, SSO mappings), so the key is the public id.
-  id: row.key,
-  name: row.name,
-  description: row.description,
-  permissions: rolePermissions(row),
-  isSystem: row.isSystem,
-  createdAt: row.createdAt,
-  updatedAt: row.updatedAt,
-});
-
-export const roleKeyFromName = (name: string) => name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+export type RoleView = Role & {
+  key: string;
+  /** System roles: the custom permissions the institution added to them. */
+  customPermissions: string[];
+  /** Members holding the role now. */
+  members: number;
+  /** Holds a permission that administers access (roles, members, security, API clients). */
+  privileged: boolean;
+};
 
 /**
- * Roles of the current tenant and their assignment (docs/architecture/authorization.md). Escalation rules: custom
- * roles only use catalogue permissions; nobody creates, changes or assigns a role with permissions they do not hold;
- * nobody changes their own roles; the last administrator keeps the admin role.
+ * Roles of the current tenant and their assignment (docs/architecture/authorization.md, docs/plans/15). Changes to
+ * access go through change control (`AccessChanges`: notification, optional second approver, effective dates);
+ * escalation rules are enforced there for every actor. What is left here reads roles and changes their wording.
  */
 @Injectable({
   scope: Scope.REQUEST
@@ -42,6 +45,8 @@ export class RolesService extends AbstractService {
     @Inject(TENANT) private readonly tenant: Tenant,
     @Inject(USER) private readonly user: User | null,
     @Inject(AuditWriter) private readonly audit: AuditWriter,
+    @Inject(AccessChanges) private readonly changes: AccessChanges,
+    @Inject(AccessNotifier) private readonly notifier: AccessNotifier,
   ) {
     super();
   }
@@ -50,96 +55,117 @@ export class RolesService extends AbstractService {
     return { type: this.user?.kind ?? 'system', id: this.user?.userId, email: this.user?.email };
   }
 
-  /** The caller may only hand out permissions they hold themselves. */
-  private assertCanGrant(permissions: string[]) {
-    const held = new Set(this.user?.permissions ?? []);
-    const missing = permissions.filter((permission) => !held.has(permission));
-    if (missing.length) throw new ForbiddenError(`You cannot grant permissions you do not hold: ${missing.join(', ')}`);
+  private get changeActor() {
+    if (!this.user) throw new ForbiddenError();
+    return actorOf(this.user);
   }
 
-  private validatePermissions(permissions: unknown): string[] {
-    if (!Array.isArray(permissions)) throw new BadRequestError('permissions must be a list');
-    const unknown = permissions.filter((permission) => !TENANT_PERMISSION_IDS.includes(permission));
-    if (unknown.length) throw new BadRequestError(`Unknown permission(s): ${unknown.join(', ')}`);
-    return [...new Set(permissions as string[])];
+  private async present(rows: RoleRow[]): Promise<RoleView[]> {
+    const customKeys = await activeCustomKeys(this.db);
+    const counts = await this.db.select({ roleId: userRoles.roleId, count: sql<number>`count(*)::int` }).from(userRoles)
+      .innerJoin(users, and(eq(users.id, userRoles.userId), eq(users.tenantId, userRoles.tenantId)))
+      .where(and(eq(users.status, 'active'), activeAssignment())).groupBy(userRoles.roleId);
+    return rows.map((row) => {
+      const permissions = rolePermissions(row, customKeys);
+      return {
+        // Roles are referenced by key (workflow routing, invitations, SSO mappings), so the key is the public id.
+        id: row.key,
+        key: row.key,
+        name: row.name,
+        description: row.description,
+        permissions,
+        customPermissions: row.isSystem ? row.permissions.filter((p) => isCustomPermission(p) && customKeys.includes(p)) : permissions.filter(isCustomPermission),
+        isSystem: row.isSystem,
+        members: counts.find((c) => c.roleId === row.id)?.count ?? 0,
+        privileged: permissions.some((p) => ACCESS_ADMINISTRATION_PERMISSIONS.includes(p)),
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+      };
+    });
   }
 
-  async createRole(data: { name: string; description?: string; permissions: string[] }): Promise<Role> {
-    const key = roleKeyFromName(data.name ?? '');
-    if (!key) throw new BadRequestError('Role name is required');
-    const permissions = this.validatePermissions(data.permissions ?? []);
-    this.assertCanGrant(permissions);
-    const [existing] = await this.db.select({ id: roles.id }).from(roles).where(eq(roles.key, key));
-    if (existing) throw new ConflictError(`A role with key ${key} already exists`);
-
-    const [row] = await this.db.insert(roles).values({ key, name: data.name.trim(), description: data.description ?? '', permissions }).returning();
-    await this.audit.record(this.tenant.id, this.actor, 'role.created', { type: 'role', id: key, name: row.name }, { permissions });
-    return toRole(row);
+  async listRoles(): Promise<RoleView[]> {
+    return this.present(await this.db.select().from(roles).orderBy(asc(roles.name)));
   }
 
-  async updateRole(roleId: string, data: { name?: string; description?: string; permissions?: string[] }): Promise<Role | null> {
+  async getRole(roleId: string): Promise<RoleView | null> {
+    const [row] = await this.db.select().from(roles).where(eq(roles.key, roleId)).limit(1);
+    return row ? (await this.present([row]))[0] : null;
+  }
+
+  /** Built-in catalogue and the institution's custom permissions (archived ones marked). */
+  async listPermissions() {
+    return tenantCatalog(this.db, { includeArchived: true });
+  }
+
+  async createRole(data: { name: string; description?: string; permissions: string[]; effectiveAt?: string }): Promise<SubmitResult<RoleRow>> {
+    return this.changes.submit<RoleRow>(this.tenant, this.changeActor, 'role.create',
+      { name: data.name, description: data.description ?? '', permissions: data.permissions ?? [] }, { effectiveAt: data.effectiveAt });
+  }
+
+  /**
+   * Permission changes (and system-role extensions) are access changes; a custom role's name and description are
+   * changed at once.
+   */
+  async updateRole(roleId: string, data: { name?: string; description?: string; permissions?: string[]; customPermissions?: string[]; effectiveAt?: string }): Promise<SubmitResult<RoleRow> | null> {
     const [current] = await this.db.select().from(roles).where(eq(roles.key, roleId));
     if (!current) return null;
-    if (current.isSystem) throw new ForbiddenError('System roles cannot be changed; create a custom role instead');
-    const changes: Partial<RoleRow> = {};
-    if (data.name !== undefined) changes.name = data.name.trim();
-    if (data.description !== undefined) changes.description = data.description;
-    if (data.permissions !== undefined) {
-      changes.permissions = this.validatePermissions(data.permissions);
-      this.assertCanGrant([...changes.permissions, ...current.permissions]);
+    // System roles: `customPermissions` is the extension; `permissions` may be the whole list (platform part unchanged).
+    const permissions = data.customPermissions !== undefined && current.isSystem ? data.customPermissions : data.permissions;
+    if (current.isSystem && data.customPermissions === undefined && data.permissions !== undefined) {
+      // The whole list may be sent back, but the platform's part of a system role cannot change.
+      const builtIn = data.permissions.filter((p) => !isCustomPermission(p)).sort();
+      const expected = (SYSTEM_ROLES.find((r) => r.key === current.key)?.permissions ?? []).filter((p) => TENANT_PERMISSION_IDS.includes(p)).sort();
+      if (builtIn.join() !== expected.join()) {
+        throw new ForbiddenError("System roles keep the platform's permissions: only custom permissions can be added to them (or create a custom role)");
+      }
     }
-    const [row] = await this.db.update(roles).set(changes).where(eq(roles.key, roleId)).returning();
+    const customKeys = await activeCustomKeys(this.db);
+    const currentList = current.isSystem ? current.permissions.filter((p) => customKeys.includes(p)).sort() : [...current.permissions].sort();
+    const requested = permissions === undefined ? undefined : [...new Set(current.isSystem ? permissions.filter(isCustomPermission) : permissions)].sort();
+    const permissionsChange = requested !== undefined && requested.join() !== currentList.join();
+    if (permissionsChange || data.effectiveAt) {
+      return this.changes.submit<RoleRow>(this.tenant, this.changeActor, 'role.update',
+        { key: roleId, name: data.name, description: data.description, permissions: current.isSystem ? requested : permissions }, { effectiveAt: data.effectiveAt });
+    }
+    // Wording only.
+    if (current.isSystem) {
+      if ((data.name !== undefined && data.name.trim() !== current.name) || (data.description !== undefined && data.description !== current.description)) {
+        throw new ForbiddenError('System roles cannot be renamed; create a custom role instead');
+      }
+      return { status: 'applied', change: null as never, result: current };
+    }
+    const changes: Partial<RoleRow> = {};
+    if (data.name !== undefined && data.name.trim()) changes.name = data.name.trim();
+    if (data.description !== undefined) changes.description = data.description;
+    if (!Object.keys(changes).length) return { status: 'applied', change: null as never, result: current };
+    const [row] = await this.db.update(roles).set(changes).where(eq(roles.id, current.id)).returning();
     await this.audit.record(this.tenant.id, this.actor, 'role.updated', { type: 'role', id: roleId }, { fields: Object.keys(changes) });
-    return toRole(row);
+    return { status: 'applied', change: null as never, result: row };
   }
 
-  async deleteRole(roleId: string): Promise<boolean> {
-    const [current] = await this.db.select().from(roles).where(eq(roles.key, roleId));
-    if (!current) return false;
-    if (current.isSystem) throw new ForbiddenError('System roles cannot be deleted');
-    this.assertCanGrant(current.permissions);
-    await this.db.delete(roles).where(eq(roles.key, roleId));
-    await this.audit.record(this.tenant.id, this.actor, 'role.deleted', { type: 'role', id: roleId });
-    return true;
+  async deleteRole(roleId: string, effectiveAt?: string): Promise<SubmitResult | null> {
+    const [current] = await this.db.select({ id: roles.id }).from(roles).where(eq(roles.key, roleId));
+    if (!current) return null;
+    return this.changes.submit(this.tenant, this.changeActor, 'role.delete', { key: roleId }, { effectiveAt });
   }
 
-  async getRole(roleId: string): Promise<Role | null> {
-    const [row] = await this.db.select().from(roles).where(eq(roles.key, roleId)).limit(1);
-    return row ? toRole(row) : null;
+  /** Replace the roles of a member (optionally until a date per role, or from a date). */
+  async setUserRoles(userId: string, roleKeys: string[], options: { expires?: Record<string, string | null>; effectiveAt?: string } = {}) {
+    return this.changes.submit(this.tenant, this.changeActor, 'member.roles', { userId, roleKeys, ...(options.expires ? { expires: options.expires } : {}) }, { effectiveAt: options.effectiveAt });
   }
 
-  async listRoles(): Promise<Role[]> {
-    const rows = await this.db.select().from(roles).orderBy(asc(roles.name));
-    return rows.map(toRole);
-  }
-
-  async listPermissions(): Promise<Permission[]> {
-    return TENANT_PERMISSION_CATALOG;
-  }
-
-  private async roleRows(keys: string[]) {
-    if (!keys.length) return [];
-    const rows = await this.db.select().from(roles).where(inArray(roles.key, keys));
-    const missing = keys.filter((key) => !rows.some((row) => row.key === key));
-    if (missing.length) throw new BadRequestError(`Unknown role(s): ${missing.join(', ')}`);
-    return rows;
-  }
-
-  /** Check the caller may assign these roles (used for invitations too). */
-  async assertCanAssign(roleKeys: string[]) {
-    const rows = await this.roleRows(roleKeys);
-    this.assertCanGrant(resolvePermissions(rows));
-    return rows;
+  async inviteMember(input: { email: string; name?: string; roleKeys: string[]; effectiveAt?: string }) {
+    return this.changes.submit(this.tenant, this.changeActor, 'member.invite', { email: input.email, name: input.name, roleKeys: input.roleKeys }, { effectiveAt: input.effectiveAt });
   }
 
   private async assertNotLastAdmin(userId: string) {
-    const [adminRole] = await this.db.select().from(roles).where(and(eq(roles.key, 'admin'), eq(roles.isSystem, true)));
-    if (!adminRole) return;
-    const admins = await this.db.select({ userId: userRoles.userId }).from(userRoles)
+    const rows = await this.db.select({ userId: userRoles.userId }).from(userRoles)
+      .innerJoin(roles, and(eq(roles.id, userRoles.roleId), eq(roles.tenantId, userRoles.tenantId)))
       .innerJoin(users, and(eq(users.id, userRoles.userId), eq(users.tenantId, userRoles.tenantId)))
-      .where(and(eq(userRoles.roleId, adminRole.id), eq(users.status, 'active'), ne(users.id, userId)));
-    const isAdmin = (await this.db.select().from(userRoles).where(and(eq(userRoles.roleId, adminRole.id), eq(userRoles.userId, userId)))).length > 0;
-    if (isAdmin && admins.length === 0) throw new ConflictError('The last administrator cannot lose the admin role or be deactivated');
+      .where(and(eq(roles.key, 'admin'), eq(roles.isSystem, true), eq(users.status, 'active'), activeAssignment()));
+    const admins = new Set(rows.map((r) => r.userId));
+    if (admins.has(userId) && admins.size <= 1) throw new ConflictError('The last administrator cannot lose the admin role or be deactivated');
   }
 
   /** Used before deactivating a member. */
@@ -148,49 +174,25 @@ export class RolesService extends AbstractService {
     await this.assertNotLastAdmin(userId);
   }
 
-  async createUserRole({ userId, roleId }: UserRoleInput) {
-    if (userId === this.user?.userId) throw new ForbiddenError('You cannot change your own roles');
-    const [role] = await this.assertCanAssign([roleId]);
-    await this.db.insert(userRoles).values({ userId, roleId: role.id }).onConflictDoNothing();
-    await this.audit.record(this.tenant.id, this.actor, 'member.role_assigned', { type: 'user', id: userId }, { role: roleId });
-    return true;
-  }
-
-  async deleteUserRole({ roleId, userId }: UserRoleInput) {
-    if (userId === this.user?.userId) throw new ForbiddenError('You cannot change your own roles');
-    const [role] = await this.db.select().from(roles).where(eq(roles.key, roleId)).limit(1);
-    if (!role) return false;
-    this.assertCanGrant(rolePermissions(role));
-    if (roleId === 'admin') await this.assertNotLastAdmin(userId);
-    await this.db.delete(userRoles).where(and(eq(userRoles.userId, userId), eq(userRoles.roleId, role.id)));
-    await this.audit.record(this.tenant.id, this.actor, 'member.role_removed', { type: 'user', id: userId }, { role: roleId });
-    return true;
-  }
-
-  /** Replace the roles of a user with the given role keys. */
-  async setUserRoles(userId: string, roleKeys: string[]) {
-    if (userId === this.user?.userId) throw new ForbiddenError('You cannot change your own roles');
-    const [target] = await this.db.select({ id: users.id }).from(users).where(eq(users.id, userId));
-    if (!target) throw new NotFoundError('User not found');
-    const next = await this.assertCanAssign(roleKeys);
-    const currentRows = await this.db.select({ key: roles.key, isSystem: roles.isSystem, permissions: roles.permissions }).from(userRoles)
+  /** Deactivating a member who administers access is a revocation: applied at once, and the administrators are told. */
+  async memberDeactivated(userId: string, email: string) {
+    const customKeys = await activeCustomKeys(this.db);
+    const rows = await this.db.select({ key: roles.key, isSystem: roles.isSystem, permissions: roles.permissions }).from(userRoles)
       .innerJoin(roles, and(eq(roles.id, userRoles.roleId), eq(roles.tenantId, userRoles.tenantId))).where(eq(userRoles.userId, userId));
-    // Removing roles is also a grant decision: you cannot strip permissions you do not hold yourself.
-    this.assertCanGrant(resolvePermissions(currentRows.filter((r) => !roleKeys.includes(r.key))));
-    if (currentRows.some((r) => r.key === 'admin') && !roleKeys.includes('admin')) await this.assertNotLastAdmin(userId);
-
-    await this.db.transaction(async (tx) => {
-      await tx.delete(userRoles).where(eq(userRoles.userId, userId));
-      if (next.length) await tx.insert(userRoles).values(next.map((r) => ({ userId, roleId: r.id })));
+    const permissions = resolvePermissions(rows, TENANT_PERMISSION_IDS, undefined, customKeys);
+    if (!permissions.some((p) => ACCESS_ADMINISTRATION_PERMISSIONS.includes(p))) return;
+    await this.notifier.send(this.tenant, {
+      subject: `Administrator deactivated: ${email}`,
+      lines: [`${this.user?.email ?? 'Someone'} deactivated ${email}, who held ${rows.map((r) => r.key).join(', ')}.`, 'Their sessions ended at once.'],
+      link: '/app/users',
     });
-    await this.audit.record(this.tenant.id, this.actor, 'member.roles_changed', { type: 'user', id: userId }, { from: currentRows.map((r) => r.key), to: roleKeys });
   }
 
   async getRolesByUserId({ userId }: UserInput): Promise<string[]> {
     const rows = await this.db.select({ key: roles.key }).from(userRoles)
       .innerJoin(roles, and(eq(roles.id, userRoles.roleId), eq(roles.tenantId, userRoles.tenantId)))
-      .where(eq(userRoles.userId, userId));
+      .where(and(eq(userRoles.userId, userId), activeAssignment()));
+    if (!rows) throw new NotFoundError('User not found');
     return rows.map((r) => r.key);
   }
 }
-

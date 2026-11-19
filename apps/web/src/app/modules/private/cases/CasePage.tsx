@@ -1,4 +1,7 @@
 import { useNavigate, useParams } from 'react-router';
+import { useLiveInvalidate, usePollInterval } from '@/lib/live';
+import { SlotActions, SlotTabs } from '@/back-office/pages';
+import { PendingScreens } from '@/back-office/runtime';
 import { DetailLoader } from '@/components/app/loading';
 import { toast } from 'sonner';
 import { ArrowLeft, Calculator, Download, Flag as FlagIcon, Gavel, Plug } from 'lucide-react';
@@ -27,8 +30,11 @@ export default function CasePage() {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const { axios } = useAxios();
-  const { data: kase, error, isLoading } = useApiQuery<CaseDetail>(['cases', 'detail', caseId], `/cases/${caseId}`, { refetchInterval: 4000 });
-  const { data: timeline = [] } = useApiQuery<AuditEntry[]>(['cases', 'timeline', caseId], `/cases/${caseId}/timeline`, { refetchInterval: 4000 });
+  const poll = usePollInterval(4000);
+  const { data: kase, error, isLoading } = useApiQuery<CaseDetail>(['cases', 'detail', caseId], `/cases/${caseId}`, { refetchInterval: poll });
+  const { data: timeline = [] } = useApiQuery<AuditEntry[]>(['cases', 'timeline', caseId], `/cases/${caseId}/timeline`, { refetchInterval: poll });
+  // The case moving (steps, tasks, signals, events): fetched again as it happens (docs/plans/17).
+  useLiveInvalidate([caseId && `case/${caseId}`], [['cases', 'detail', caseId], ['cases', 'timeline', caseId], ['cases', 'signals', caseId], ['backoffice', 'screens']]);
 
   if (isLoading) return <DetailLoader />;
   if (error || !kase) return <PageContainer><Alert variant="destructive"><AlertDescription>{apiErrorMessage(error) || 'Case not found'}</AlertDescription></Alert></PageContainer>;
@@ -67,7 +73,12 @@ export default function CasePage() {
               </div>
             </div>
           </div>
-          {hasPermission('cases:export') && <Button variant="outline" onClick={onExport}><Download className="h-4 w-4" />Export evidence</Button>}
+          <div className="flex flex-wrap gap-2">
+            {/* Buttons the institution added to this page (its back office, docs/plans/16). */}
+            <PendingScreens caseId={kase.id} />
+            <SlotActions scope="case" context={{ case: kase.id }} />
+            {hasPermission('cases:export') && <Button variant="outline" onClick={onExport}><Download className="h-4 w-4" />Export evidence</Button>}
+          </div>
         </div>
         <StageBar stages={kase.stages ?? []} current={kase.stage} final={FINAL.includes(kase.status)} />
         <dl className="grid grid-cols-2 gap-px border-t bg-border/60 text-[13px] md:grid-cols-4">
@@ -85,6 +96,7 @@ export default function CasePage() {
         </dl>
       </div>
 
+      <SlotTabs scope="case" context={{ case: kase.id }}>
       <div className="grid items-start gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <Card>
@@ -214,6 +226,7 @@ export default function CasePage() {
           <CardContent><Timeline entries={timeline} /></CardContent>
         </Card>
       </div>
+      </SlotTabs>
     </PageContainer>
   );
 }

@@ -39,6 +39,22 @@ export interface FintivioClient {
   submitScreen<T = unknown>(caseId: string, taskId: string, event: string, values?: Record<string, unknown>): Promise<T>;
   updateProfile<T = unknown>(fields: Record<string, unknown>): Promise<T>;
   markNotificationsRead(id?: string): Promise<void>;
+  /**
+   * Listen to live topics (Server-Sent Events, docs/plans/17): `client/<your id>/records/*`, `.../notifications`,
+   * `.../cases`, `.../messages`, `case/<id>`, `case/<id>/channel/<name>` (a journey's `live.topics`). `change` says
+   * something changed (fetch it again); `message` carries what a workflow published. Reconnects by itself.
+   */
+  subscribe(topics: string[], onEvent: (event: LiveEvent) => void, options?: { replay?: boolean }): LiveSubscription;
+}
+
+export type LiveEvent =
+  | { type: 'change'; topic: string }
+  | { type: 'message'; topic: string; seq: number; payload: Record<string, unknown>; at?: string };
+
+export interface LiveSubscription {
+  close(): void;
+  /** True while the stream is open. */
+  readonly connected: boolean;
 }
 
 const MARGIN_MS = 60_000;
@@ -101,8 +117,76 @@ export function createClient(options: ClientOptions): FintivioClient {
     }
   };
 
+  const subscribe = (topics: string[], onEvent: (event: LiveEvent) => void, subscribeOptions: { replay?: boolean } = {}): LiveSubscription => {
+    let closed = false;
+    let connected = false;
+    let lastSeq = 0;
+    let controller: AbortController | null = null;
+    let delay = 1000;
+    const seen = new Set<number>();
+    const handle = (block: string) => {
+      let event = 'message';
+      const data: string[] = [];
+      for (const line of block.split('\n')) {
+        if (line.startsWith(':')) continue;
+        if (line.startsWith('event:')) event = line.slice(6).trim();
+        else if (line.startsWith('data:')) data.push(line.slice(5).trimStart());
+      }
+      if (!data.length) return;
+      const parsed = JSON.parse(data.join('\n'));
+      if (event === 'ready') { connected = true; delay = 1000; }
+      if (event === 'change') onEvent({ type: 'change', topic: parsed.topic });
+      if (event === 'message' && !seen.has(parsed.seq)) {
+        seen.add(parsed.seq);
+        lastSeq = Math.max(lastSeq, Number(parsed.seq));
+        onEvent({ type: 'message', topic: parsed.topic, seq: Number(parsed.seq), payload: parsed.payload ?? {}, at: parsed.at });
+      }
+    };
+    const open = async () => {
+      while (!closed) {
+        controller = new AbortController();
+        try {
+          const query = new URLSearchParams({ topics: topics.join(',') });
+          if (subscribeOptions.replay && lastSeq === 0) query.set('replay', topics.join(','));
+          if (lastSeq > 0) query.set('since', String(lastSeq));
+          const response = await doFetch(`${api}/live?${query}`, {
+            headers: { Accept: 'text/event-stream', 'X-Tenant': options.tenant, Authorization: `Bearer ${await token()}` },
+            signal: controller.signal,
+          });
+          if (response.status === 401) current = null;
+          if (!response.ok || !response.body) throw new FintivioApiError(`HTTP ${response.status}`, response.status);
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+          for (;;) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            let index: number;
+            while ((index = buffer.indexOf('\n\n')) >= 0) {
+              handle(buffer.slice(0, index));
+              buffer = buffer.slice(index + 2);
+            }
+          }
+        } catch (error) {
+          if (error instanceof FintivioApiError && error.status === 403) closed = true;
+        }
+        connected = false;
+        if (closed) break;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        delay = Math.min(delay * 2, 15_000);
+      }
+    };
+    void open();
+    return {
+      close: () => { closed = true; controller?.abort(); },
+      get connected() { return connected; },
+    };
+  };
+
   return {
     signIn,
+    subscribe,
     session: () => current,
     signOut: async () => {
       if (current) await call('POST', '/auth/logout', {}, current.token).catch(() => undefined);

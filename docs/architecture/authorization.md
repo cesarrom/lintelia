@@ -1,10 +1,13 @@
 # Authorization model
 
 Status: **implemented** for tenant and platform permissions, system and custom roles, escalation prevention, case
-scope, segregation of duties, authority and four-eyes (see [0003](../changes/0003-case-engine-and-journeys.md)).
-Still planned: teams, support-access grants, API clients, the generic `authorize()` decision function (checks are
-`@Require`/`@RequirePlatform` guards plus service rules today). The catalogue lives in
-`packages/fintivio/src/schemas/authorization.schema.ts` (shared by API and web app).
+scope, segregation of duties, authority and four-eyes (see [0003](../changes/0003-case-engine-and-journeys.md)), and
+since [0012](../changes/0012-access-control.md): the institution's **custom permissions** and system-role extensions,
+**access rules** on workflows (who may start them, who may see their cases), **roles from the identity provider**,
+**member attributes** and conditions, **time-bound roles**, **change control** (notifications, a second approver,
+effective dates) and **staff recovery** — see [§ Who sees what](#who-sees-what-docsplans15). Still planned: teams,
+access-review campaigns (the export exists), the back-office screens of plans/16 using the same rules. The catalogue
+lives in `packages/fintivio/src/schemas/authorization.schema.ts` (shared by API and web app).
 
 ## Principles (industry baseline)
 
@@ -58,6 +61,7 @@ principal ──has──▶ role assignments ──▶ roles ──▶ permissi
 | `clients:provision` | register clients from the institution's systems and open their sessions for the embedded app (`POST /client-sessions`), update their app profile |
 | `clients:records` | write the records clients see in the client app (`PUT /clients/:client/records/…`) |
 | `experience:read` / `experience:manage` / `experience:publish` | see / edit the draft / publish and roll back the client app (studio, docs/plans/11) |
+| `backoffice:read` / `backoffice:manage` / `backoffice:publish` | see / edit the draft / publish and roll back the institution's own back office (studio's back-office mode, docs/plans/16) |
 | `forms:read` / `forms:manage` / `forms:publish` | see / edit / publish and embed forms |
 | `workflows:read` / `workflows:manage` / `workflows:publish` | see / edit drafts / publish versions of workflows |
 | `templates:manage` | e-mail and document templates |
@@ -72,6 +76,7 @@ principal ──has──▶ role assignments ──▶ roles ──▶ permissi
 | `cases:lookup` | look up any client-facing application (never investigations) to help the client, e.g. support agents |
 | `cases:create` | start an application on behalf of a client (assisted onboarding) |
 | `cases:signal` | signal a running case from the institution's systems (`POST /cases/:id/signals/:name`: a `webhook.wait` step continues) |
+| `events:publish` | send events from the institution's systems (`POST /events`): they reach the cases waiting for them and start the workflows listening to them (docs/plans/17) |
 | `tasks:work` | claim and decide tasks routed to me: approve / reject / request information, within authority |
 | `tasks:assign` | reassign tasks, manage queues |
 | `cases:approve_high_risk` | decisions above the authority threshold and second approvals |
@@ -99,6 +104,8 @@ principal ──has──▶ role assignments ──▶ roles ──▶ permissi
 | clients:provision, clients:records | ✓ | | | | | | ✓ | | |
 | experience:read | ✓ | | | | | ✓ | ✓ | | ✓ |
 | experience:manage, experience:publish | ✓ | | | | | ✓ | | | |
+| backoffice:read | ✓ | | | | | ✓ | | | ✓ |
+| backoffice:manage, backoffice:publish | ✓ | | | | | ✓ | | | |
 | forms:read | ✓ | ✓ | ✓ | ✓ | | ✓ | | | ✓ |
 | forms:manage, forms:publish | ✓ | | | | | ✓ | | | |
 | workflows:read | ✓ | ✓ | ✓ | ✓ | | ✓ | ✓ | | ✓ |
@@ -116,6 +123,7 @@ principal ──has──▶ role assignments ──▶ roles ──▶ permissi
 | cases:lookup | ✓ | | | | | | | ✓ | |
 | cases:create | ✓ | ✓ | | | ✓ | | | | |
 | cases:signal | ✓ | | | | | | ✓ | | |
+| events:publish | ✓ | | | | | | ✓ | | |
 | tasks:work | ✓ | ✓ | ✓ | ✓ | | | | | |
 | tasks:assign | ✓ | ✓ | ✓ | | | | | | |
 | cases:approve_high_risk | ✓ | ✓ | ✓ | | | | | | |
@@ -141,10 +149,76 @@ The migration renames today's permission ids (`workflows:view` → `workflows:re
 | platform.support_access:request | ✓ | | ✓ | |
 | platform.audit:read | ✓ | | | ✓ |
 | platform.connectors:manage | ✓ | | | |
+| platform.tenants:recover | ✓ | | | |
 
 Routes that accept either of two permissions use `@RequireAny(...)` — e.g. reading a client's app records needs
 `clients:read` (the team) or `clients:records` (the system that writes them). Previewing the client app as a real
 client needs `clients:read` on top of `experience:read` and is audited (`client_app.previewed`).
+
+## Who sees what (docs/plans/15)
+
+Implemented in `apps/core/src/access/` ([0012](../changes/0012-access-control.md)).
+
+| Piece | Rule |
+| --- | --- |
+| Custom permissions | `custom:<key>` (never shadows a built-in id), created by `roles:manage` or `workflows:manage` holders, held by nobody but `admin` until a role holds it; archived (never deleted): archiving removes it from every role and API client at once |
+| System-role extensions | system roles keep the catalogue's permissions (immutable, evolve with releases) and may add custom permissions; the Administrator role holds every custom permission and cannot be extended |
+| Resolution | per request: active assignments (`expires_at` in the future or none) → roles → catalogue + extensions + active custom permissions; API clients lose archived custom permissions at once |
+| Access rules | `{ permissions (all of), roles (one of), when (JSONata over member and context) }`; a failing or erroring condition denies; one evaluator (`access/rules.ts`, static part shared in `packages/fintivio`) |
+| Workflow access | `access.start` replaces `cases:create` for that workflow (routes `@Access('member','api_client')` + the rule in the service: startable list, executions, assisted cases); `access.cases` narrows case scope (also for `cases:read_all`) and hides the cases' tasks; governed by the latest published version; publishing a change of it is an access change an administrator decides |
+| Roles from the IdP | as soon as single sign-on is linked (a verified domain), people of that domain hold exactly the roles their groups map to (`group name → role`, case-insensitive, SSO ID-token groups and SCIM directory groups; the just-in-time default roles when none maps), from the first time the IdP tells us about them; manual assignment and invitations with roles are refused for that domain; without single sign-on, roles are managed in the app; members outside the SSO domains (emergency administrators, consultants) keep manual roles; assignments record their `source` (`manual`, `idp`, `default`, `recovery`) and groups |
+| Member attributes | declared per institution (text, number, select, list), set by hand or read from the IdP (JSONata over SSO claims / SCIM attributes, read-only in the app); conditions read `member.attributes.*` |
+| Time-bound roles | `expires` per assignment; ignored after the date, removed and audited (`member.role_expired`) by the periodic job |
+| Change control | privileged changes (role definitions, role assignments and invitations with roles, IdP mappings, workflow access, the approval policy) are `access_changes`: audited, e-mailed to administrators when they matter, optionally scheduled (`effectiveAt`), and — with `accessApproval: grants` — grants wait for a second administrator (7 days), who must pass the same checks as if making the change (no self-approval, no approving one's own elevation); revocations never wait; re-validated as the requester when applied |
+| Soft-lock guards | last active admin kept (by hand, by mappings, by syncs: kept + `member.role_sync_blocked` + e-mail); syncs keep the Administrator role while no group maps to it; a mapping change leaving no active admin is refused; a second approver needs two possible approvers (and applies with a notice when none is left); staff recovery as the last resort |
+
+| Route | Permission |
+| --- | --- |
+| `GET /permissions` | any member (built-in + custom, archived marked) |
+| `POST /permissions/custom`, `PUT/DELETE /permissions/custom/:key`, `POST …/restore` | `roles:manage` or `workflows:manage` (create); `roles:manage` |
+| `PUT /roles/:key` with `customPermissions` on system roles | `roles:manage` |
+| `GET /roles/:key/members`, `/roles/:key/usage`, `/access/matrix`, `/access/who`, `/users/:id/access`, `/access/export` | `roles:read` (+ `members:read`) |
+| `GET /access-changes`, `/access-changes/:id`; `POST …/approve`, `…/reject`, `…/cancel` | `roles:read`, `security:manage` or `audit:read`; deciding: the kind's approver permission (`roles:manage`, `security:manage` for SSO and the policy) |
+| `GET/PUT /sso/role-mappings`, `POST /sso/role-mappings/preview` | `security:manage` (mappings: only roles the editor could assign) |
+| `GET/PUT /member-attributes`, `PATCH /users/:id/attributes` | `members:read` / `members:update` |
+| `PUT /security/policy` `{ accessApproval, accessNotify }` | `security:manage` (switching approval off waits for a second administrator) |
+| `POST /platform/tenants/:key/recover-access` | staff with `platform.tenants:recover` |
+
+Change-controlled routes answer as before when the change applies at once, and `202 { pending, status, change }` when it
+waits for an approver or its date.
+
+## The institution's own back office (docs/plans/16)
+
+Implemented in `apps/core/src/back-office/` ([0013](../changes/0013-back-office.md)). Every item of the definition —
+page, widget, action, menu item, button or tab on a built-in page, home — may carry an access rule (same evaluator as
+above; the member, and the client or case of the page, in the condition's scope).
+
+| Step | Rule |
+| --- | --- |
+| Serving | `GET /backoffice/app` is the published definition **pruned for the member**: items whose rule fails, actions whose workflow the member may not start (`access.start`), and every reference to a pruned item are removed on the server; their names never reach the browser |
+| Data | `POST /backoffice/data` resolves only the sources the page reads (computed from its widgets), each under the member's permissions (`cases` → `cases:read` and case scope ∩ workflow `access.cases`; `tasks` → `tasks:work` / `tasks:assign`; `client`, `records:*` → `clients:read`); a source the member cannot read is left out (the widget is empty), never an error; a page about a client or a case first checks that record |
+| Actions | `POST /backoffice/actions/:key`: the action's rule with the page's record in scope, then the workflow's start rule; inputs from the context by the action's templates, from the button only for the keys it allows; the case records `initiatedBy` the member and `source: backoffice:<action>` |
+| Staff screens | `team.screen` to the member who ran the action (only they may send it) or to a role's queue (members of that role who see the case); answers checked as client screens; recorded as task decisions |
+| Studio | `backoffice:read` sees the draft, the access report and previews as roles (`roles:read` too); `backoffice:manage` edits; `backoffice:publish` publishes and rolls back; a template that creates a workflow needs `workflows:manage`, and the workflow's publication is an access change |
+| Read auditing | optional (`tenant_security_policies.read_audit`, *Settings → Security*): each page about a client a member opens adds `client.viewed` |
+
+A definition cannot raise privileges: it shows what the member could already read and starts what they could already
+start; the only grant involved is a workflow's `access.start`, decided by an administrator.
+
+## Who may listen (live updates, docs/plans/17)
+
+Decided when a stream opens (and again at every reconnection; a stream ends with its token and when its session is
+revoked). Listening never carries data the listener could not fetch: changes are thin, messages are what a workflow
+chose to send to that audience.
+
+| Topic | Who |
+| --- | --- |
+| `client/{id}/records/…`, `/profile`, `/cases` | the client; members and API clients with `clients:read` |
+| `client/{id}/notifications`, `/messages` | the client only |
+| `case/{id}`, `case/{id}/channel/{name}` | the applicant when the workflow shows the case to clients (`clientVisibility: full`); members who may see the case (case scope and the workflow's `access.cases`) or who started it; API clients with `cases:read`; a channel's signed address (read-only, one channel, until it expires) |
+| `member/{id}`, `member/{id}/messages` | that member |
+| `queue/{role}`, `queue/{role}/messages` | members holding the role |
+| `cases` | members with `cases:read` (something changed: lists refetch in scope) |
 
 ## Conditions (the attribute layer)
 

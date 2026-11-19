@@ -8,9 +8,17 @@ import { AUTH_CONTEXT } from '../injector/tokens/auth-context.token';
 import { TENANT } from '../injector/tokens/tenant.token';
 import { USER } from '../injector/tokens/user.token';
 import { type AppRequest, REQUEST_PROXY } from '../injector/tokens/request-proxy.token';
-import { BadRequestError } from '../http/errors';
+import { BadRequestError, ForbiddenError } from '../http/errors';
+import { inArray } from 'drizzle-orm';
+import { TENANT_PERMISSION_IDS, resolvePermissions } from '@repo/fintivio/schemas';
+import { roles } from '../entities';
+import type { Databases } from '../clients/database.client';
+import { DATABASES } from '../injector/tokens/databases.token';
+import { RoleSync } from '../access/role-sync';
+import { AccessChanges, actorOf } from '../access/changes';
+import { activeCustomKeys } from '../access/catalog';
 import { env, tenantWebUrl } from '../constants';
-import { handle, json, jsonError } from '../http/respond';
+import { handle, json, jsonError, respondToChange } from '../http/respond';
 
 const publicTenant = (tenant: Tenant) => ({ id: tenant.id, domain: tenant.domain, name: tenant.name, logoUrl: tenant.logoUrl, pallette: tenant.pallette });
 
@@ -22,6 +30,9 @@ export class SsoHandler {
     @Inject(TENANT) private readonly tenant: Tenant,
     @Inject(USER) private readonly user: User,
     @Inject(REQUEST_PROXY) private readonly request: AppRequest,
+    @Inject(DATABASES) private readonly databases: Databases,
+    @Inject(RoleSync) private readonly roleSync: RoleSync,
+    @Inject(AccessChanges) private readonly changes: AccessChanges,
   ) { }
 
   private get actor() {
@@ -45,11 +56,64 @@ export class SsoHandler {
     }, 'Failed to create the setup link', 201);
   }
 
-  /** `{ enforce?, jit?: { enabled, defaultRoles } }` */
+  /**
+   * `{ enforce?, jit?: { enabled, defaultRoles } }`. Default roles go to everyone who joins just in time: you may only
+   * choose roles you could assign yourself.
+   */
   @Require('security:manage')
   @Put('/settings')
   settings(@Res() ctx: Context) {
-    return handle(ctx, async () => this.sso.updateSettings(this.tenant, await this.request.json(), this.actor), 'Failed to update single sign-on');
+    return handle(ctx, async () => {
+      const body = await this.request.json<{ enforce?: boolean; jit?: { enabled?: boolean; defaultRoles?: string[] } }>();
+      if (body.jit?.defaultRoles?.length) await this.assertCanAssign(body.jit.defaultRoles);
+      return this.sso.updateSettings(this.tenant, body, this.actor);
+    }, 'Failed to update single sign-on');
+  }
+
+  private async assertCanAssign(roleKeys: string[]) {
+    const db = this.databases.forTenant(this.tenant.id);
+    const customKeys = await activeCustomKeys(db);
+    const rows = await db.select().from(roles).where(inArray(roles.key, roleKeys));
+    const needed = resolvePermissions(rows, TENANT_PERMISSION_IDS, undefined, customKeys);
+    const missing = needed.filter((p) => !this.user.permissions.includes(p));
+    if (missing.length) throw new ForbiddenError(`You cannot grant permissions you do not hold: ${missing.join(', ')}`);
+  }
+
+  /**
+   * The IdP group → role mappings (docs/plans/15 §5.4) and what they give: roles of people of the verified SSO domains
+   * come from their groups as soon as single sign-on is linked.
+   */
+  @Require('security:manage')
+  @Get('/role-mappings')
+  mappings(@Res() ctx: Context) {
+    return handle(ctx, async () => {
+      const db = this.databases.forTenant(this.tenant.id);
+      const preview = await this.roleSync.simulate(this.tenant.id, {});
+      return {
+        linked: preview.linked, domains: preview.domains, mappings: await RoleSync.mappings(db),
+        members: preview.members.filter((m) => m.managed || m.groups.length), administrators: preview.administrators, warnings: preview.warnings,
+      };
+    }, 'Failed to load the role mappings');
+  }
+
+  /** Replace the mappings (`{ mappings: [{ group, role }], effectiveAt? }`): an access change. */
+  @Require('security:manage')
+  @Put('/role-mappings')
+  saveMappings(@Res() ctx: Context) {
+    return respondToChange(ctx, async () => {
+      const body = await this.request.json<{ mappings?: unknown; effectiveAt?: string }>();
+      return this.changes.submit(this.tenant, actorOf(this.user), 'sso.role_mappings', { mappings: body.mappings ?? [] }, { effectiveAt: body.effectiveAt });
+    }, async () => ({ mappings: await RoleSync.mappings(this.databases.forTenant(this.tenant.id)) }), 'Failed to save the role mappings');
+  }
+
+  /** What the members' roles would be with these mappings / this role source, before saving. */
+  @Require('security:manage')
+  @Post('/role-mappings/preview')
+  preview(@Res() ctx: Context) {
+    return handle(ctx, async () => {
+      const body = await this.request.json<{ mappings?: Array<{ group: string; role: string }> }>().catch(() => ({} as { mappings?: undefined }));
+      return this.roleSync.simulate(this.tenant.id, { mappings: body.mappings });
+    }, 'Failed to preview the role mappings');
   }
 }
 

@@ -36,5 +36,22 @@ export function validateDefinition(definition: WorkflowDefinition, context: { ro
       errors.push(`${component.definition.title} "${step.name}": ${error}`);
     }
   }
+  // Correlation (docs/plans/17 §3): keys named once, used by waits and start-or-deliver rules.
+  const keyNames = new Set(Object.keys(definition.correlation));
+  for (const step of definition.steps) {
+    if (step.type === 'case.update' && step.config?.keys && typeof step.config.keys === 'object') for (const k of Object.keys(step.config.keys)) keyNames.add(k);
+  }
+  for (const name of keyNames) if (!/^[a-zA-Z][a-zA-Z0-9_]{0,63}$/.test(name)) errors.push(`The key "${name}" must be letters, digits and _ (starting with a letter)`);
+  for (const rule of definition.startRules) {
+    if (!/^[a-z0-9][a-z0-9_.:/-]{0,159}$/i.test(rule.event)) errors.push(`startOn: "${rule.event}" is not an event type`);
+    for (const name of Object.keys(rule.correlate ?? {})) {
+      if (!keyNames.has(name)) errors.push(`startOn "${rule.event}" correlates on "${name}", which the workflow does not declare under correlation`);
+    }
+  }
+  for (const step of definition.steps.filter((s) => s.type === 'event.wait')) {
+    for (const name of Object.keys(step.config?.match ?? {})) {
+      if (!keyNames.has(name)) errors.push(`Wait for an event "${step.name}": matches on the key "${name}", which the workflow does not declare under correlation`);
+    }
+  }
   return errors;
 }

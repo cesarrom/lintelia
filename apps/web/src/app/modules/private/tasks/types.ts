@@ -6,6 +6,8 @@ export interface TaskOutcome {
 }
 
 export interface TaskSummary {
+  /** Staff screens (`team.screen`): the form to fill. */
+  screen?: import('@/client-app/types').ScreenView | null;
   id: string;
   caseId: string;
   stepId: string;

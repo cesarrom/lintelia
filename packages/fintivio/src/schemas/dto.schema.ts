@@ -236,6 +236,12 @@ export interface UserResponse {
   name: string;
   picture?: string;
   roles: string[];
+  /** How each role was given (docs/plans/15): `manual`, `idp` (groups), `default` (just in time), `recovery` (staff). */
+  assignments?: Array<{ role: string; source: string; groups: string[]; expiresAt: Date | string | null }>;
+  /** Roles come from the identity provider for this member (SSO domain, role source `idp`). */
+  managedByIdp?: boolean;
+  attributes?: Record<string, unknown>;
+  kind?: 'member' | 'client';
   status: 'active' | 'inactive';
   createdAt: Date;
   updatedAt: Date;

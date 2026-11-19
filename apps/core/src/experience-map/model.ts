@@ -140,6 +140,9 @@ function viaOf(step: StepDefinition, info: ComponentInfo | null): MapViaStep {
   if (FUNCTION_TYPE.test(step.type)) return { ...base, group: 'function', detail: info?.title };
   if (step.type === 'workflow.call' || step.type === 'foreach') return { ...base, group: 'workflow', detail: config.wait === false ? 'started, not awaited' : undefined };
   if (step.type === 'webhook.wait') return { ...base, group: 'signal', detail: text(config.name) };
+  if (step.type === 'event.wait') return { ...base, group: 'signal', detail: text(config.event) };
+  if (step.type === 'poll') return { ...base, group: 'signal', detail: `polls ${text(config.call?.type)}` };
+  if (step.type === 'live.publish') return { ...base, group: 'notify', detail: config.to === 'webhook' ? 'to a webhook' : `live: ${text(config.to ?? 'case')}${(config.to ?? 'case') === 'case' ? ` ${text(config.channel ?? 'progress')}` : ''}` };
   if (step.type === 'client.notify' || step.type === 'email') return { ...base, group: 'notify', detail: text(config.title) || text(config.subject) || undefined };
   if (step.type.startsWith('connector:')) return { ...base, group: 'connector', detail: info?.connectorName ?? step.type.slice(10).split('/')[0] };
   return { ...base, group: 'auto', detail: info?.title };
@@ -263,6 +266,6 @@ export function workflowMap(input: { id: string; name: string; description?: str
       return { stepId: s.id, name: s.name, connectorId, connectorName: info?.connectorName ?? connectorId, component: info?.title ?? s.type, connectionId: text(config(s).connection) || null };
     }),
     notifies: definition.steps.filter((s) => s.type === 'client.notify' && config(s).page && !String(config(s).page).startsWith('=')).map((s) => ({ stepId: s.id, name: s.name, page: text(config(s).page), title: text(config(s).title) })),
-    signals: definition.steps.filter((s) => s.type === 'webhook.wait').map((s) => ({ stepId: s.id, name: s.name, signal: text(config(s).name), timeout: config(s).timeout ? text(config(s).timeout) : null })),
+    signals: definition.steps.filter((s) => s.type === 'webhook.wait' || s.type === 'event.wait').map((s) => ({ stepId: s.id, name: s.name, signal: text(s.type === 'event.wait' ? config(s).event : config(s).name), timeout: config(s).timeout ? text(config(s).timeout) : null })),
   };
 }

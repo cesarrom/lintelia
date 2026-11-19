@@ -28,7 +28,7 @@ const MERCHANTS = [
   { description: 'PureGym', category: 'Health', min: 24.99, max: 24.99, every: 30 },
 ];
 
-function bankingRecords(collection: string, holder: string): Array<Record<string, unknown> & { key: string }> | null {
+export function bankingRecords(collection: string, holder: string): Array<Record<string, unknown> & { key: string }> | null {
   const rand = random(7);
   const now = Date.now();
   switch (collection) {

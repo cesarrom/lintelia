@@ -57,14 +57,14 @@ publish validation and the engine:
 
 | Group | Components |
 | --- | --- |
-| Flow | `start`, `end`, `conditional`, `wait`, `foreach` (a sub-workflow per item, child cases), `workflow.call` (one child case; `wait: false` starts it and carries on), `webhook.wait` (wait for a signal from another system, with a deadline) |
+| Flow | `start`, `end`, `conditional`, `wait`, `foreach` (a sub-workflow per item, child cases), `workflow.call` (one child case; `wait: false` starts it and carries on), `webhook.wait` (wait for a signal from another system, with a deadline), `event.wait` (wait for an event *about this case*, matched by its business keys), `poll` (call a step every so often until a condition holds) |
 | Data | `calculate`, `data.map` |
 | People | `review` (decisions with authority, SLA, escalation, four-eyes), `task` (work items; `sameAssigneeAs: siblings`), `parties.wait`, `parties.update` |
 | Client | `client.request` (text and `file` items; files go through the upload intake), `form.request` (one of the institution's forms, to the applicant or a party), `parties.collect` |
 | Client app | `client.screen` (a screen of a journey: fields, text, buttons — each button an event; answers become `input.<key>`), `client.data` (read the client's records), `client.record` (write one: upsert or merge), `client.profile` (attributes, segments), `client.notify` (a notification in the app, optionally by e-mail), `client.upsert` (create or find a client by e-mail / external id, segments, attributes, invitation) — docs/plans/11, 12. `client.data/record/profile/notify` act on the applicant, or on another client given in `client` (e.g. the borrower a dealer's deal created) |
 | Case | `case.update` (stage, data saved on the case, risk, flags, title), `case.decision` (final status + outcome, applicant notification unless `notifyApplicant: false` or the case is `requests_only`) |
 | Functions | `function:<workflow id>`: a published workflow with `function: true`, its inputs as the step's fields, its `outputs` as the step's result (events `completed` / `failed`); listed under "Your functions" in the palette |
-| Communication | `email` (platform mailer) |
+| Communication | `email` (platform mailer), `live.publish` (a live message: on a channel of the case, to the applicant, a member, a role's members, or one webhook subscription — docs/plans/17) |
 | Connectors | `connector:<id>/<key>` from the institution's active connections, e.g. `connector:didit/kyc.verify`, `connector:documenso/signature.request`, `connector:postgres-datasource/query.run`, `connector:smtp-mailer/email.send`, `connector:screening/screening.check`, `connector:http/request`, `connector:ai/document.extract`, `connector:loanpro/loan.board` ([integrations.md](integrations.md)) |
 
 Publishing refuses unknown step types, invalid configurations, events a component never emits, unknown roles,
@@ -74,7 +74,8 @@ outcome names (`approve` / `reject` for a review's `review_approved` / `review_r
 
 Variables: `input.*` (the case data), `steps.<id>.*` (results), `case.id`, `case.reference`, `case.title`,
 `case.applicant.{id,email,name}`, `case.hooks.<name>` (the signed URL of each `webhook.wait` signal, to give to the
-system that will call back).
+system that will call back), `case.live.<channel>` (the read-only address of each live channel the workflow publishes
+on, for screens we do not serve).
 
 ### Signals (`webhook.wait`)
 
@@ -86,6 +87,46 @@ waits is kept (`pending`) and delivered when it does; a deadline (`timeout`) tak
 signals are `case_signals` rows (per-case advisory lock: never lost, never delivered twice), listed on the case page
 (`GET /cases/:id/signals`) where members with `cases:signal` can record one by hand. Audited:
 `case.waiting_for_signal`, `case.signal_received`, `case.signal_timed_out`.
+
+### Events about a case (`correlation`, `event.wait`, start-or-deliver) — docs/plans/17 §3
+
+Other systems rarely know our cases; they know *what* an event is about (a loan, a card, a client). A workflow declares
+its **business keys** and the router hands events to the open cases holding the same values:
+
+```yaml
+correlation:                       # kept while the case is open (recomputed after every step); case.update `keys:` too
+  loan: "= input.loanId"
+startOn:                           # start-or-deliver: the open case of this workflow with that loan gets the event;
+  - { event: "api:loan.payment", correlate: { loan: "= data.loanId" } }   # a case starts when none has it
+steps:
+  - id: next_payment
+    type: event.wait
+    config: { event: "api:loan.payment", match: { loan: "= data.loanId" }, filter: "data.amount > 0", timeout: P40D, buffer: PT1H, consume: false }
+```
+
+Every event — `POST /events` (`api:<type>`), connector events (`connector:<id>/<type>`), platform events
+(`client.flagged`, `client.registered`) — goes through one router (`services/event-router.ts`): kept in
+`inbound_events` (deduplicated by the sender's id, 7 days), **delivered** to the waiting steps it matches (type, the
+keys' values, the filter; every matching case, or — `consume: true` — the oldest waiting one only, a work queue), then
+**handed** to the open case of each start-or-deliver workflow holding its keys (delivered if that case waits for it,
+else kept for the case until a step of it waits for that type), then **starting** the workflows that list it in
+`startOn`. A case never gets an event twice (`case_events` unique per case and event); a step that starts waiting
+takes the events kept for its case first, then — with `buffer` — one received up to that long before; one advisory
+lock per event type serialises waiting and arriving. The step's result is the event's data plus
+`event.{id,type,source,receivedAt}`; a deadline takes the `timeout` branch (an event delivered at the last moment
+wins). Publishing refuses keys that the workflow does not declare. Listed on the case page with the signals.
+Audited: `case.waiting_for_event`, `case.event_received`, `case.event_timed_out`, `case.event_handed`.
+
+`poll` runs another (automatic) step — a connector call, a function, `client.data` — every `every` until `until`
+(JSONata over its result and `attempt`) holds, within `timeout` and `maxAttempts`: events `done`, `timeout`,
+`failed` (the call failed). Durable timers; each attempt is journaled.
+
+### Live messages (`live.publish`) — docs/plans/17 §4.4
+
+`to: case` (default; `channel`, e.g. `progress`), `applicant`, `member` (default: who started the case), `role`, or
+`webhook` (one subscription of the institution, chosen in the editor: a signed `case.message` in its delivery log).
+Live messages are kept 7 days (`live_messages`, ordered) and replayed to screens that listen late; `{{case.live.<channel>}}`
+is a read-only, signed address (30 days) of a case channel. Payload ≤ 4 kB (64 kB to a webhook).
 
 ## Lifecycle rules
 
@@ -173,7 +214,9 @@ Templates may format values: `{{ steps.offer.monthly | money }}` (`money`, `numb
 
 ## Events
 
-`EventsService.emit(event, payload)` starts every active workflow version whose `startOn` lists the event.
+Events are routed as described above (§ Events about a case): delivered to waiting cases, handed to start-or-deliver
+workflows, starting the workflows whose `startOn` lists them. `POST /events { id, type, data, applicantEmail? }`
+(`events:publish`) is the entry point of the institution's systems.
 `client.registered` (a new client: self sign-up on the app, `POST /client-sessions`, token exchange) starts
 onboarding or welcome workflows. `client.flagged` (`POST /clients/:id/flags { category, reason }`, `clients:update`), used by the
 suspicious-activity template: L1 triage (reviewer: false positive / escalate) → investigation (senior reviewer: ask
@@ -200,12 +243,16 @@ neutral explanation.
 | POST | `/workflows/:id/publish` | `workflows:publish` | `200 { id, version, status: 'active' }` or `422 { errors }` |
 | GET | `/workflows/:id/versions` | `workflows:read` | versions with status (and the pending draft) |
 | GET | `/workflows/startable` | `cases:create` | published workflows that can be started by hand, with their inputs |
-| POST | `/workflows/:id/executions` | `cases:create` | `202 { caseId, executionId, reference }`; `409` without a published version. An `email` input identifies the applicant |
+| POST | `/workflows/:id/executions` | `cases:create` | `202 { caseId, executionId, reference, live }`; `409` without a published version. An `email` input identifies the applicant; `live.topics` / `live.url`: where to listen from the start |
 | POST | `/cases` | `cases:create` | assisted application `{ workflowId, client, inputs }` → `201` case in `pending_client` |
 | GET | `/cases?status=&search=&workflowId=` | `cases:read` (scope) | cases visible to the caller (with their `stage`) |
 | GET | `/cases/pipelines` | `cases:read` | published workflows with stages (the pipeline board), busiest first |
 | GET | `/cases/:id` | `cases:read` (scope) | case with stage and the workflow's stages, data, calculations, tasks, decisions, consents, records, files |
-| GET | `/cases/:id/signals` | `cases:read` (scope) | what the case waits for from other systems, and what arrived; the hook URL of waiting signals for holders of `cases:signal` |
+| GET | `/cases/:id/signals` | `cases:read` (scope) | what the case waits for from other systems (signals by name, events by business key), and what arrived; the hook URL of waiting signals for holders of `cases:signal` |
+| POST | `/events` | `events:publish` | `202 { duplicate, event, eventId, delivered: [{ id, reference, waiting }], started: [{ id, reference }] }` |
+| GET | `/live?topics=&since=&replay=` (or `?ticket=`) | member, client, API client (per topic) | Server-Sent Events: `ready`, `change { topic }`, `message { topic, seq, payload }`, `expired`, `revoked`; `403 { denied }` |
+| POST | `/live/tickets` | member, client, API client | `201 { ticket, url, expiresAt }`: one stream, within 60 s (for `EventSource`) |
+| GET | `/live/cases/:id/channels/:name?tenant=&expires=&token=` | anyone with the signed URL | the channel's messages (replayed from the start) |
 | POST | `/cases/:id/signals/:name` | `cases:signal` | `202 { delivered, queued }`; `409` when the case is finished; body ≤ 64 kB |
 | POST | `/hooks/cases/:id/:name?tenant=&token=` | anyone with the signed URL | `202`; `403` for a wrong token |
 | GET | `/cases/:id/timeline` | `cases:read` (scope) | audit entries of the case, in order |

@@ -21,12 +21,13 @@ export const TENANT_PERMISSIONS = [
   'roles:read', 'roles:manage',
   'clients:read', 'clients:update', 'clients:provision', 'clients:records',
   'experience:read', 'experience:manage', 'experience:publish',
+  'backoffice:read', 'backoffice:manage', 'backoffice:publish',
   'forms:read', 'forms:manage', 'forms:publish',
   'workflows:read', 'workflows:manage', 'workflows:publish',
   'templates:manage', 'variables:read', 'variables:manage',
   'integrations:read', 'integrations:manage', 'integrations:use',
   'api_clients:manage', 'webhooks:manage',
-  'cases:read', 'cases:read_all', 'cases:lookup', 'cases:create', 'cases:signal',
+  'cases:read', 'cases:read_all', 'cases:lookup', 'cases:create', 'cases:signal', 'events:publish',
   'tasks:work', 'tasks:assign', 'cases:approve_high_risk', 'screening:adjudicate', 'cases:export',
   'audit:read', 'audit:export', 'data_requests:manage', 'support_access:approve',
 ] as const;
@@ -34,7 +35,7 @@ export type TenantPermission = (typeof TENANT_PERMISSIONS)[number];
 
 const READ_ONLY_OVERSIGHT: TenantPermission[] = [
   'workspace:read', 'members:read', 'roles:read', 'clients:read', 'forms:read', 'workflows:read', 'variables:read',
-  'integrations:read', 'cases:read', 'cases:read_all', 'audit:read', 'audit:export', 'experience:read',
+  'integrations:read', 'cases:read', 'cases:read_all', 'audit:read', 'audit:export', 'experience:read', 'backoffice:read',
 ];
 
 export const ROLE_PERMISSIONS: Record<SystemRole, readonly TenantPermission[]> = {
@@ -54,10 +55,11 @@ export const ROLE_PERMISSIONS: Record<SystemRole, readonly TenantPermission[]> =
     'workspace:read', 'members:read', 'roles:read', 'forms:read', 'forms:manage', 'forms:publish', 'workflows:read',
     'workflows:manage', 'workflows:publish', 'templates:manage', 'variables:read', 'variables:manage',
     'integrations:read', 'integrations:use', 'experience:read', 'experience:manage', 'experience:publish',
+    'backoffice:read', 'backoffice:manage', 'backoffice:publish',
   ],
   integration_manager: [
     'workspace:read', 'workflows:read', 'variables:read', 'integrations:read', 'integrations:manage', 'integrations:use',
-    'api_clients:manage', 'webhooks:manage', 'clients:provision', 'clients:records', 'experience:read', 'cases:signal',
+    'api_clients:manage', 'webhooks:manage', 'clients:provision', 'clients:records', 'experience:read', 'cases:signal', 'events:publish',
   ],
   support_agent: ['workspace:read', 'clients:read', 'clients:update', 'cases:read', 'cases:lookup'],
   auditor: READ_ONLY_OVERSIGHT,

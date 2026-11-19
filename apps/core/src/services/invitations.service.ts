@@ -12,10 +12,41 @@ import { IdentityService } from '../auth/identity.service';
 import { TenantDirectory } from './tenant-directory.service';
 import { EMAIL_PROVIDER, type EmailProvider } from '../providers/email.provider';
 import { ForbiddenError } from '../http/errors';
-import { AuditWriter } from './audit.writer';
+import { AuditWriter, type AuditActor } from './audit.writer';
 
 const escapeHtml = (value: string) =>
   value.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+
+/** Link to the tenant's own sign-on page (`<tenant>.<BASE_DOMAIN>`), which accepts the invitation. */
+export const invitationLink = (tenant: Tenant, token: string) => tenantWebUrl(tenant.domain, `/sign-on?invitation=${encodeURIComponent(token)}`);
+
+/**
+ * Invite a member (with roles) and e-mail the link: used by invitations in a request and by access changes applied
+ * later (approved or scheduled, docs/plans/15 §14). Callers check who may invite whom.
+ */
+export async function sendMemberInvitation(
+  deps: { databases: Databases; identity: IdentityService; email: EmailProvider; audit: AuditWriter },
+  tenant: Tenant,
+  input: { email: string; name?: string; roleKeys: string[]; source?: 'manual' | 'recovery' },
+  actor: AuditActor,
+): Promise<Invitation> {
+  const db = deps.databases.forTenant(tenant.id);
+  const { invitation, token } = await deps.identity.createInvitation(db, { email: input.email, name: input.name, roleKeys: input.roleKeys, invitedBy: actor.email ?? 'system', source: input.source });
+  const link = invitationLink(tenant, token);
+  await deps.email.send({
+    tenant: tenant.domain,
+    to: input.email,
+    subject: `Invitation to join ${tenant.name}`,
+    text: `You have been invited to join ${tenant.name}. Accept the invitation: ${link}`,
+    html: `<p>Dear user,</p>
+<p>You have been invited to join ${escapeHtml(tenant.name)}.</p>
+<p><a href="${escapeHtml(link)}">Accept the invitation and set your password</a>. The link is valid for 7 days.</p>
+<p>If you did not expect this invitation, please ignore this email.</p>
+<p>Best regards,<br>${escapeHtml(tenant.name)} Team</p>`,
+  });
+  await deps.audit.record(tenant.id, actor, 'member.invited', { type: 'user', id: (invitation.data as { userId?: string })?.userId, email: input.email }, { roles: input.roleKeys, ...(input.source === 'recovery' ? { recovery: true } : {}) });
+  return invitation;
+}
 
 /**
  * Invitations of tenant members. Platform staff can invite into any tenant (e.g. the first administrator while
@@ -45,35 +76,15 @@ export class InvitationsService extends AbstractService {
     return tenant;
   }
 
-  /** Link to the tenant's own sign-on page (`<tenant>.<BASE_DOMAIN>`), which accepts the invitation. */
   invitationLink(tenant: Tenant, token: string) {
-    return tenantWebUrl(tenant.domain, `/sign-on?invitation=${encodeURIComponent(token)}`);
+    return invitationLink(tenant, token);
   }
 
   async createInvitation(email: string, role: string, domain: string, name?: string, roleKeys?: string[]): Promise<Invitation> {
     const tenant = await this.targetTenant(domain);
-    const db = this.databases.forTenant(tenant.id);
-    const invitedBy = this.auth.user?.email ?? 'system';
-
-    const { invitation, token } = await this.identity.createInvitation(db, { email, name, roleKeys: roleKeys ?? (role ? [role] : []), invitedBy });
-    const link = this.invitationLink(tenant, token);
-
-    await this.email.send({
-      tenant: tenant.domain,
-      to: email,
-      subject: `Invitation to join ${tenant.name}`,
-      text: `You have been invited to join ${tenant.name}. Accept the invitation: ${link}`,
-      html: `<p>Dear user,</p>
-<p>You have been invited to join ${escapeHtml(tenant.name)}.</p>
-<p><a href="${escapeHtml(link)}">Accept the invitation and set your password</a>. The link is valid for 7 days.</p>
-<p>If you did not expect this invitation, please ignore this email.</p>
-<p>Best regards,<br>${escapeHtml(tenant.name)} Team</p>`,
-    });
-
-    await this.audit.record(tenant.id, { type: this.auth.claims?.kind ?? 'system', id: this.auth.user?.userId, email: this.auth.user?.email },
-      'member.invited', { type: 'user', id: (invitation.data as { userId?: string })?.userId, email }, { roles: roleKeys ?? (role ? [role] : []) });
-
-    return invitation;
+    const actor = { type: this.auth.claims?.kind ?? 'system', id: this.auth.user?.userId, email: this.auth.user?.email };
+    return sendMemberInvitation({ databases: this.databases, identity: this.identity, email: this.email, audit: this.audit }, tenant,
+      { email, name, roleKeys: roleKeys ?? (role ? [role] : []) }, actor);
   }
 
   /** Pending invitation of the given e-mail in the current tenant. */

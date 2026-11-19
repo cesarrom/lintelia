@@ -162,5 +162,7 @@ export async function journeyState(db: TenantDatabase, clientId: string, caseId:
       id: t.id, kind: t.kind, title: t.title, description: t.description, status: t.status, items: t.requestItems ?? [], dueAt: t.dueAt, answeredAt: null,
       action: t.clientAction ? clientActionView(t.clientAction) : null,
     })),
+    // Where to listen from the start (docs/plans/17 §4.6): the case changing, and what its workflow publishes.
+    live: { topics: [`case/${kase.id}`, `case/${kase.id}/channel/*`] },
   };
 }

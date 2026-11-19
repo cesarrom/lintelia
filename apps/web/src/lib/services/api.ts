@@ -15,13 +15,14 @@ export const apiErrorDetails = (error: unknown): string[] => {
 };
 
 /** GET `path` (relative to the API) with the session; disabled while `path` is null. */
-export function useApiQuery<T>(key: QueryKey, path: string | null, options: { refetchInterval?: number; enabled?: boolean } = {}) {
+export function useApiQuery<T>(key: QueryKey, path: string | null, options: { refetchInterval?: number; enabled?: boolean; refetchOnWindowFocus?: boolean } = {}) {
   const { axios, ready } = useAxios();
   return useQuery<T>({
     queryKey: key,
     queryFn: async () => (await axios.get(`${API_BASE_URL}${path}`)).data,
     enabled: ready && !!path && options.enabled !== false,
     refetchInterval: options.refetchInterval,
+    refetchOnWindowFocus: options.refetchOnWindowFocus,
     staleTime: 0,
   });
 }

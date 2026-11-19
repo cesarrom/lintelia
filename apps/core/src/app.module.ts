@@ -63,6 +63,7 @@ import { WorkflowLifecycleService } from './services/workflow-lifecycle.service'
 import { SignalsService } from './services/signals.service';
 import { PublicFormsService } from './services/public-forms.service';
 import { EventsService } from './services/events.service';
+import { EventRouter } from './services/event-router';
 import { ClientsService } from './services/clients.service';
 import { DataRequestsService } from './services/data-requests.service';
 import { PlatformStaffService } from './services/platform-staff.service';
@@ -104,7 +105,24 @@ import { ExperienceMapHandler } from './handlers/experience-map.controller';
 import { ClientRuntimeService } from './client-apps/runtime.service';
 import { ClientProvisioningService } from './client-apps/provisioning.service';
 
+import { AccessNotifier } from './access/notify';
+import { AccessChanges } from './access/changes';
+import { AccessChangeKinds } from './access/change-kinds';
+import { RoleSync } from './access/role-sync';
+import { AccessRecovery } from './access/recovery';
+import { CustomPermissionsService } from './access/custom-permissions.service';
+import { AccessQueriesService } from './access/queries.service';
+import { MemberAttributeSync, MemberAttributesService } from './access/attributes';
+import { AccessHandler } from './handlers/access.controller';
+import { BackOfficeHandler } from './handlers/back-office.controller';
+import { BackOfficeStudioService } from './back-office/studio.service';
+import { BackOfficeRuntimeService } from './back-office/runtime.service';
+import { LiveHub } from './live/hub';
+import { LiveAccess } from './live/access';
+import { LiveChannelHandler, LiveHandler } from './handlers/live.controller';
+
 const SERVICES = [
+  EventRouter,
   DatabaseService,
   DomainsService,
   EmailTemplatesService,
@@ -145,6 +163,13 @@ const SERVICES = [
   ExperienceMapService,
   ClientRuntimeService,
   ClientProvisioningService,
+  CustomPermissionsService,
+  AccessQueriesService,
+  MemberAttributesService,
+  BackOfficeStudioService,
+  BackOfficeRuntimeService,
+  LiveHub,
+  LiveAccess,
 ];
 
 const HANDLERS = [
@@ -198,6 +223,10 @@ const HANDLERS = [
   ClientDataHandler,
   ClientSessionsHandler,
   ClientAuthHandler,
+  AccessHandler,
+  BackOfficeHandler,
+  LiveHandler,
+  LiveChannelHandler,
 ];
 
 export const HANDLERS_MAP = {
@@ -233,6 +262,13 @@ export const HANDLERS_MAP = {
     FileStore,
     IdentityService,
     { provide: SSO_BROKER, useClass: WorkOsSsoBroker },
+    // Access control (docs/plans/15): notifications, change control and its kinds, roles from the IdP.
+    AccessNotifier,
+    AccessChanges,
+    AccessChangeKinds,
+    RoleSync,
+    AccessRecovery,
+    MemberAttributeSync,
     SsoService,
     DirectorySync,
     SystemRolesSync,

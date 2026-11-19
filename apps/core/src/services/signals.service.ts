@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq } from 'drizzle-orm';
-import { caseSignals, cases } from '../entities';
+import { caseEvents, caseEventWaits, caseKeys, caseSignals, cases, inboundEvents } from '../entities';
 import { CASE_REPOSITORY, ENGINE_CLIENT, EngineClient } from '../engine/engine.client';
 import type { CaseRepository } from '../engine/case-repository';
 import { isFinalStatus } from '../engine/case-repository';
@@ -52,9 +52,28 @@ export class SignalsService {
     const [kase] = await db.select({ id: cases.id }).from(cases).where(eq(cases.id, caseId)).limit(1);
     if (!kase) throw new NotFoundError('Case not found');
     const rows = await db.select().from(caseSignals).where(and(eq(caseSignals.caseId, caseId))).orderBy(desc(caseSignals.createdAt)).limit(50);
-    return rows.map((r) => ({
-      id: r.id, name: r.name, status: r.status, source: r.source, createdAt: r.createdAt, deliveredAt: r.deliveredAt, fields: Object.keys(r.payload ?? {}),
+    const signals = rows.map((r) => ({
+      id: r.id, kind: 'signal' as const, name: r.name, status: r.status, source: r.source, createdAt: r.createdAt, deliveredAt: r.deliveredAt, fields: Object.keys(r.payload ?? {}),
       ...(options.withHooks && r.status === 'waiting' ? { hookUrl: hookUrl(tenantId, caseId, r.name) } : {}),
     }));
+    // Events about the case (docs/plans/17): what its steps wait for, by business key, and events handed to it early.
+    const waits = await db.select({ wait: caseEventWaits, event: inboundEvents }).from(caseEventWaits)
+      .leftJoin(inboundEvents, and(eq(inboundEvents.id, caseEventWaits.eventId), eq(inboundEvents.tenantId, caseEventWaits.tenantId)))
+      .where(eq(caseEventWaits.caseId, caseId)).orderBy(desc(caseEventWaits.createdAt)).limit(50);
+    const pending = await db.select({ row: caseEvents, event: inboundEvents }).from(caseEvents)
+      .innerJoin(inboundEvents, and(eq(inboundEvents.id, caseEvents.eventId), eq(inboundEvents.tenantId, caseEvents.tenantId)))
+      .where(and(eq(caseEvents.caseId, caseId), eq(caseEvents.status, 'pending'))).limit(50);
+    const events = [
+      ...waits.map(({ wait, event }) => ({
+        id: wait.id, kind: 'event' as const, name: wait.eventType, status: wait.status, source: event?.source ?? null, createdAt: wait.createdAt, deliveredAt: wait.deliveredAt,
+        fields: Object.keys(event?.data ?? {}), keys: Object.fromEntries(Object.entries(wait.match ?? {}).map(([k, v]) => [k, v.value])),
+      })),
+      ...pending.map(({ row, event }) => ({
+        id: row.id, kind: 'event' as const, name: row.eventType, status: 'pending' as const, source: event.source, createdAt: row.createdAt, deliveredAt: null, fields: Object.keys(event.data ?? {}), keys: {},
+      })),
+    ];
+    const keys = await db.select({ name: caseKeys.name, value: caseKeys.value }).from(caseKeys).where(eq(caseKeys.caseId, caseId));
+    return [...signals, ...events].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .map((item) => ({ ...item, ...(item.kind === 'event' && !Object.keys((item as { keys?: object }).keys ?? {}).length ? { keys: Object.fromEntries(keys.map((k) => [k.name, k.value])) } : {}) }));
   }
 }

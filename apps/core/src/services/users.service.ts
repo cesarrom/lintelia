@@ -14,6 +14,8 @@ import { USER } from "../injector/tokens/user.token";
 import type { User as Principal } from "@repo/fintivio/schemas";
 import { AuditWriter } from "./audit.writer";
 import { NotFoundError } from "../http/errors";
+import { activeAssignment } from "../access/catalog";
+import { RoleSync, seenByIdp } from "../access/role-sync";
 
 type UserRow = typeof users.$inferSelect;
 
@@ -40,19 +42,30 @@ export class UsersService extends AbstractService {
 
   private async withRoles(rows: UserRow[]): Promise<User[]> {
     if (!rows.length) return [];
-    const assignments = await this.db.select({ userId: userRoles.userId, key: roles.key }).from(userRoles)
-      .innerJoin(roles, and(eq(roles.id, userRoles.roleId), eq(roles.tenantId, userRoles.tenantId)));
-    return rows.map((row) => ({
-      id: row.id,
-      email: row.email,
-      name: row.name,
-      picture: row.picture ?? undefined,
-      roles: assignments.filter((a) => a.userId === row.id).map((a) => a.key),
-      kind: row.kind,
-      status: row.status === 'active' ? 'active' as const : 'inactive' as const,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-    }));
+    const assignments = await this.db.select({ userId: userRoles.userId, key: roles.key, source: userRoles.source, groups: userRoles.groups, expiresAt: userRoles.expiresAt })
+      .from(userRoles).innerJoin(roles, and(eq(roles.id, userRoles.roleId), eq(roles.tenantId, userRoles.tenantId))).where(activeAssignment());
+    // Members of the SSO domains get their roles from the IdP when the institution says so (docs/plans/15 §5.4).
+    const sso = await RoleSync.settings(this.db);
+    return rows.map((row) => {
+      const mine = assignments.filter((a) => a.userId === row.id);
+      return {
+        id: row.id,
+        email: row.email,
+        name: row.name,
+        picture: row.picture ?? undefined,
+        roles: mine.map((a) => a.key),
+        /** How each role was given: by hand, by the IdP's groups, by default (just in time), by staff recovery; and until when. */
+        assignments: mine.map((a) => ({ role: a.key, source: a.source, groups: a.groups, expiresAt: a.expiresAt })),
+        managedByIdp: row.kind === 'member' && RoleSync.inSsoDomain(sso, row.email),
+        /** SSO domain, but the IdP has not told us about them yet: their roles follow their groups at their next sign-in. */
+        idpPending: row.kind === 'member' && RoleSync.inSsoDomain(sso, row.email) && !seenByIdp(row),
+        attributes: row.kind === 'member' ? row.attributes ?? {} : undefined,
+        kind: row.kind,
+        status: row.status === 'active' ? 'active' as const : 'inactive' as const,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+      };
+    });
   }
 
   async listUsers(): Promise<User[]> {
@@ -64,11 +77,16 @@ export class UsersService extends AbstractService {
     return { type: this.principal?.kind ?? 'system', id: this.principal?.userId, email: this.principal?.email };
   }
 
-  async inviteUser({ email, name, roleIds = [] }: InviteUserInput): Promise<boolean> {
-    // Escalation rule: you can only invite someone into roles whose permissions you hold.
-    await this.rolesService.assertCanAssign(roleIds);
-    await this.invitations.createInvitation(email, roleIds[0] ?? '', this.tenant.domain, name, roleIds);
-    return true;
+  /**
+   * Invite a member. With roles, it is an access change (escalation rules, notification, approval when the policy asks
+   * for it); without roles it is sent at once (roles come later, e.g. from the identity provider).
+   */
+  async inviteUser({ email, name, roleIds = [], effectiveAt }: InviteUserInput & { effectiveAt?: string }) {
+    if (!roleIds.length && !effectiveAt) {
+      await this.invitations.createInvitation(email, '', this.tenant.domain, name, []);
+      return { status: 'applied' as const, change: null, result: true };
+    }
+    return this.rolesService.inviteMember({ email, name, roleKeys: roleIds, effectiveAt });
   }
 
   private async setStatus(userId: string, status: 'active' | 'disabled', action: string) {
@@ -81,7 +99,11 @@ export class UsersService extends AbstractService {
 
   async deactivateUser(userId: string): Promise<boolean> {
     await this.rolesService.assertCanRemoveMember(userId);
-    return this.setStatus(userId, 'disabled', 'member.deactivated');
+    const [row] = await this.db.select({ email: users.email }).from(users).where(eq(users.id, userId)).limit(1);
+    const done = await this.setStatus(userId, 'disabled', 'member.deactivated');
+    // A revocation: at once, never waiting for an approval; administrators hear about it when it was one of them.
+    if (row) await this.rolesService.memberDeactivated(userId, row.email);
+    return done;
   }
 
   async activateUser(userId: string): Promise<boolean> {
@@ -98,9 +120,8 @@ export class UsersService extends AbstractService {
     return true;
   }
 
-  async updateUserRoles(userId: string, roleIds: string[]): Promise<boolean> {
-    await this.rolesService.setUserRoles(userId, roleIds);
-    return true;
+  async updateUserRoles(userId: string, roleIds: string[], options: { expires?: Record<string, string | null>; effectiveAt?: string } = {}) {
+    return this.rolesService.setUserRoles(userId, roleIds, options);
   }
 
   async getUser(userId: string): Promise<User | null> {

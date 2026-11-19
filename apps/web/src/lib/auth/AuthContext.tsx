@@ -1,4 +1,5 @@
 import { createContext, useContext, type ReactNode } from 'react';
+import { useApiQuery } from '../services/api';
 import type { Tenant, User } from '@repo/fintivio/schemas';
 import { useAuthActions, useSession, useUser } from './session';
 import { useTenant } from '../providers/TenantProvider';
@@ -6,6 +7,8 @@ import { useTenant } from '../providers/TenantProvider';
 /**
  * Who is signed in and what they may do. Permissions come from the API (effective permissions of the member's roles,
  * or `platform.*` permissions for staff; clients have none). The UI only hides what the API would refuse anyway.
+ * The API resolves them on every request, so the UI follows `GET /auth/me` (every minute, on focus, and after access
+ * changes invalidate `['auth', 'me']`) instead of keeping what was true at sign-in.
  */
 export interface AuthContextType {
   isAuthenticated: boolean;
@@ -29,8 +32,10 @@ function AuthProvider({ children }: { children: ReactNode }) {
   const { logout } = useAuthActions();
   const { tenant, isLoading: isTenantLoading } = useTenant();
 
-  const permissions = user?.permissions ?? [];
-  const roles = user?.userTenants?.flatMap((t) => t.roleNames ?? []) ?? [];
+  const { data: me } = useApiQuery<{ user: User | null; permissions: string[] }>(['auth', 'me'], isAuthenticated && user ? '/auth/me' : null, { refetchInterval: 60_000, refetchOnWindowFocus: true });
+  const current = me?.user && me.user.userId === user?.userId ? me.user : user;
+  const permissions = (me?.user && me.user.userId === user?.userId ? me.permissions : user?.permissions) ?? [];
+  const roles = current?.userTenants?.flatMap((t) => t.roleNames ?? []) ?? [];
 
   const hasPermission = (required: string | string[]) => {
     const list = Array.isArray(required) ? required : [required];

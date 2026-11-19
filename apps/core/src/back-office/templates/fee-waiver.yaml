@@ -1,0 +1,81 @@
+schemaVersion: "1"
+name: Fee waiver
+description: A member refunds a fee to a client's account from the client page. Within their authority limit it is refunded at once; above it a senior reviewer approves first. The client sees the refund in their app.
+caseTitle: "Fee waiver: {{applicant}}"
+clientVisibility: requests_only
+inputs: []
+access:
+  start: { permissions: ["custom:fees.waive"] }
+  cases: { permissions: ["custom:fees.waive"] }
+steps:
+  - { id: start, name: Start, type: start, events: [{ name: finished, outputs: [], next: [accounts] }] }
+  - id: accounts
+    name: The client's accounts
+    type: client.data
+    config: { collection: accounts, filter: 'type in ["current", "savings"] and status = "active"' }
+    events: [{ name: done, outputs: [], next: [details] }]
+  - id: details
+    name: What to waive
+    type: team.screen
+    config:
+      title: "Waive a fee for {{client.name}}"
+      description: "Refunded to the client's account at once within your authority limit; above it, a senior reviewer approves first."
+      fields:
+        - { key: account, label: Refund to, type: select, required: true, optionsFrom: accounts, optionFilter: 'type in ["current", "savings"] and status = "active"', optionLabel: "{{item.name}} · {{item.number}}", optionValue: "{{item.key}}" }
+        - { key: feeType, label: Fee, type: choice, required: true, options: ["Overdraft fee", "Card replacement", "Late payment", "Other"] }
+        - { key: amount, label: Amount, type: money, required: true, min: 0.01, max: 500 }
+        - { key: reason, label: Why, type: textarea, required: true, placeholder: "e.g. first late payment in 6 years, customer was abroad" }
+      buttons: [{ key: continue, label: Waive the fee, style: primary }, { key: cancel, label: Cancel, style: secondary, skipValidation: true }]
+    events: [{ name: continue, outputs: [], next: [limit] }, { name: cancel, outputs: [], next: [cancelled] }, { name: expired, outputs: [], next: [cancelled] }]
+  - id: limit
+    name: Within the member's authority?
+    type: conditional
+    config: { expression: "$exists(steps.details.by.attributes.authorityLimit) and $number(input.amount) <= $number(steps.details.by.attributes.authorityLimit)" }
+    events: [{ name: "true", outputs: [], next: [refund] }, { name: "false", outputs: [], next: [approval] }]
+  - id: approval
+    name: Approve the waiver
+    type: review
+    config:
+      title: "Approve a fee waiver of {{input.amount}} for {{case.applicant.name}}"
+      description: "{{input.feeType}} · asked by {{steps.details.by.email}} (authority limit {{steps.details.by.attributes.authorityLimit}}) · {{input.reason}}"
+      assignTo: { role: senior_reviewer }
+      sla: P1D
+      requireCommentOnReject: true
+    events: [{ name: review_approved, outputs: [], next: [refund] }, { name: review_rejected, outputs: [], next: [declined] }]
+  - id: refund
+    name: Refund the account
+    type: client.record
+    config: { collection: accounts, key: "{{input.account}}", mode: merge, data: { balance: "= $round($number(steps.accounts.records[key = $$.input.account].balance) + $number(input.amount), 2)" } }
+    events: [{ name: done, outputs: [], next: [transaction] }]
+  - id: transaction
+    name: Record the refund
+    type: client.record
+    config:
+      collection: transactions
+      key: "= 'tx-' & case.reference & '-refund'"
+      mode: upsert
+      data: { account: "{{input.account}}", date: "= $now()", description: "= 'Fee refund · ' & input.feeType", amount: "= $round($number(input.amount), 2)", currency: GBP, category: Refunds, status: posted }
+    events: [{ name: done, outputs: [], next: [notify] }]
+  - id: notify
+    name: Tell the client
+    type: client.notify
+    config: { title: "We refunded a fee", body: "{{input.feeType}}: £{{input.amount | money}} is back in your account.", tone: success, page: accounts }
+    events: [{ name: done, outputs: [], next: [waived] }]
+  - id: waived
+    name: Waived
+    type: case.decision
+    config: { status: completed, outcome: fee_waived, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]
+  - id: declined
+    name: Declined
+    type: case.decision
+    config: { status: rejected, outcome: waiver_declined, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]
+  - id: cancelled
+    name: Cancelled
+    type: case.decision
+    config: { status: withdrawn, outcome: cancelled, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]

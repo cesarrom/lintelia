@@ -1,29 +1,22 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
-import { and, arrayContains, eq } from 'drizzle-orm';
 import type { Tenant } from '@repo/fintivio/schemas';
-import { workflowVersions } from '../entities';
 import { TENANT } from '../injector/tokens/tenant.token';
-import { CASE_REPOSITORY } from '../engine/engine.client';
-import type { CaseRepository } from '../engine/case-repository';
-import { CasesService } from './cases.service';
 import type { AuditActor } from './audit.writer';
+import { EventRouter } from './event-router';
 
-/** Platform events (e.g. `client.flagged`) start every published workflow that subscribes to them (`startOn`). */
+/**
+ * Platform events (e.g. `client.flagged`, `client.registered`): routed like every other event (docs/plans/17 §3.4) —
+ * to the cases waiting for them, then starting the workflows that subscribe to them (`startOn`).
+ */
 @Injectable({ scope: Scope.REQUEST })
 export class EventsService {
   constructor(
-    @Inject(CASE_REPOSITORY) private readonly repository: CaseRepository,
-    @Inject(CasesService) private readonly cases: CasesService,
+    @Inject(EventRouter) private readonly router: EventRouter,
     @Inject(TENANT) private readonly tenant: Tenant,
   ) { }
 
   async emit(event: string, payload: Record<string, unknown>, actor: AuditActor, applicant?: { id?: string | null; email?: string | null; name?: string | null }) {
-    const subscribers = await this.repository.db(this.tenant.id).select({ workflowId: workflowVersions.workflowId }).from(workflowVersions)
-      .where(and(eq(workflowVersions.status, 'active'), arrayContains(workflowVersions.startOn, [event])));
-    const started = [];
-    for (const { workflowId } of subscribers) {
-      started.push(await this.cases.start({ workflowId, data: payload, applicant, source: `event:${event}`, initiatedBy: actor }));
-    }
-    return started;
+    const routed = await this.router.route(this.tenant.id, { type: event, data: payload, source: 'platform', applicant: applicant ?? null, actor });
+    return routed.started;
   }
 }

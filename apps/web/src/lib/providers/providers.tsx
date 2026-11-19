@@ -7,6 +7,7 @@ import { ThemeProvider } from './ThemeProvider';
 import { TenantProvider } from './TenantProvider';
 import { AuthProvider as AP } from '../auth/AuthContext';
 import { SessionProvider } from '../auth/session';
+import { LiveProvider } from '../live';
 import { Toaster } from '@/components/ui/sonner';
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -27,7 +28,10 @@ export function Providers({ children }: { children: ReactNode }) {
           <ThemeProvider>
             <TenantProvider>
               <AP>
-                {children}
+                {/* Live updates (docs/plans/17): one stream per tab, following the session. */}
+                <LiveProvider>
+                  {children}
+                </LiveProvider>
               </AP>
               <Toaster richColors closeButton />
             </TenantProvider>

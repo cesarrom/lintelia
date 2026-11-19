@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Search } from 'lucide-react';
-import { CLIENT_WIDGETS, type WidgetCategory } from '@repo/fintivio/schemas';
+import { CLIENT_WIDGETS, type ClientWidgetDefinition, type WidgetCategory } from '@repo/fintivio/schemas';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,11 +17,11 @@ const CATEGORIES: Array<{ key: WidgetCategory; label: string }> = [
 ];
 
 /** The widget catalogue: pick one to add it after the selected widget (or into the selected section). */
-export function WidgetPalette({ onPick, disabled }: { onPick: (type: string) => void; disabled?: boolean }) {
+export function WidgetPalette({ onPick, disabled, widgets = CLIENT_WIDGETS }: { onPick: (type: string) => void; disabled?: boolean; widgets?: ClientWidgetDefinition[] }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const q = query.trim().toLowerCase();
-  const matches = CLIENT_WIDGETS.filter((w) => !q || `${w.title} ${w.description} ${w.type}`.toLowerCase().includes(q));
+  const matches = widgets.filter((w) => !q || `${w.title} ${w.description} ${w.type}`.toLowerCase().includes(q));
   return (
     <Popover open={open} onOpenChange={(o) => { setOpen(o); if (!o) setQuery(''); }}>
       <PopoverTrigger asChild>

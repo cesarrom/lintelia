@@ -6,7 +6,8 @@ import type { HonoRequest } from "hono/request";
 import type { Context } from "hono";
 import assert from 'assert';
 import { type AppRequest, REQUEST_PROXY } from "../injector/tokens/request-proxy.token";
-import { json, jsonError } from "../http/respond";
+import { json, jsonError, respondToChange } from "../http/respond";
+import { BadRequestError } from "../http/errors";
 
 @Controller({
   path: '/users',
@@ -59,37 +60,23 @@ export class UserHandler {
   @Require('members:invite')
   @Post()
   async inviteUser(@Res() ctx: Context): Promise<void> {
-    try {
-      const data: InviteUserInput = await this.requestProxy.json();
+    await respondToChange(ctx, async () => {
+      const data: InviteUserInput & { effectiveAt?: string } = await this.requestProxy.json();
       assert(data, 'data is required in the request body');
       assert(data.email, 'email is required');
-
-      const success = await this.usersService.inviteUser(data);
-      json(ctx, { success });
-    } catch (error: unknown) {
-      // Validation errors (e.g. unknown role) carry a 4xx status; anything else is a server error.
-      jsonError(ctx, error, 'Failed to invite user');
-    }
-    return;
+      return this.usersService.inviteUser(data);
+    }, () => ({ success: true }), 'Failed to invite user');
   }
 
+  /** Replace the member's roles (`expires`: role → end date for time-bound roles; `effectiveAt`: from a date). */
   @Require('members:update')
   @Put('/:userId')
   async updateUserRoles(@Param('userId') userId: string, @Res() ctx: Context): Promise<void> {
-    assert(userId, 'userId parameter is required');
-    try {
-      const { roleIds }: { roleIds: string[] } = await this.requestProxy.json();
-      assert(roleIds && Array.isArray(roleIds), 'roleIds array is required in the request body');
-
-      const success = await this.usersService.updateUserRoles(userId, roleIds);
-      ctx.res = new Response(JSON.stringify({ success }), {
-        headers: { 'Content-Type': 'application/json' },
-        status: 200
-      });
-    } catch (error: unknown) {
-      jsonError(ctx, error, 'Failed to update user roles');
-    }
-    return;
+    await respondToChange(ctx, async () => {
+      const { roleIds, expires, effectiveAt }: { roleIds: string[]; expires?: Record<string, string | null>; effectiveAt?: string } = await this.requestProxy.json();
+      if (!Array.isArray(roleIds)) throw new BadRequestError('roleIds array is required in the request body');
+      return this.usersService.updateUserRoles(userId, roleIds, { expires, effectiveAt });
+    }, () => ({ success: true }), 'Failed to update user roles');
   }
 
   @Require('members:deactivate')

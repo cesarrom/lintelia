@@ -1,7 +1,13 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
 import { and, desc, eq } from 'drizzle-orm';
 import YAML from 'yaml';
-import type { Tenant, User } from '@repo/fintivio/schemas';
+import { normalizeWorkflowAccess, sameAccess, type Tenant, type User } from '@repo/fintivio/schemas';
+import { AccessChanges, actorOf } from '../access/changes';
+import { allows, DEFAULT_START_RULE, governingWorkflowAccess, subjectOf, workflowAccessErrors, workflowAccessOf } from '../access/rules';
+import { publishWorkflowVersion } from './workflow-publish';
+
+export { publishWorkflowVersion };
+import type { TenantDatabase } from '../clients/database.client';
 import { connectorInstallations, roles, sysWorkflows, workflowVersions } from '../entities';
 import { parseConnectorComponentType } from '@repo/fintivio/schemas';
 import { TENANT } from '../injector/tokens/tenant.token';
@@ -14,7 +20,7 @@ import { parseDefinition } from '../engine/definition';
 import { validateDefinition } from '../engine/components/validation';
 import { templateYaml, WORKFLOW_TEMPLATES } from '../engine/templates';
 import { WorkflowsService } from './workflows.service';
-import { AuditWriter } from './audit.writer';
+import { AuditWriter, type AuditActor } from './audit.writer';
 import { NotFoundError, UnprocessableError } from '../http/errors';
 
 /**
@@ -29,6 +35,7 @@ export class WorkflowLifecycleService {
     @Inject(TENANT) private readonly tenant: Tenant,
     @Inject(USER) private readonly user: User,
     @Inject(AuditWriter) private readonly audit: AuditWriter,
+    @Inject(AccessChanges) private readonly changes: AccessChanges,
   ) { }
 
   private get db() {
@@ -71,6 +78,7 @@ export class WorkflowLifecycleService {
       errors = validateDefinition(definition, { roles: roleKeys });
       errors.push(...(await this.connectionErrors(definition.steps)));
       errors.push(...(await this.functionErrors(definition.steps, workflowId)));
+      errors.push(...(await workflowAccessErrors(this.db, workflowAccessOf(workflow.yaml))));
     } catch (error) {
       errors = [`Invalid YAML: ${(error as Error).message}`];
     }
@@ -137,18 +145,20 @@ export class WorkflowLifecycleService {
     return { id: workflowId, status: 'draft' as const, retiredVersion: retired[0]?.version ?? null };
   }
 
-  async publish(workflowId: string) {
+  /**
+   * Publish the draft. When it changes who may start the workflow or see its cases (`access`), it is an access change
+   * (docs/plans/15 §5.3, §14): an administrator (`roles:manage`) decides — at once when the publisher is one and the
+   * policy asks for no second approver, otherwise it waits.
+   */
+  async publish(workflowId: string, options: { effectiveAt?: string } = {}) {
     const { workflow, errors } = await this.validate(workflowId);
     if (errors.length) throw new UnprocessableError('The workflow cannot be published', errors);
-    const version = await this.nextVersion(workflowId);
-    const startOn = parseDefinition(workflow.yaml).startOn;
-    await this.db.transaction(async (tx) => {
-      await tx.update(workflowVersions).set({ status: 'retired' }).where(and(eq(workflowVersions.workflowId, workflowId), eq(workflowVersions.status, 'active')));
-      await tx.insert(workflowVersions).values({ workflowId, version, yaml: workflow.yaml, startOn, publishedBy: this.user.email });
-      await tx.update(sysWorkflows).set({ status: 'active', version }).where(eq(sysWorkflows.id, workflowId));
-    });
-    await this.audit.record(this.tenant.id, this.actor, 'workflow.published', { type: 'workflow', id: workflowId, name: workflow.name }, { version, startOn });
-    return { id: workflowId, version, status: 'active' as const, startOn };
+    const before = (await governingWorkflowAccess(this.db)).get(workflowId) ?? null;
+    if (sameAccess(before, workflowAccessOf(workflow.yaml)) && !options.effectiveAt) {
+      const result = await publishWorkflowVersion(this.db, this.audit, this.tenant.id, this.actor, workflowId, workflow.yaml);
+      return { status: 'applied' as const, change: null, result };
+    }
+    return this.changes.submit<Awaited<ReturnType<typeof publishWorkflowVersion>>>(this.tenant, actorOf(this.user), 'workflow.publish', { workflowId, yaml: workflow.yaml }, { effectiveAt: options.effectiveAt });
   }
 
   /** Published versions, newest last, plus the draft when it differs from the active version. */
@@ -173,8 +183,14 @@ export class WorkflowLifecycleService {
     const rows = await this.db.select({ version: workflowVersions, name: sysWorkflows.name }).from(workflowVersions)
       .innerJoin(sysWorkflows, eq(sysWorkflows.id, workflowVersions.workflowId))
       .where(eq(workflowVersions.status, 'active'));
+    // Only what this member may start (the workflow's start rule, or cases:create when it has none).
+    const subject = subjectOf(this.user);
+    const allowed = new Set<string>();
+    for (const { version } of rows) {
+      if (await allows(normalizeWorkflowAccess(version.access)?.start ?? DEFAULT_START_RULE, subject)) allowed.add(version.workflowId);
+    }
     return rows
-      .filter(({ version }) => !version.startOn.length)
+      .filter(({ version }) => !version.startOn.length && allowed.has(version.workflowId))
       .map(({ version, name }) => ({ id: version.workflowId, name, version: version.version, inputs: parseDefinition(version.yaml).inputs }))
       .sort((a, b) => a.name.localeCompare(b.name));
   }

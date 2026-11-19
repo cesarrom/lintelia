@@ -21,8 +21,29 @@ the status column below says what is left.
 | 12 | [12-dealer-finance.md](12-dealer-finance.md) | dealer finance (indirect auto lending) end to end, and what the platform needed for it: stages, functions, signals, a generic HTTP connector, AI, LoanPro, workflows that create clients | v1 shipped ([0008](../changes/0008-dealer-finance.md)) |
 | 13 | [13-experience-map.md](13-experience-map.md) | a Figma-like map of everything built: layout, pages, journeys and their screens, workflows, functions, forms, events — navigable, each frame opening its editor | v1 shipped as an experiment ([0009](../changes/0009-experience-map.md)) |
 | 14 | [14-ui-building-blocks.md](14-ui-building-blocks.md) | cheap, high-leverage building blocks for designers: how journeys open (dialog, sheet, full screen, FAB, deep links), scanner / signature / OTP / slider / calculated and conditional fields, screens that continue by themselves, branding (presets, accent, fonts, shapes, logo colours, readability), region | v1 shipped ([0011](../changes/0011-ui-building-blocks.md)); catalogue of what is left |
+| 15 | [15-access-and-roles.md](15-access-and-roles.md) | who sees what: custom permissions the institution names, system roles extended with them, access rules on workflows (start, cases) and on everything of 16, roles page (matrix, members, usage, "who can"), IdP groups → roles, member attributes and conditions, time-bound roles, access reviews | implemented ([0012](../changes/0012-access-control.md)); left: access-review campaigns |
+| 16 | [16-back-office-app.md](16-back-office-app.md) | the institution's own back office: custom pages, widgets, menu items, homes per role, actions that start workflows with staff screens (`team.screen`), slots in the built-in client / case / dashboard pages; served pruned per member, re-checked on use, access report at publish | first iteration shipped ([0013](../changes/0013-back-office.md)); left in §12 |
+| 17 | [17-live-data-and-events.md](17-live-data-and-events.md) | exploratory: outside events reaching running workflows (correlation keys, `event.wait`, start-or-deliver, `poll`) and screens that update by themselves (SSE topics, notify-then-fetch, workflow channels, addresses handed out in advance, streams such as market data) | first iteration shipped ([0014](../changes/0014-live-data-and-events.md)); left in §9 |
 
-## Proposed order
+## Batch 15 → 16 → 17 (done; what is left is in each plan's last section)
+
+```
+15.1  custom permissions, system-role extensions, gated workflows (access.start / access.cases)   ── foundation of 16
+15.2  roles page: matrix, role detail (members, what it opens), "who can", member access
+16.1  back-office app: definition, versions, pruned serving, sidebar, pages, member/cases/tasks sources
+16.2  actions and team.screen (staff wizards and form tasks)
+15.3  IdP groups → roles (SSO + SCIM; WorkOS fake emits groups)                                   ── can run in parallel with 16
+16.3  context pages and slots (client, case, dashboard), records sources, team widgets
+16.4  studio back-office mode: access panel, preview as, access report
+15.4  member attributes and conditions · 15.5 time-bound roles, access reviews
+17.0  spikes S1–S5 (SSE on our stack, live balance, correlation, progress channel, load)          ── can start any time
+17.1+ as decided after the spikes
+```
+
+Each step ships with its e2e flows (ids proposed in each document) and a change log in `docs/changes/`. The decisions
+each document needs are in its last section.
+
+## Proposed order of plans 01–09 (after 0003; done in 0004)
 
 ```
 M0  quick fixes            editor renders every step (01 §Quick fix) · local mailbox UI (08) · `bun run stack` (08)

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePollInterval } from '@/lib/live';
 import { useNavigate } from 'react-router';
 import { Columns3, FolderKanban, Globe, Hand, List, Radio, Search, UserRoundPlus } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -29,7 +30,7 @@ export default function CasesPage() {
   if (search) params.set('search', search);
   if (status !== 'all') params.set('status', status);
   if (pipeline) params.set('workflowId', pipeline.id);
-  const { data: cases = [], isLoading } = useApiQuery<CaseSummary[]>(['cases', 'list', search, status, pipeline?.id ?? ''], `/cases?${params}`, { refetchInterval: 5000 });
+  const { data: cases = [], isLoading } = useApiQuery<CaseSummary[]>(['cases', 'list', search, status, pipeline?.id ?? ''], `/cases?${params}`, { refetchInterval: usePollInterval(5000) });
   const filtered = !!search || status !== 'all';
 
   return (

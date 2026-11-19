@@ -50,6 +50,12 @@ export const env = {
 
   /** How often directory sync polls the broker's events (seconds; 0 = off). */
   DIRECTORY_SYNC_INTERVAL_SECONDS: e.get('DIRECTORY_SYNC_INTERVAL_SECONDS').default(process.env.NODE_ENV === 'production' ? '60' : '3').asInt(),
+  /** How often scheduled access changes are applied and stale approvals expire (seconds; 0 = off). */
+  /** Live updates (docs/plans/17): keep-alive comment on open streams, and how often their session is checked again. */
+  LIVE_HEARTBEAT_MS: e.get('LIVE_HEARTBEAT_MS').default(process.env.NODE_ENV === 'production' ? '20000' : '5000').asInt(),
+  LIVE_REVALIDATE_MS: e.get('LIVE_REVALIDATE_MS').default(process.env.NODE_ENV === 'production' ? '30000' : '3000').asInt(),
+  LIVE_MAX_STREAMS_PER_USER: e.get('LIVE_MAX_STREAMS_PER_USER').default('20').asInt(),
+  ACCESS_CHANGES_INTERVAL_SECONDS: e.get('ACCESS_CHANGES_INTERVAL_SECONDS').default(process.env.NODE_ENV === 'production' ? '30' : '2').asInt(),
   /** Staff accounts that keep password + TOTP when staff SSO is enforced (break-glass; alert on use). */
   STAFF_BREAK_GLASS_EMAILS: (e.get('STAFF_BREAK_GLASS_EMAILS').default('staff@fintivio.local').asArray(',') ?? []).map((x) => x.trim().toLowerCase()),
 

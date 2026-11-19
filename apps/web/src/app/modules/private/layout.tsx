@@ -6,6 +6,8 @@ import { ArrowLeft, Map as MapIcon } from "lucide-react";
 import { RequireSession } from "@/components/auth/RequireSession";
 import { PageLoader } from "@/components/app/loading";
 import { useSession } from "@/lib/auth/session";
+import { BackOfficeProvider } from "@/back-office/runtime";
+import { LiveTeam } from "@/components/live/LiveTeam";
 
 /**
  * Back-office shell for institution members and platform staff (clients use the portal instead): the navigation on
@@ -21,6 +23,9 @@ export function AppLayout() {
   }
   return (
     <RequireSession>
+      {/* The institution's own back office (docs/plans/16): its menu items, pages, additions and actions. */}
+      <BackOfficeProvider>
+      <LiveTeam />
       <div className="flex h-screen w-screen overflow-hidden bg-canvas">
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col py-2 pr-2">
@@ -35,6 +40,7 @@ export function AppLayout() {
           </main>
         </div>
       </div>
+      </BackOfficeProvider>
     </RequireSession>
   );
 }

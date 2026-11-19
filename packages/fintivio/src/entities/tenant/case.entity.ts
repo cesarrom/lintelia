@@ -17,6 +17,8 @@ export const workflowVersions = pgTable('workflow_versions', {
   status: varchar('status', { length: 32 }).$type<'active' | 'retired'>().default('active').notNull(),
   /** Platform events that start this workflow (e.g. `client.flagged`). */
   startOn: text('start_on').array().default(sql`'{}'::text[]`).notNull(),
+  /** Who may start it by hand / see its cases (docs/plans/15 §5.3), from the YAML's `access`. */
+  access: jsonb('access').$type<{ start?: { permissions?: string[]; roles?: string[]; when?: string }; cases?: { permissions?: string[]; roles?: string[]; when?: string } } | null>(),
   publishedBy: varchar('published_by', { length: 320 }).notNull(),
   publishedAt: timestamp('published_at', { mode: 'date', withTimezone: true }).defaultNow().notNull(),
 }, (table) => [

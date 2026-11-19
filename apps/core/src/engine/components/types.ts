@@ -38,6 +38,8 @@ export interface EngineServices {
   invokeConnector?(input: ConnectorInvocation): Promise<ConnectorInvocationResult>;
   /** A child case ended: resolve the promise its parent step waits on. */
   notifyParent?(tenantId: string, childCaseId: string, signal: TaskSignal): Promise<void>;
+  /** Send a workflow's message to one webhook subscription of the institution (`live.publish` to a webhook). */
+  sendCaseMessage?(input: { tenantId: string; caseId: string; reference: string; subscriptionId: string; step: string; message: Record<string, unknown> }): Promise<{ delivered: boolean; eventId?: string; error?: string }>;
   /** Start a child case on a published workflow (workflow.call / foreach). */
   startChildCase?(input: { tenantId: string; parentCaseId: string; parentStepId: string; workflowId: string; data: Record<string, unknown>; applicantId?: string | null; partyId?: string | null; callbackPromise: string | null }): Promise<{ caseId: string; reference: string }>;
 }

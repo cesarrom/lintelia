@@ -62,6 +62,7 @@ export class RestateHandler implements OnModuleInit {
         invokeConnector: (input) => invoker.invoke(input),
         startChildCase: (input) => childCases.start(input),
         notifyParent: (tenantId, childCaseId, signal) => childCases.notifyParent(tenantId, childCaseId, signal),
+        sendCaseMessage: async (input) => get<WebhookStore>(WebhookStore).sendCaseMessage({ ...input, tenantDomain: (await directory.findById(input.tenantId))?.domain ?? input.tenantId }),
       },
     }));
 

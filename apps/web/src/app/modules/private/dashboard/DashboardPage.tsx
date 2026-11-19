@@ -1,4 +1,7 @@
 import { Link, useNavigate } from 'react-router';
+import { usePollInterval } from '@/lib/live';
+import { DashboardSlot, useHomeRedirect } from '@/back-office/pages';
+import { PendingScreens } from '@/back-office/runtime';
 import { ArrowRight, ArrowUpRight, Clock3, FolderKanban, Hourglass, Inbox, ListChecks, Sparkles, UsersRound } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -73,13 +76,15 @@ function TaskItem({ task, onOpen }: { task: TaskSummary; onOpen: () => void }) {
 
 /** Home of the back office: what needs attention, for the member's roles. */
 export default function DashboardPage() {
+  useHomeRedirect();
   const navigate = useNavigate();
   const { user, tenant, hasPermission } = useAuth();
   const canWork = hasPermission(['tasks:work', 'tasks:assign']);
   const canCases = hasPermission('cases:read');
-  const { data: mine = [], isLoading: loadingMine } = useApiQuery<TaskSummary[]>(['tasks', 'mine'], '/tasks?view=mine', { refetchInterval: 10_000, enabled: canWork });
-  const { data: queue = [] } = useApiQuery<TaskSummary[]>(['tasks', 'queue'], '/tasks?view=queue', { refetchInterval: 10_000, enabled: canWork });
-  const { data: cases = [], isLoading: loadingCases } = useApiQuery<CaseSummary[]>(['cases', 'list', '', 'all'], '/cases?', { refetchInterval: 10_000, enabled: canCases });
+  const poll = usePollInterval(10_000);
+  const { data: mine = [], isLoading: loadingMine } = useApiQuery<TaskSummary[]>(['tasks', 'mine'], '/tasks?view=mine', { refetchInterval: poll, enabled: canWork });
+  const { data: queue = [] } = useApiQuery<TaskSummary[]>(['tasks', 'queue'], '/tasks?view=queue', { refetchInterval: poll, enabled: canWork });
+  const { data: cases = [], isLoading: loadingCases } = useApiQuery<CaseSummary[]>(['cases', 'list', '', 'all'], '/cases?', { refetchInterval: poll, enabled: canCases });
 
   const name = (user as { name?: string } | null)?.name?.split(' ')[0] || user?.email?.split('@')[0] || '';
   const weekAgo = Date.now() - 7 * 86_400_000;
@@ -120,6 +125,10 @@ export default function DashboardPage() {
         {canCases && !canWork && <StatCard label="Decided this week" value={decided.length} icon={Sparkles} tone="success" hint={decided.length ? `${Math.round((approved / decided.length) * 100)}% approved` : 'No decisions yet'} />}
         {!canCases && !canWork && <StatCard label="Your role" value={humanize(user?.userTenants?.[0]?.roleNames?.[0] ?? 'member')} icon={UsersRound} tone="brand" />}
       </div>
+
+      {/* Screens waiting for this member, and what the institution added to the dashboard (its back office, docs/plans/16). */}
+      <PendingScreens />
+      <DashboardSlot />
 
       <div className="grid items-start gap-6 lg:grid-cols-5">
         {canWork && (

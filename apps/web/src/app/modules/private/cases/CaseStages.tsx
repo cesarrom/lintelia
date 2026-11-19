@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePollInterval } from '@/lib/live';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Check, Copy, Loader2, Radio, Send, X } from 'lucide-react';
@@ -54,21 +55,22 @@ export function StageBar({ stages, current, final }: { stages: Stage[]; current:
  */
 export function SignalsCard({ caseId, active }: { caseId: string; active: boolean }) {
   const { hasPermission } = useAuth();
-  const { data: signals = [] } = useApiQuery<CaseSignal[]>(['cases', 'signals', caseId], `/cases/${caseId}/signals`, { refetchInterval: active ? 4000 : undefined });
+  const poll = usePollInterval(4000);
+  const { data: signals = [] } = useApiQuery<CaseSignal[]>(['cases', 'signals', caseId], `/cases/${caseId}/signals`, { refetchInterval: active ? poll : undefined });
   const [deliver, setDeliver] = useState<string | null>(null);
   if (!signals.length) return null;
   return (
     <Card data-testid="case-signals">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><Radio className="h-4 w-4 text-primary" />Signals</CardTitle>
-        <CardDescription>Call-backs this case waits for from other systems, and what arrived</CardDescription>
+        <CardTitle className="flex items-center gap-2"><Radio className="h-4 w-4 text-primary" />Signals and events</CardTitle>
+        <CardDescription>What this case waits for from other systems — call-backs by name, events about its business keys — and what arrived</CardDescription>
       </CardHeader>
       <CardContent>
         <ul className="divide-y divide-border/60 text-sm">
           {signals.map((s) => (
             <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0" data-testid="case-signal" data-name={s.name} data-status={s.status}>
               <div className="min-w-0">
-                <p className="font-mono text-[13px] font-medium">{s.name}</p>
+                <p className="font-mono text-[13px] font-medium">{s.name}{s.kind === 'event' && s.keys && Object.keys(s.keys).length > 0 && <span className="ml-2 font-sans text-xs font-normal text-muted-foreground" data-testid="event-keys">about {Object.entries(s.keys).map(([k, v]) => `${k} ${v}`).join(', ')}</span>}</p>
                 <p className="text-xs text-muted-foreground" title={formatDate(s.deliveredAt ?? s.createdAt)}>
                   {s.status === 'waiting' ? `waiting since ${formatRelative(s.createdAt)}` : s.status === 'pending' ? `arrived ${formatRelative(s.createdAt)}, before the case asked for it` : s.status === 'delivered' ? `received ${formatRelative(s.deliveredAt ?? s.createdAt)}${s.source ? ` from ${humanize(s.source.split(':')[0])}` : ''}` : 'no longer expected'}
                   {s.fields.length > 0 && <> · {s.fields.join(', ')}</>}
@@ -82,7 +84,7 @@ export function SignalsCard({ caseId, active }: { caseId: string; active: boolea
               </div>
               <div className="flex items-center gap-2">
                 <StatusBadge status={s.status === 'delivered' ? 'approved' : s.status === 'cancelled' ? 'closed' : 'open'} label={humanize(s.status)} />
-                {s.status === 'waiting' && active && hasPermission('cases:signal') && (
+                {s.status === 'waiting' && s.kind !== 'event' && active && hasPermission('cases:signal') && (
                   <Button size="sm" variant="outline" onClick={() => setDeliver(s.name)} data-testid="record-signal"><Send className="h-3.5 w-3.5" />Record it</Button>
                 )}
               </div>

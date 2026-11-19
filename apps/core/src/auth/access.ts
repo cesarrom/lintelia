@@ -3,7 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { ANONYMOUS, type AuthContext } from './auth-context';
 import { AuditWriter } from '../services/audit.writer';
 
-export type AccessLevel = 'public' | 'staff' | 'member' | 'client';
+export type AccessLevel = 'public' | 'staff' | 'member' | 'client' | 'api_client';
 
 const ACCESS_KEY = 'fintivio:access';
 const MEMBER_PERMISSIONS_KEY = 'fintivio:member-permissions';
@@ -15,7 +15,8 @@ const ANY_PERMISSION_KEY = 'fintivio:any-member-permission';
  *
  *  - `@Public()`                      anyone
  *  - `@Access('client', ...)`         principals of these kinds, no permission needed (clients act on their own data;
- *                                     the service checks ownership)
+ *                                     the service checks ownership; `member`/`api_client` routes whose rule lives on
+ *                                     the resource, e.g. a workflow's start rule, check it in the service)
  *  - `@Require('cases:read', ...)`    institution members holding every listed permission
  *  - `@RequireAny('clients:read', 'clients:records')`  institution members (or API clients) holding one of them
  *  - `@RequirePlatform('platform.tenants:create', ...)`  platform staff holding every listed permission

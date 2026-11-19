@@ -89,7 +89,9 @@ Assumptions about vendor APIs are listed in each connector's `docs/ASSUMPTIONS.m
 OAuth 2.0 client credentials (`POST /oauth/token`, `client_secret_basic` or `_post`): secrets shown once and stored as
 SHA-256 hashes, rotation with a 24-hour overlap, immediate revocation (checked on every request), permissions a subset
 of the creator's. Tokens are 15-minute JWTs with principal kind `api_client`; routes keep their `@Require`
-permissions. Institutions' systems start workflows with `POST /events` (`startOn: api:<type>`, deduplicated by id).
+permissions. Institutions' systems send events with `POST /events` (`events:publish`; `api:<type>`, deduplicated by
+id): they reach the running cases waiting for what they are about (business keys: a loan, a card) and start the
+workflows listening to them (docs/plans/17, [cases-and-workflows.md](cases-and-workflows.md#events-about-a-case-correlation-eventwait-start-or-deliver--docsplans17-3)).
 Rate limits per client and per institution (`API_CLIENT_RATE_LIMIT`, `API_TENANT_RATE_LIMIT` per minute, `429` +
 `Retry-After`) and `Idempotency-Key` on POST (first response kept 24 h and replayed; a different body is `422`)
 (`apps/core/src/http/machine-traffic.ts`). *Planned*: the versioned `/v1` API with OpenAPI.
@@ -102,7 +104,20 @@ signatures during a rotation). Events are written to `event_outbox` **in the sam
 with retries (`WEBHOOK_RETRY_SCHEDULE`), a delivery log, resend, test events, and disabling on `410 Gone` or after
 failing for `WEBHOOK_DISABLE_AFTER_SECONDS` (the creator is e-mailed). Payloads are thin (ids and status). Signing
 secrets are encrypted with the data encryption key (`DATA_ENCRYPTION_KEY`). SSRF: HTTPS and public addresses only
-outside local development. The `WebhookSender` port keeps the door open to Svix.
+outside local development. The `WebhookSender` port keeps the door open to Svix. A workflow can send its own message
+to one subscription (`live.publish` with `to: webhook`): a `case.message` event delivered to that subscription only,
+signed, retried and logged like the others.
+
+## Live updates (outbound to screens)
+
+Server-Sent Events (docs/plans/17 §4): `GET /live?topics=…` — one stream per tab, the access token in the
+`Authorization` header (fetch), or a single-use ticket for `EventSource` (`POST /live/tickets`). Postgres triggers
+`NOTIFY fintivio_live` after commit with the topics that changed (records, notifications, profiles, cases, tasks, live
+messages); each API instance forwards to its streams (`apps/core/src/live/hub.ts`). Thin changes (fetch again through
+the authorised endpoint), ordered and replayable messages (`since`, `Last-Event-ID`, `replay`), keep-alive comments
+(`LIVE_HEARTBEAT_MS`), streams ending with the access token (`expired`) or the session (`revoked`, checked every
+`LIVE_REVALIDATE_MS`), at most `LIVE_MAX_STREAMS_PER_USER` per person. A managed hub can replace the Postgres bus
+behind the same endpoint. The SDK: `client.subscribe(topics, onEvent)`.
 
 ## Files
 

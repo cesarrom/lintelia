@@ -2,13 +2,16 @@
 
 Read this before running anything.
 
-> **Status**: the project installs and runs offline; see the [readme](readme.md) for the commands (Postgres, Redis,
-> Restate, dev servers). Done in [0001](docs/changes/0001-local-runtime.md): Bun 1.3.14, lockfile, Restate SDK 1.17.2 +
-> server 1.7.12, one Postgres with Drizzle-managed RLS, local auth, local fakes for e-mail/storage/DNS. Done in
-> [0002](docs/changes/0002-personas-flows-e2e.md): personas, flow catalogue, e2e suite. Done in
-> [0003](docs/changes/0003-case-engine-and-journeys.md): Redis sessions, authorization model, case engine, loan and
-> suspicious-activity journeys through the web app, platform staff operations. Still open: MFA/SSO, integrations
-> (Didit KYC, Documenso, data sources), the DocuSeal -> Documenso move.
+> **Status**: the project installs and runs offline. See the [readme](readme.md) for the commands and
+> [TESTING.md](TESTING.md) for the local stack, seeded accounts and the e2e suite. Twelve batches are done, each with a
+> change log in `docs/changes/`: [0001](docs/changes/0001-local-runtime.md) to [0004](docs/changes/0004-platform-capabilities.md)
+> (Bun, Restate, one Postgres with Drizzle-managed RLS, local auth, case engine, one-command local stack with fake
+> vendors, connectors, API clients, webhooks, TOTP MFA and SSO, related parties), then
+> [0005](docs/changes/0005-visual-e2e.md) (visual e2e mode), [0006](docs/changes/0006-ui-redesign.md) (UI redesign),
+> [0007](docs/changes/0007-client-apps.md) (client apps and the studio), [0008](docs/changes/0008-dealer-finance.md)
+> (dealer finance solution with fake LoanPro, QuickBooks, Sheets and LLM services),
+> [0009](docs/changes/0009-experience-map.md) (experience map), [0010](docs/changes/0010-bun-e2e.md) (`bun e2e`) and
+> [0011](docs/changes/0011-ui-building-blocks.md) (UI building blocks), then [0012](docs/changes/0012-access-control.md) (who sees what: custom permissions, gated workflows, roles from the identity provider, change control). The roadmap is in `docs/plans/`.
 
 ## The environment this copy was prepared for
 - Linux x86_64 (Ubuntu 24.04), Node 22.21, npm 10.9, bun 1.3.14, 16 GB RAM, a normal non-root user.
@@ -18,30 +21,20 @@ Read this before running anything.
 - Postgres refuses to run as root, so embedded Postgres has to be started by a normal user.
 
 ## What this is
-A multi-tenant onboarding and KYC workflow engine. `apps/core` is NestJS on the Hono adapter. The durable workflow execution runs on Restate, with about 22 service files in `apps/core/src/services/restate` mounted through one `/restate` controller. `apps/web` is a Vite React app, and `packages/fintivio` holds the shared schemas, entities and events. It was last worked on in May and June 2025 and was never committed in this layout. There are no tests. Parts of the root README and package names are still the Turborepo starter template.
+A multi-tenant onboarding and KYC workflow engine. `apps/core` is NestJS on the Hono adapter. Durable workflow execution runs on Restate, mounted through one `/restate` controller. `apps/web` is a Vite React app, `apps/e2e` holds the Playwright suite, `integrations/` holds the connector services, `fake-services/` holds the local vendor fakes and `packages/fintivio` holds the shared schemas, entities and events, `packages/client-sdk` the client app SDK and `apps/core/src/solutions` ready-made solutions. The original code dates from May and June 2025.
 
-## Direction (where this is heading)
-- **Away from Neon.** Today each tenant gets its own database, created through the Neon API (`neon.client.ts`, `connection.service.ts`, `@neondatabase/serverless`). The plan is one normal Postgres with row level security enforced: a `tenant_id` on tenant tables, a policy on each, and the tenant set per transaction with `set_config('app.tenant_id', ..., true)`. The two migration sets (`drizzle-global`, `drizzle-tenant`) merge into one.
-- RLS only counts if tests connect as a restricted role. Superusers bypass it.
-- Local Postgres comes from the `embedded-postgres` npm package.
-- **Goal:** finish the workflow engine and test it end to end with realistic banking scenarios: account opening with KYC pass, fail and manual review, loan origination, an AML hit, document resubmission, timeouts and the audit trail. Real vendor sandboxes are not reachable, so the scenarios run against faithful fakes. Write the scenario catalog down as a deliverable.
+## Where things stand
+- **Database:** one Postgres with row-level security enforced. Neon and the per-tenant databases are gone. RLS only counts when the app connects as a restricted role, because superusers bypass it. Local Postgres comes from the `embedded-postgres` npm package.
+- **Auth:** a local identity provider backed by Postgres replaces Descope. WorkOS and an OIDC provider are emulated for SSO tests. Staff always need a TOTP second factor.
+- **Vendors:** every outside service the platform talks to (WorkOS, an identity provider, Didit, Documenso, a screening vendor, SMTP, DNS, a malware scanner, a content sanitiser) is a local fake that follows the vendor's API shape. `docs/vendor-api/` holds the Documenso OpenAPI specs the fake follows. DocuSeal and ComplyCube were removed.
+- **Restate:** read `RESTATE.md`. The pair is server 1.7.12 with SDK 1.17.2, both from the npm registry. `vendor/` still holds the old 1.3.2 Linux server tarball as an unused fallback.
+- **Tests:** the change logs report the last full e2e run as 466 passing tests over 104 flows and 89 core unit tests (`docs/changes/0011-ui-building-blocks.md`). `TESTING.md` still quotes older numbers from batch 0004. All of this was reported by the previous iteration and not re-run here. Run the suites before trusting it.
 
-## What will not work as is
-- `apps/core/src/main.ts` signs in a developer through the Descope management API on startup, so the app cannot boot offline until auth is replaced with a local provider. It reads the user from `DEV_USER_EMAIL`.
-- Outside services to fake or replace: Descope (auth), ComplyCube and Onfido (KYC), AWS (S3, SQS, DynamoDB, CloudFront domains), Neon, SMTP and Mailgun, OpenAI, Vercel Blob, Documenso (replacing DocuSeal, see below).
-- `.env.example` lists every variable. Fill them with local values only.
+## Known gaps
+- Passkeys and step-up authentication, object-store adapters for real clouds, edge and TLS for custom domains, and a connector SDK test kit (`docs/changes/0004-platform-capabilities.md`, `docs/plans/10-infrastructure-gaps.md`).
+- Legacy schemas of the removed node engine remain in `packages/fintivio`, and the web app has type errors in legacy screens (database tables, logs, legacy nodes).
+- The e2e browser tests need Chromium for Playwright (`bunx playwright install chromium`, or `PLAYWRIGHT_BROWSERS_PATH`). The Playwright CDN download may be blocked in a registry-only environment.
+- `.env.example` files list every variable. Fill them with local values only.
 
-## Restate
-Read `RESTATE.md`. The code was built against SDK 1.6.0 and server 1.3.2, and `vendor/` holds the 1.3.2 Linux server. The container's registry showed SDK 1.17.2 and server 1.7.12 as the newest versions and hid 1.6.0 and 1.3.2. If that holds, move both to the versions the registry shows (they should be a matching pair), and prove it with a one-handler hello service before touching the workflow code. The vendored 1.3.2 server probably will not pair with a much newer SDK.
-
-## Signing provider: moving from DocuSeal to Documenso
-DocuSeal is being replaced by Documenso. The reason, as the owner remembers it: DocuSeal's free self-hosted edition does not give you the API, and this project needs to create templates dynamically through the API. DocuSeal's pricing page says API and embedding are part of its paid Pro plan (a license key from a Pro seat, plus per-document fees). Documenso's API can create templates directly. To my knowledge Documenso is AGPL licensed, so check its terms for how it will be deployed.
-
-- The API contract is in `docs/vendor-api/`: `documenso-openapi-v2.json` (89 paths, including `POST /template/create`, `/template/use`, and template fields and recipients) and `documenso-openapi-v1.json` (13 paths, including `/api/v1/templates` and `/api/v1/templates/{templateId}/create-document`). They were downloaded from app.documenso.com on 2026-11-13 and are the only description of the API available offline. Build against them, not from memory.
-- Neither DocuSeal nor Documenso can run in the container, because both are separate services. Put signing behind a provider interface: one Documenso adapter plus a local fake that follows the same spec (create a template, add fields and recipients, create a document from a template, signing status, a completion webhook).
-- Remove the DocuSeal pieces as part of the move, including its environment variables, container definitions and fake data.
-
-Where DocuSeal is used today:
-- `apps/core/src/handlers/docuseal.controller.ts`, registered in `app.module.ts`, with constants in `constants.ts`.
-- `packages/fintivio/src/schemas/dto.schema.ts` holds the DTOs.
-- Web: `apps/web/src/lib/services/docuseal.hooks.ts` and the document template UI (`CreateTemplateDialog.tsx`). Dynamic template creation from the document screens is exactly the capability that needs the new provider.
+## Goal
+Finish the workflow engine and test it end to end with realistic banking scenarios: account opening with KYC pass, fail and manual review, loan origination, an AML hit, document resubmission, timeouts and the audit trail. Note what is verified by tests and what is only documented.

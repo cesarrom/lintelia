@@ -26,6 +26,7 @@ Tech legend: what each flow relies on, including dependencies not in the project
 | STAFF-05 | Time-bound, institution-approved support access | works | support grants, audit |
 | STAFF-06 | Manage platform staff and their roles | works | platform roles |
 | STAFF-07 | Platform audit log | works | audit events |
+| STAFF-08 | Restore an administrator of an institution that locked itself out | works | `platform.tenants:recover`, invitations, both audit logs |
 
 **STAFF-01 Sign in to the platform console.** Staff open the platform host, sign in with e-mail and password and a
 second factor. *Accept*: staff land on the console (tenant management), never inside a tenant; a staff account
@@ -53,6 +54,12 @@ entries attributed to the staff member.
 `customer_success`, `support`, `platform_auditor`). *Accept*: invitation e-mail to the platform mailbox; a support
 engineer cannot create tenants; customer success can.
 
+**STAFF-08 Restore access.** When an institution locked itself out (no administrator left, its identity provider gone),
+staff holding `platform.tenants:recover` invite an administrator after verifying the request out of band
+(docs/plans/15 §14). *Accept*: reason and support ticket required; institution members cannot use it; the invitation
+gives `admin` as a local account; the ticket is in the institution's audit log (`access.recovered`) and the platform's
+(`tenant.access_recovered`); every administrator of the institution is e-mailed.
+
 **STAFF-07 Platform audit log.** *Accept*: creating, suspending and deleting tenants and support grants appear in
 `GET /platform/audit` with the acting staff member.
 
@@ -71,6 +78,13 @@ engineer cannot create tenants; customer success can.
 | FIA-10 | API credentials and outbound webhooks | works | OAuth client credentials, Standard Webhooks (`standardwebhooks`) |
 | FIA-11 | Approve or revoke platform support access | works | see STAFF-05 |
 | FIA-12 | Review and export the audit log | works | audit events |
+| FIA-13 | Custom permissions: the institution names its own capabilities; system roles are extended with them | works | custom permission catalogue, per-request resolution |
+| FIA-14 | Workflows say who may start them and who may see their cases; an administrator decides | works | `access` rules (permissions, roles, JSONata conditions), change control |
+| FIA-15 | Who sees what: roles × permissions matrix, role members and usage, "who can", member access, export | works | access queries, CSV export |
+| FIA-16 | Roles come from the identity provider's groups as soon as single sign-on is linked (SSO and SCIM), with guards against lock-outs | works | group → role mappings, WorkOS directory groups |
+| FIA-17 | Member attributes (by hand or from the IdP) and conditions on them | works | SSO claims / SCIM attributes, JSONata |
+| FIA-18 | Time-bound roles | works | assignment expiry, periodic job |
+| FIA-19 | Access changes: notifications, a second approver for grants, effective dates | works | change control (`access_changes`) |
 
 **FIA-01** The invitee opens the e-mail link on the institution's host, chooses a password, lands on the dashboard
 with the administrator role. *Accept*: the link works once, only on its institution.
@@ -106,6 +120,39 @@ code.
 
 **FIA-12** *Accept*: invitations, role changes, deactivations, integration changes and case decisions appear in
 `GET /audit` with actor and target; entries cannot be changed or deleted (not even by the database role the app uses).
+
+**FIA-13** *Accept*: designers (`workflows:manage`) and administrators create `custom:*` permissions; nobody but
+`admin` holds a new one; administrators add it to custom roles or extend system roles with it (the platform's part of
+a system role cannot change, nor the Administrator role); it takes effect on the next request; archiving revokes it
+everywhere (roles, API clients) at once; restoring grants it to nobody.
+
+**FIA-14** *Accept*: `access.start` / `access.cases` in the workflow YAML (or the editor's settings); a designer's publish
+that changes them waits for an administrator (`202`); the start rule replaces `cases:create` for that workflow through
+every entry point (`/workflows/startable`, `POST /workflows/:id/executions`, `POST /cases`, API clients); the cases rule
+hides cases and their tasks even from `cases:read_all`; unknown permissions or roles in a rule are publication errors.
+
+**FIA-15** *Accept*: `GET /access/matrix`, `/roles/:key/members` (with how each member got it), `/roles/:key/usage`
+(queues, escalations, workflows its holders may start), `/access/who?permission=`, `/users/:id/access`, and a CSV of
+every assignment (`/access/export`, audited).
+
+**FIA-16** *Accept*: without single sign-on roles are managed in the app; as soon as it is linked (a verified domain)
+the administrators are told and people of that domain cannot get roles by hand; from their first SSO sign-in (or
+directory event) they hold exactly the roles their groups map to (ID token groups at each sign-in, SCIM directory groups
+as they change); local accounts keep manual roles; syncs keep the Administrator role while no group maps to it and for
+the last administrator (kept, audited, administrators e-mailed).
+
+**FIA-17** *Accept*: declared attributes (text, number, select, list), set by hand or read from the IdP (JSONata over the
+SSO claims or the SCIM attributes, read-only in the app); conditions (`when`) of access rules read
+`member.attributes.*`.
+
+**FIA-18** *Accept*: a role given until a date stops counting at that moment, is removed and audited
+(`member.role_expired`); end dates in the past are refused.
+
+**FIA-19** *Accept*: privileged changes are e-mailed to the administrators (and the policy's extra addresses); with
+`accessApproval: grants` (needs two possible approvers), grants wait (`202`) for another administrator, who must be able
+to make the change themselves (nobody approves their own elevation); rejections need a reason; revocations apply at
+once; `effectiveAt` schedules any change (cancellable); switching approvals off is itself approved; without another
+possible approver a grant applies with a notice instead of waiting forever.
 
 ## Roles inside the institution
 
@@ -265,6 +312,39 @@ What an institution's clients see and do in the institution's own app, built in 
 | APP-11 | See and navigate everything built on one map: layout, pages, journeys with their screens and what happens in between, workflows, functions, forms, events; follow links, personas, layers, open each editor and come back | works | `GET /experience-map`, React Flow canvas, client-app runtime frames ([0009](../changes/0009-experience-map.md)) |
 | APP-12 | UI building blocks: journeys that open as a dialog, a sheet or full screen (floating button, quick action, deep link); a QR / barcode scanner that reads payment codes; screens that continue by themselves after a countdown; signatures, one-time codes, sliders, calculated and conditional fields, format rules; branding (presets, accent, fonts, button shapes, light/dark, colours from the logo, readability) and region | works | `client.screen` field types and `autoSubmit`, journey `presentation`, `fab` / `qr-code` widgets, theme and region ([0011](../changes/0011-ui-building-blocks.md)) |
 
+## The institution's own back office (BOA)
+
+Screens an institution's designers build for its own team: pages, menu items, buttons and tabs added to the built-in
+client and case pages, dashboard widgets, actions that start workflows with staff screens — each gated by an access
+rule (docs/plans/16, [0013](../changes/0013-back-office.md)).
+
+| Id | Flow | Status | Tech |
+| --- | --- | --- | --- |
+| BOA-01 | Build the back office in the studio (template or from scratch), publish it; members get it in the menu | works | back-office definition, studio back-office mode, `BACK_OFFICE_WIDGETS` |
+| BOA-02 | Each item only for the members its rule lets in: pruned on the server, refused on use | works | access rules (plan 15), pruning per member |
+| BOA-03 | An action on the client page runs a workflow: the member's screen in a dialog, an approval above their authority; a screen left half-way is resumed | works | `team.screen`, `/backoffice/actions`, pending screens, member attributes |
+| BOA-04 | Pages read the team's data under the member's rights (cases, tasks, figures, clients' records; a client's page) | works | `/backoffice/data`, sources and their permissions |
+| BOA-05 | Who gets what before publishing: the access report per role, the canvas as a role | works | access report, preview as roles |
+| BOA-06 | Homes: where members land after signing in, by rule | works | `homes` |
+| BOA-07 | Versions and rollback of the back office | works | versions shared with the client app |
+| BOA-08 | Who looked at which client (optional read auditing) | works | `client.viewed`, security policy `readAudit` |
+
+**BOA-01** *Accept*: designers (`backoffice:manage`) edit a draft that saves itself, listed problems block publishing
+(`backoffice:publish`); the *Fee waivers* template creates its custom permission, the `authorityLimit` attribute (when
+the designer may) and its workflow, whose publication waits for an administrator (it has a start rule).
+
+**BOA-02** *Accept*: `GET /backoffice/app` never contains items the member may not get (names included); pages and
+actions outside it answer 404; holders of a new custom permission get the items once an administrator grants it.
+
+**BOA-03** *Accept*: the action's rule and the workflow's start rule both apply; answers are checked as client screens
+(required, ranges); within `member.attributes.authorityLimit` the fee is refunded at once, above it a senior reviewer
+(not the member who asked) approves first; the client's records and app show the refund; `GET /backoffice/screens`
+lists the member's unsent screens (dashboard *Waiting for you*, *Continue* on the case page).
+
+**BOA-05** *Accept*: per role, the menu, pages, actions, buttons, tabs and dashboard widgets; warnings for widgets
+reading what the role cannot read and for actions whose own rule lets a role in that their workflow excludes;
+permissions nobody but administrators holds.
+
 ## Automation building blocks (AUT)
 
 What workflows use to reach other systems and each other, beyond dedicated connectors (docs/plans/12,
@@ -279,6 +359,32 @@ What workflows use to reach other systems and each other, beyond dedicated conne
 | AUT-05 | AI reads documents into fields (or says what is missing) and writes summaries for reviewers | works | `connector:ai/document.extract`, `text.generate`, OpenAI-compatible API |
 | AUT-06 | Loan servicing in LoanPro: boarding, payments from the app, servicing events (payment, delinquency, payoff) start workflows | works | `connector:loanpro/*`, signed LoanPro webhooks, client records |
 | AUT-07 | Workflows create clients (a borrower from a deal), invite them and serve their app | works | `client.upsert`, `client` target on client steps |
+| AUT-08 | An event about a loan (card, client…) reaches the running cases waiting for it, by business key; early events kept on request; duplicates ignored; one case only when it is a work queue; platform events too | works | `correlation`, `event.wait`, the event router, `POST /events` (`events:publish`) |
+| AUT-09 | Start or deliver: one case per loan receives every payment, including those arriving while it is busy | works | `startOn: [{ event, correlate }]`, `case_events` |
+| AUT-10 | A workflow polls a system until a condition holds, with a time limit | works | `poll` |
+
+**AUT-08** *Accept*: `POST /events` needs `events:publish` (`cases:create` is not enough); the answer names the cases
+the event was delivered to and those it started; the same `id` twice is one event; a filter keeps other events out;
+without `buffer` an event before the wait is not taken; with `consume` exactly one waiting case gets it; publishing
+refuses keys the workflow does not declare.
+
+## Live updates (LIVE)
+
+Screens that update by themselves and workflows that tell someone as it happens (docs/plans/17,
+[0014](../changes/0014-live-data-and-events.md)).
+
+| Id | Flow | Status | Tech |
+| --- | --- | --- | --- |
+| LIVE-01 | The client app follows the bank's systems: balances change on screen, notifications pop up | works | `GET /live` (SSE), triggers → `NOTIFY`, thin changes |
+| LIVE-02 | The team's queues, tasks, cases and dashboards update as cases move; messages to a role pop up | works | `queue/*`, `member/*`, `cases`, `case/*` topics |
+| LIVE-03 | A journey (or an action) shows what its workflow publishes, from the start; a signed address serves screens we do not | works | `live.publish`, `live` in start answers, replay, `case.live.<channel>` |
+| LIVE-04 | Who may listen: one's own topics, cases in scope, one's roles' queues; tickets; revocation ends the stream | works | topic authorization, `POST /live/tickets`, revalidation |
+| LIVE-05 | A workflow tells a system (webhook subscription), the applicant or a member | works | `live.publish` to `webhook` (`case.message`), `applicant`, `member`, `role` |
+
+**LIVE-04** *Accept*: a client never listens to another client's topics (`403` with the denied topics); members only
+to cases in their scope (or that they started), their own topics and their roles' queues; notifications and messages
+of a client only to that client; no credentials, no stream (`401`); a ticket opens one stream once; signing out ends
+open streams (`revoked`).
 
 ## Cross-cutting (X)
 

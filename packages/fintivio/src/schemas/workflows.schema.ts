@@ -561,6 +561,8 @@ export const workflowYamlSchema = z.object({
   function: z.boolean().optional(),
   /** What the case gives back to its caller: name → JSONata evaluated when it ends. */
   outputs: z.record(z.string()).optional(),
+  /** Who may start it by hand / by API and who may see its cases (docs/plans/15 §5.3). */
+  access: z.object({ start: z.object({ permissions: z.array(z.string()).optional(), roles: z.array(z.string()).optional(), when: z.string().optional() }).optional(), cases: z.object({ permissions: z.array(z.string()).optional(), roles: z.array(z.string()).optional(), when: z.string().optional() }).optional() }).optional(),
 });
 
 export type WorkflowYaml = z.infer<typeof workflowYamlSchema>;
@@ -581,6 +583,8 @@ export const WorkflowSchema = z.object({
   stages: z.array(z.object({ key: z.string(), label: z.string(), clientLabel: z.string().optional(), exit: z.boolean().optional() })).optional(),
   function: z.boolean().optional(),
   outputs: z.record(z.string()).optional(),
+  /** Who may start it by hand / by API and who may see its cases (docs/plans/15 §5.3). */
+  access: z.object({ start: z.object({ permissions: z.array(z.string()).optional(), roles: z.array(z.string()).optional(), when: z.string().optional() }).optional(), cases: z.object({ permissions: z.array(z.string()).optional(), roles: z.array(z.string()).optional(), when: z.string().optional() }).optional() }).optional(),
 });
 
 export type WorkflowSchema = z.infer<typeof WorkflowSchema>;

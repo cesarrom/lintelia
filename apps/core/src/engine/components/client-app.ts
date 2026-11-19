@@ -124,6 +124,82 @@ async function evalItem(expression: string | undefined, item: Record<string, unk
   }
 }
 
+/**
+ * The screen a `client.screen` or `team.screen` step shows: fields (labels, options, prefills resolved against the
+ * scope), buttons and auto-submit. `recordsOf` lists a collection of the client whose records fill `optionsFrom`.
+ */
+export async function buildScreen(step: { name: string; config: Record<string, any> }, scope: Record<string, unknown>, vars: Record<string, any>,
+  recordsOf: (collection: string) => Promise<Array<Record<string, any>>>): Promise<ScreenDefinition> {
+  const config = step.config as Record<string, any>;
+  const text = async (value: unknown) => (typeof value === 'string' ? String(await resolveConfig(value, scope) ?? '') : undefined);
+  const fields: ScreenField[] = [];
+  const values: Record<string, unknown> = {};
+  for (const raw of Array.isArray(config.fields) ? config.fields : []) {
+    const opt = <T,>(value: unknown, ok: (v: unknown) => boolean, map: (v: any) => T = (v) => v as T) => (value !== undefined && value !== null && value !== '' && ok(value) ? map(value) : undefined);
+    const field: ScreenField = {
+      key: String(raw.key), label: String(await text(raw.label) ?? raw.key), type: raw.type ?? 'text', required: !!raw.required,
+      help: await text(raw.help), placeholder: raw.placeholder ? String(raw.placeholder) : undefined,
+      min: typeof raw.min === 'number' ? raw.min : undefined, max: typeof raw.max === 'number' ? raw.max : undefined,
+      step: opt(raw.step, (v) => typeof v === 'number' && v > 0),
+      width: opt(raw.width, (v) => v === 'half' || v === 'full'),
+      visibleIf: opt(raw.visibleIf, (v) => typeof v === 'string', String),
+      pattern: opt(raw.pattern, (v) => typeof v === 'string', String),
+      patternMessage: opt(raw.patternMessage, (v) => typeof v === 'string', String),
+      check: opt(raw.check, (v) => ['iban', 'luhn', 'email'].includes(String(v))),
+      scanCodes: opt(raw.scanCodes, (v) => ['qr', 'barcode', 'any'].includes(String(v))),
+      parse: opt(raw.parse, (v) => (SCAN_PARSERS as readonly string[]).includes(String(v))),
+      length: opt(raw.length, (v) => typeof v === 'number' && v >= 3 && v <= 12),
+      secret: raw.secret === true ? true : undefined,
+      capture: opt(raw.capture, (v) => v === 'environment' || v === 'user'),
+      expression: opt(raw.expression, (v) => typeof v === 'string', String),
+      format: opt(raw.format, (v) => ['text', 'number', 'money', 'percent'].includes(String(v))),
+    };
+    for (const key of Object.keys(field) as Array<keyof ScreenField>) if (field[key] === undefined) delete field[key];
+    if (Array.isArray(raw.options) && raw.options.length) {
+      field.options = raw.options.map((o: unknown) => {
+        if (typeof o === 'object' && o) return o as { value: string; label: string };
+        const [value, label] = String(o).split('|');
+        return { value: value.trim(), label: (label ?? value).trim() };
+      });
+    }
+    if (raw.optionsFrom) {
+      const records = await recordsOf(String(raw.optionsFrom));
+      field.options = [];
+      for (const item of records) {
+        if (!(await evalItem(raw.optionFilter, item, true))) continue;
+        const itemScope = { ...scope, item };
+        field.options.push({
+          value: raw.optionValue ? String(await resolveConfig(String(raw.optionValue), itemScope) ?? '') : String(item.key),
+          label: raw.optionLabel ? String(await resolveConfig(String(raw.optionLabel), itemScope) ?? '') : String(item.name ?? item.key),
+        });
+      }
+    }
+    // Prefill: the answer already given in this case (coming back to a screen), else the configured default.
+    const given = (vars.input ?? {})[field.key];
+    if (given !== undefined && given !== null && given !== '') values[field.key] = given;
+    else if (raw.default !== undefined && raw.default !== '') values[field.key] = await resolveConfig(raw.default, scope);
+    fields.push(field);
+  }
+  const definition: ScreenDefinition = {
+    title: String(await text(config.title) ?? step.name),
+    description: await text(config.description),
+    content: await text(config.content),
+    stage: config.stage ? String(config.stage) : undefined,
+    fields,
+    buttons: (Array.isArray(config.buttons) && config.buttons.length ? config.buttons : [{ key: 'continue', label: 'Continue', style: 'primary' }])
+      .map((b: any) => ({ key: String(b.key), label: String(b.label ?? b.key), style: b.style ?? 'primary', skipValidation: !!b.skipValidation })),
+    values,
+    ...(config.autoSubmit?.button ? {
+      autoSubmit: {
+        button: String(config.autoSubmit.button), when: config.autoSubmit.when === 'expression' ? 'expression' : 'complete',
+        ...(config.autoSubmit.expression ? { expression: String(config.autoSubmit.expression) } : {}),
+        delay: Math.max(0, Math.min(60, Number(config.autoSubmit.delay) || 0)),
+      } as AutoSubmit,
+    } : {}),
+  };
+  return definition;
+}
+
 const clientScreen: EngineComponent = {
   definition: {
     type: 'client.screen', version: 1, title: 'Client screen', description: 'A screen of a client journey: fields, text and buttons in the app. Each button is an event; the answers become input.<key>.',
@@ -194,78 +270,13 @@ const clientScreen: EngineComponent = {
       const me = await loadMe(db, kase.applicantId);
       const scope = { ...vars, me };
       const config = step.config as Record<string, any>;
-      const text = async (value: unknown) => (typeof value === 'string' ? String(await resolveConfig(value, scope) ?? '') : undefined);
-      const fields: ScreenField[] = [];
-      const values: Record<string, unknown> = {};
-      for (const raw of Array.isArray(config.fields) ? config.fields : []) {
-        const opt = <T,>(value: unknown, ok: (v: unknown) => boolean, map: (v: any) => T = (v) => v as T) => (value !== undefined && value !== null && value !== '' && ok(value) ? map(value) : undefined);
-        const field: ScreenField = {
-          key: String(raw.key), label: String(await text(raw.label) ?? raw.key), type: raw.type ?? 'text', required: !!raw.required,
-          help: await text(raw.help), placeholder: raw.placeholder ? String(raw.placeholder) : undefined,
-          min: typeof raw.min === 'number' ? raw.min : undefined, max: typeof raw.max === 'number' ? raw.max : undefined,
-          step: opt(raw.step, (v) => typeof v === 'number' && v > 0),
-          width: opt(raw.width, (v) => v === 'half' || v === 'full'),
-          visibleIf: opt(raw.visibleIf, (v) => typeof v === 'string', String),
-          pattern: opt(raw.pattern, (v) => typeof v === 'string', String),
-          patternMessage: opt(raw.patternMessage, (v) => typeof v === 'string', String),
-          check: opt(raw.check, (v) => ['iban', 'luhn', 'email'].includes(String(v))),
-          scanCodes: opt(raw.scanCodes, (v) => ['qr', 'barcode', 'any'].includes(String(v))),
-          parse: opt(raw.parse, (v) => (SCAN_PARSERS as readonly string[]).includes(String(v))),
-          length: opt(raw.length, (v) => typeof v === 'number' && v >= 3 && v <= 12),
-          secret: raw.secret === true ? true : undefined,
-          capture: opt(raw.capture, (v) => v === 'environment' || v === 'user'),
-          expression: opt(raw.expression, (v) => typeof v === 'string', String),
-          format: opt(raw.format, (v) => ['text', 'number', 'money', 'percent'].includes(String(v))),
-        };
-        for (const key of Object.keys(field) as Array<keyof ScreenField>) if (field[key] === undefined) delete field[key];
-        if (Array.isArray(raw.options) && raw.options.length) {
-          field.options = raw.options.map((o: unknown) => {
-            if (typeof o === 'object' && o) return o as { value: string; label: string };
-            const [value, label] = String(o).split('|');
-            return { value: value.trim(), label: (label ?? value).trim() };
-          });
-        }
-        if (raw.optionsFrom) {
-          const records = await listRecords(db, kase.applicantId, String(raw.optionsFrom));
-          field.options = [];
-          for (const item of records) {
-            if (!(await evalItem(raw.optionFilter, item, true))) continue;
-            const itemScope = { ...scope, item };
-            field.options.push({
-              value: raw.optionValue ? String(await resolveConfig(String(raw.optionValue), itemScope) ?? '') : String(item.key),
-              label: raw.optionLabel ? String(await resolveConfig(String(raw.optionLabel), itemScope) ?? '') : String(item.name ?? item.key),
-            });
-          }
-        }
-        // Prefill: the answer already given in this case (coming back to a screen), else the configured default.
-        const given = (vars.input ?? {})[field.key];
-        if (given !== undefined && given !== null && given !== '') values[field.key] = given;
-        else if (raw.default !== undefined && raw.default !== '') values[field.key] = await resolveConfig(raw.default, scope);
-        fields.push(field);
-      }
-      const definition: ScreenDefinition = {
-        title: String(await text(config.title) ?? step.name),
-        description: await text(config.description),
-        content: await text(config.content),
-        stage: config.stage ? String(config.stage) : undefined,
-        fields,
-        buttons: (Array.isArray(config.buttons) && config.buttons.length ? config.buttons : [{ key: 'continue', label: 'Continue', style: 'primary' }])
-          .map((b: any) => ({ key: String(b.key), label: String(b.label ?? b.key), style: b.style ?? 'primary', skipValidation: !!b.skipValidation })),
-        values,
-        ...(config.autoSubmit?.button ? {
-          autoSubmit: {
-            button: String(config.autoSubmit.button), when: config.autoSubmit.when === 'expression' ? 'expression' : 'complete',
-            ...(config.autoSubmit.expression ? { expression: String(config.autoSubmit.expression) } : {}),
-            delay: Math.max(0, Math.min(60, Number(config.autoSubmit.delay) || 0)),
-          } as AutoSubmit,
-        } : {}),
-      };
+      const definition = await buildScreen(step, scope, vars, (collection) => listRecords(db, kase.applicantId!, collection));
       const expires = durationMs(config.expiresAfter);
       await deps.repository.createTask(tenantId, {
         id: taskId, caseId, stepId: step.id, audience: 'client', kind: 'screen', title: definition.title,
         description: definition.description ?? null, assigneeId: kase.applicantId, screen: definition as unknown as Record<string, unknown>,
         // File fields take uploads through the normal intake (scan, sanitise) addressed to this task and field.
-        requestItems: fields.filter((f) => f.type === 'file' || f.type === 'signature').map((f) => ({ key: f.key, label: f.label, type: 'file' as const })),
+        requestItems: definition.fields.filter((f) => f.type === 'file' || f.type === 'signature').map((f) => ({ key: f.key, label: f.label, type: 'file' as const })),
         dueAt: expires ? new Date(Date.now() + expires) : null,
       });
       await deps.repository.updateCase(tenantId, caseId, { status: 'pending_client' });
@@ -293,6 +304,99 @@ const clientScreen: EngineComponent = {
       await deps.repository.updateCase(tenantId, caseId, { data: { ...kase.data, ...values }, status: 'in_progress' });
     });
     return { event: signal.outcome, output: { values, button: signal.outcome, title: screen.title } };
+  },
+};
+
+/**
+ * A screen for the team (docs/plans/16 §5.6): the same fields and buttons as a client screen, filled by a member. Without
+ * a role it is a wizard for the member who started the case (a back-office action opens it at once, in a dialog); with
+ * `to.role` it is a form task in that role's queue. The scope has `member` (who started the case) and `client` (the
+ * applicant, when there is one). The output says who answered (`by`, with their attributes) for the next steps, e.g. a
+ * condition on `steps.<id>.by.attributes.authorityLimit`.
+ */
+const teamScreen: EngineComponent = {
+  definition: {
+    type: 'team.screen', version: 1, title: 'Team screen',
+    description: 'A screen for the team: the member who started the case fills it (a wizard), or a role queue does. Each button is an event; the answers become input.<key>.',
+    icon: 'PanelsTopLeft', category: 'people', kind: 'human', source: { kind: 'builtin' },
+    configSchema: {
+      ...clientScreen.definition.configSchema,
+      properties: {
+        ...clientScreen.definition.configSchema.properties,
+        to: {
+          type: 'object', title: 'Who fills it',
+          description: 'empty: the member who started the case, at once; a role: a task in its queue',
+          properties: { role: { type: 'string', title: 'Role queue', 'x-widget': 'role', 'x-expression': true } },
+        },
+      },
+    },
+    defaults: {
+      title: 'Details', fields: [{ key: 'reason', label: 'Reason', type: 'textarea', required: true }],
+      buttons: [{ key: 'continue', label: 'Continue', style: 'primary' }, { key: 'cancel', label: 'Cancel', style: 'secondary', skipValidation: true }],
+    },
+    summary: '{{title}}',
+    events: { static: ['expired'], fromConfig: 'buttons', defaults: ['continue'] },
+  },
+  resolveConfig: false,
+  validate: (config, context) => {
+    const errors = clientScreen.validate!(config, context);
+    const role = config.to?.role;
+    if (role && !String(role).trim().startsWith('=') && context.roles && !context.roles.includes(role)) errors.push(`routes to unknown role "${role}"`);
+    return errors;
+  },
+  async execute({ ctx, step, label, tenantId, caseId, vars, deps }) {
+    const taskId = ctx.rand.uuidv4();
+    const config = step.config as Record<string, any>;
+    const screen = await ctx.run(`team-screen-${label}`, async () => {
+      const kase = (await deps.repository.getCase(tenantId, caseId))!;
+      const db = deps.repository.db(tenantId);
+      const role = config.to?.role ? String(await resolveConfig(config.to.role, vars) ?? '').trim() : '';
+      if (!role && (kase.initiatedByType !== 'member' || !kase.initiatedById)) {
+        throw new restate.TerminalError('A team screen without a role needs a case started by a member');
+      }
+      const [starter] = kase.initiatedByType === 'member' && kase.initiatedById
+        ? await db.select({ id: users.id, email: users.email, name: users.name, attributes: users.attributes }).from(users).where(eq(users.id, kase.initiatedById)).limit(1)
+        : [];
+      const client = kase.applicantId ? await loadMe(db, kase.applicantId) : null;
+      const scope = { ...vars, member: starter ?? null, client };
+      const definition = await buildScreen(step, scope, vars, async (collection) => (kase.applicantId ? listRecords(db, kase.applicantId, collection) : []));
+      const expires = durationMs(config.expiresAfter);
+      await deps.repository.createTask(tenantId, {
+        id: taskId, caseId, stepId: step.id, audience: 'member', kind: 'screen', title: definition.title,
+        description: definition.description ?? null, screen: definition as unknown as Record<string, unknown>,
+        ...(role ? { queueRole: role } : { assigneeId: kase.initiatedById, status: 'claimed' as const }),
+        outcomes: definition.buttons.map((b) => ({ key: b.key, label: b.label, requiresReason: false, needsSecondApproval: false })),
+        requestItems: definition.fields.filter((f) => f.type === 'file' || f.type === 'signature').map((f) => ({ key: f.key, label: f.label, type: 'file' as const })),
+        dueAt: expires ? new Date(Date.now() + expires) : null,
+      });
+      await deps.audit.record(tenantId, WORKFLOW_ACTOR, 'task.created', { type: 'task', id: taskId, title: definition.title }, { kind: 'screen', ...(role ? { queue: role } : { assignee: starter?.email }) }, caseId);
+      return definition;
+    });
+
+    const promise = ctx.promise<TaskSignal>(`task:${taskId}`);
+    const expireMs = durationMs(config.expiresAfter);
+    let signal: TaskSignal;
+    try {
+      signal = expireMs ? await promise.get().orTimeout(expireMs) : await promise.get();
+    } catch (error) {
+      if (!(error instanceof restate.TimeoutError)) throw error;
+      await ctx.run(`team-screen-expired-${label}`, async () => {
+        await deps.repository.updateTask(tenantId, taskId, { status: 'expired' });
+        await deps.audit.record(tenantId, WORKFLOW_ACTOR, 'task.expired', { type: 'task', id: taskId }, {}, caseId);
+      });
+      return { event: 'expired', output: { expired: true } };
+    }
+    const values = (signal.response ?? {}) as Record<string, unknown>;
+    vars.input = { ...(vars.input ?? {}), ...values };
+    const by = await ctx.run(`team-screen-saved-${label}`, async () => {
+      const kase = (await deps.repository.getCase(tenantId, caseId))!;
+      await deps.repository.updateCase(tenantId, caseId, { data: { ...kase.data, ...values } });
+      const [member] = signal.by?.id
+        ? await deps.repository.db(tenantId).select({ id: users.id, email: users.email, name: users.name, attributes: users.attributes }).from(users).where(eq(users.id, signal.by.id)).limit(1)
+        : [];
+      return member ?? { id: signal.by?.id ?? null, email: signal.by?.email ?? null, name: null, attributes: {} };
+    });
+    return { event: signal.outcome, output: { values, button: signal.outcome, title: screen.title, by } };
   },
 };
 
@@ -508,4 +612,4 @@ async function targetClient(deps: Parameters<EngineComponent['execute']>[0]['dep
   return user.id;
 }
 
-export const CLIENT_APP_COMPONENTS: EngineComponent[] = [clientScreen, clientData, clientRecord, clientProfile, clientNotify, clientUpsert];
+export const CLIENT_APP_COMPONENTS: EngineComponent[] = [clientScreen, teamScreen, clientData, clientRecord, clientProfile, clientNotify, clientUpsert];

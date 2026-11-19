@@ -7,6 +7,7 @@ import { decryptSecret } from '../auth/data-encryption';
 import { env } from '../constants';
 import { INTERNAL_SIGNATURE_HEADER, internalSignature } from '../auth/internal-signature';
 import type { AttemptResult } from './delivery';
+import { newEventId } from './events';
 
 export const secretContext = (tenantId: string, subscriptionId: string) => `webhook:${tenantId}:${subscriptionId}`;
 
@@ -47,6 +48,23 @@ export class WebhookStore {
         else await Bun.sleep(500 * (attempt + 1));
       }
     }
+  }
+
+  /**
+   * A workflow's message to one subscription (`live.publish` to a webhook, docs/plans/17 §4.4): written to the outbox
+   * as `case.message` and delivered to that subscription only — signed, retried, in its delivery log.
+   */
+  async sendCaseMessage(input: { tenantId: string; caseId: string; reference: string; subscriptionId: string; step: string; message: Record<string, unknown>; tenantDomain: string }) {
+    const db = this.db(input.tenantId);
+    const [subscription] = await db.select({ id: webhookSubscriptions.id, enabled: webhookSubscriptions.enabled }).from(webhookSubscriptions).where(eq(webhookSubscriptions.id, input.subscriptionId)).limit(1);
+    if (!subscription) return { delivered: false, error: 'the webhook subscription does not exist' };
+    if (!subscription.enabled) return { delivered: false, error: 'the webhook subscription is disabled' };
+    const id = newEventId();
+    const data = { caseId: input.caseId, reference: input.reference, step: input.step, message: input.message };
+    if (JSON.stringify(data).length > 64_000) return { delivered: false, error: 'a message is limited to 64 kB' };
+    await db.insert(eventOutbox).values({ id, type: 'case.message', payload: { id, type: 'case.message', time: new Date().toISOString(), tenant: input.tenantDomain, data } });
+    await this.dispatch(input.tenantId, id, input.subscriptionId);
+    return { delivered: true, eventId: id };
   }
 
   /** Deliver (again) one delivery; `run` makes each manual resend a new durable execution. */

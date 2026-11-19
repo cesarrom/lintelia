@@ -1,11 +1,13 @@
 import { PARTY_COMPONENTS } from './parties';
 import { CLIENT_APP_COMPONENTS } from './client-app';
 import { INTEGRATION_COMPONENTS } from './integration';
+import { EVENT_COMPONENTS } from './events';
 import * as restate from '@restatedev/restate-sdk/fetch';
 import type { CaseStatus, TaskOutcome } from '../../entities';
 import { DEFAULT_REVIEW_OUTCOMES, type CaseRow } from '../case-repository';
 import { durationMs } from '../durations';
 import { evaluate } from '../expressions';
+import { setCaseKeys } from '../events';
 import { WORKFLOW_ACTOR, type EngineComponent, type StepContext, type TaskSignal } from './types';
 
 /** Legacy comparison operators of the editor's conditional node. */
@@ -195,6 +197,7 @@ const caseUpdate: EngineComponent = {
         stage: text('Stage', 'a key of the workflow\'s stages, e.g. underwriting'),
         data: { type: 'object', title: 'Save on the case', description: 'field → value (expressions allowed), merged into the case data', additionalProperties: { type: 'string', 'x-expression': true }, 'x-widget': 'keyValue' },
         riskLevel: RISK, addFlags: FLAGS, title: text('New title'),
+        keys: { type: 'object', title: 'Business keys', description: 'name → value (e.g. loan → = steps.board.loanId): events about this value reach the case (docs/plans/17)', additionalProperties: { type: 'string', 'x-expression': true }, 'x-widget': 'keyValue' },
       },
     },
     summary: 'Stage {{stage}} · Risk {{riskLevel}} · flags {{addFlags}}',
@@ -214,7 +217,8 @@ const caseUpdate: EngineComponent = {
       const { data: _data, ...logged } = changes;
       await deps.audit.record(tenantId, WORKFLOW_ACTOR, 'case.updated', { type: 'case', id: caseId }, { ...logged, ...(changes.data ? { dataFields: Object.keys(config.data) } : {}) } as Record<string, unknown>, caseId);
       if (changes.stage) await deps.audit.record(tenantId, WORKFLOW_ACTOR, 'case.stage_changed', { type: 'case', id: caseId, reference: current.reference }, { from: current.stage, to: changes.stage }, caseId);
-      return { ...logged, stage: changes.stage ?? current.stage, ...(changes.data ? { data: config.data } : {}) };
+      if (config.keys && typeof config.keys === 'object') await setCaseKeys(deps.repository.db(tenantId), caseId, config.keys as Record<string, unknown>);
+      return { ...logged, stage: changes.stage ?? current.stage, ...(changes.data ? { data: config.data } : {}), ...(config.keys ? { keys: config.keys } : {}) };
     });
     return { event: 'done', output: updated };
   },
@@ -503,5 +507,5 @@ const clientRequest: EngineComponent = {
 };
 
 export const BUILTIN_COMPONENTS: EngineComponent[] = [
-  start, end, conditional, calculate, dataMap, wait, email, caseUpdate, caseDecision, review, workTask, clientRequest, ...PARTY_COMPONENTS, ...CLIENT_APP_COMPONENTS, ...INTEGRATION_COMPONENTS,
+  start, end, conditional, calculate, dataMap, wait, email, caseUpdate, caseDecision, review, workTask, clientRequest, ...PARTY_COMPONENTS, ...CLIENT_APP_COMPONENTS, ...INTEGRATION_COMPONENTS, ...EVENT_COMPONENTS,
 ];

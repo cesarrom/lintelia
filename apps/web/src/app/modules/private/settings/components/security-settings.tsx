@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { apiErrorMessage, useApiMutation, useApiQuery } from '@/lib/services/api';
+import { AccessApprovalCard, IdpRolesCard, ReadAuditCard } from './access-settings';
 
 interface SecurityPolicy { requireMfa: boolean; updatedAt: string | null; updatedBy: string | null }
 interface SsoStatus {
@@ -18,6 +19,7 @@ interface SsoStatus {
   enforce: boolean;
   jit: { enabled: boolean; defaultRoles: string[] };
   ready: boolean;
+  rolesFromIdp?: boolean;
 }
 interface RoleOption { id: string; key?: string; name: string }
 
@@ -111,6 +113,10 @@ export default function SecuritySettings() {
           )}
         </CardContent>
       </Card>
+
+      <AccessApprovalCard />
+      <ReadAuditCard />
+      {sso?.configured && <IdpRolesCard roles={roles} />}
     </div>
   );
 }

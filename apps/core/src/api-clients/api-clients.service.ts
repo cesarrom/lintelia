@@ -1,6 +1,7 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
 import { and, desc, eq } from 'drizzle-orm';
-import { TENANT_PERMISSION_IDS, type Tenant, type User } from '@repo/fintivio/schemas';
+import type { Tenant, User } from '@repo/fintivio/schemas';
+import { grantablePermissionIds } from '../access/catalog';
 import { apiClientIndex, apiClients } from '../entities';
 import type { Databases } from '../clients/database.client';
 import { DATABASES } from '../injector/tokens/databases.token';
@@ -49,9 +50,10 @@ export class ApiClientsService {
     return rows.map(present);
   }
 
-  private validPermissions(permissions: unknown): string[] {
+  private async validPermissions(permissions: unknown): Promise<string[]> {
     if (!Array.isArray(permissions) || !permissions.length) throw new BadRequestError('Choose at least one permission');
-    const known = new Set(TENANT_PERMISSION_IDS);
+    // Built-in and the institution's active custom permissions (docs/plans/15 §5.1).
+    const known = new Set(await grantablePermissionIds(this.db));
     const unknown = permissions.filter((p) => !known.has(p));
     if (unknown.length) throw new BadRequestError(`Unknown permissions: ${unknown.join(', ')}`);
     // Same rule as roles: nobody grants what they do not hold.
@@ -63,7 +65,7 @@ export class ApiClientsService {
   async create(input: { name?: string; permissions?: string[]; expiresAt?: string | null }) {
     const name = input.name?.trim();
     if (!name) throw new BadRequestError('A name is required');
-    const permissions = this.validPermissions(input.permissions);
+    const permissions = await this.validPermissions(input.permissions);
     const expiresAt = input.expiresAt ? new Date(input.expiresAt) : null;
     if (expiresAt && (Number.isNaN(expiresAt.getTime()) || expiresAt <= new Date())) throw new BadRequestError('The expiry date must be in the future');
     const clientId = newClientId();

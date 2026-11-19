@@ -8,24 +8,37 @@ import { memberRoutes, staffRoutes, type AppRoute } from '@/lib/routes/routes';
 import { LogoMark } from '@/components/brand/Logo';
 import { Avatar, Monogram } from '@/components/brand/Monogram';
 import { humanize } from '@/components/app/page';
+import { AppIcon } from '@/client-app/icons';
+import { useBackOffice } from '@/back-office/runtime';
 
 const COLLAPSED_KEY = 'fintivio.sidebar.collapsed';
+
+type NavEntry = Pick<AppRoute, 'name' | 'href' | 'icon' | 'section'> & { action?: string };
 
 /** Main navigation: institution members see what their permissions allow; platform staff see the platform console. */
 export function Sidebar() {
   const { isAuthenticated, user, tenant, kind, hasPermission, logout } = useAuth();
+  const { definition: backOffice, run: runAction } = useBackOffice();
   const { session } = useSession();
   const [isCollapsed, setIsCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === '1');
   useEffect(() => localStorage.setItem(COLLAPSED_KEY, isCollapsed ? '1' : '0'), [isCollapsed]);
 
   if (!isAuthenticated) return null;
 
-  const routes = (kind === 'staff' ? staffRoutes : memberRoutes)
+  const routes: NavEntry[] = (kind === 'staff' ? staffRoutes : memberRoutes)
     .filter((route) => !route.permissions || hasPermission(route.permissions));
-  const sections = routes.reduce<Record<string, AppRoute[]>>((acc, route) => {
+  // The institution's own menu items (its back office, docs/plans/16), already pruned for this member by the API:
+  // into their section (a new section goes after "Work").
+  const custom: NavEntry[] = kind === 'staff' ? [] : (backOffice?.navigation ?? []).map((item) => ({
+    name: item.label, section: item.section, href: item.page ? `/app/x/${item.page}` : `#action:${item.action}`, action: item.action,
+    icon: ((props: { className?: string }) => <AppIcon name={item.icon} fallback={item.action ? 'zap' : 'layout-grid'} {...props} />) as unknown as AppRoute['icon'],
+  }));
+  const sections = [...routes, ...custom].reduce<Record<string, NavEntry[]>>((acc, route) => {
     (acc[route.section] ??= []).push(route);
     return acc;
   }, {});
+  const order = [...new Set(['Work', ...custom.map((c) => c.section), ...routes.map((r) => r.section)])];
+  const ordered = Object.entries(sections).sort(([a], [b]) => order.indexOf(a) - order.indexOf(b));
   const staff = kind === 'staff';
   const title = staff ? 'Fintivio platform' : tenant?.name ?? 'Fintivio';
   const brandColor = session?.tenant?.pallette?.primary;
@@ -52,12 +65,27 @@ export function Sidebar() {
 
       <div className="flex min-h-0 flex-1 flex-col">
         <nav aria-label="Main" className="flex-1 space-y-5 overflow-y-auto px-2.5 pb-4 pt-4">
-          {Object.entries(sections).map(([section, items]) => (
+          {ordered.map(([section, items]) => (
             <div key={section} className="space-y-0.5">
               {!isCollapsed
                 ? <p className="px-2.5 pb-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">{section}</p>
                 : <div className="mx-auto mb-2 h-px w-6 bg-border" />}
-              {items.map((item) => (
+              {items.map((item) => item.action ? (
+                <button
+                  key={item.href}
+                  type="button"
+                  onClick={() => void runAction(item.action!)}
+                  title={isCollapsed ? item.name : undefined}
+                  data-testid="nav-action"
+                  className={cn(
+                    'group relative flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] font-medium text-sidebar-foreground transition-colors hover:bg-foreground/[0.045] hover:text-foreground',
+                    isCollapsed && 'justify-center px-0',
+                  )}
+                >
+                  <item.icon className="h-[17px] w-[17px] shrink-0 text-muted-foreground group-hover:text-foreground" />
+                  {!isCollapsed && item.name}
+                </button>
+              ) : (
                 <NavLink
                   key={item.href}
                   to={item.href}

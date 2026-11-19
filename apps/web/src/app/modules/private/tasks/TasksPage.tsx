@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePollInterval } from '@/lib/live';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { AlarmClock, ClipboardCheck, ShieldAlert } from 'lucide-react';
@@ -38,9 +39,10 @@ export default function TasksPage() {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const [view, setView] = useState<View>('mine');
-  const { data: tasks = [], isLoading } = useApiQuery<TaskSummary[]>(['tasks', view], `/tasks?view=${view}`, { refetchInterval: 5000 });
-  const { data: mine } = useApiQuery<TaskSummary[]>(['tasks', 'mine'], '/tasks?view=mine', { refetchInterval: 5000 });
-  const { data: queue } = useApiQuery<TaskSummary[]>(['tasks', 'queue'], '/tasks?view=queue', { refetchInterval: 5000 });
+  const poll = usePollInterval(5000);
+  const { data: tasks = [], isLoading } = useApiQuery<TaskSummary[]>(['tasks', view], `/tasks?view=${view}`, { refetchInterval: poll });
+  const { data: mine } = useApiQuery<TaskSummary[]>(['tasks', 'mine'], '/tasks?view=mine', { refetchInterval: poll });
+  const { data: queue } = useApiQuery<TaskSummary[]>(['tasks', 'queue'], '/tasks?view=queue', { refetchInterval: poll });
   const claim = useApiMutation<string>(({ axios, url }, taskId) => axios.post(url(`/tasks/${taskId}/claim`)), [['tasks']]);
 
   const onClaim = async (task: TaskSummary) => {

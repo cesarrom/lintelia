@@ -10,6 +10,7 @@ import type { User } from '@repo/fintivio/schemas';
 import { BadRequestError } from '../http/errors';
 import { type AppRequest, REQUEST_PROXY } from '../injector/tokens/request-proxy.token';
 import { handle } from '../http/respond';
+import { AccessRecovery } from '../access/recovery';
 
 /** Platform console: staff accounts, the platform audit log and support-access requests. */
 @Controller({ path: '/platform', scope: Scope.REQUEST })
@@ -21,6 +22,7 @@ export class PlatformHandler {
     @Inject(REQUEST_PROXY) private readonly request: AppRequest,
     @Inject(ConnectorRegistry) private readonly registry: ConnectorRegistry,
     @Inject(USER) private readonly user: User,
+    @Inject(AccessRecovery) private readonly recovery: AccessRecovery,
   ) { }
 
   private get actor() {
@@ -82,6 +84,16 @@ export class PlatformHandler {
   @Put('/staff/:staffId')
   updateStaff(@Param('staffId') staffId: string, @Res() ctx: Context) {
     return handle(ctx, async () => this.staff.update(staffId, await this.request.json()), 'Failed to update');
+  }
+
+  /**
+   * Restore an administrator of an institution that locked itself out (docs/plans/15 §14), after verifying the request
+   * out of band: `{ email, name?, reason, ticket }`. Audited on both sides; the institution's administrators are told.
+   */
+  @RequirePlatform('platform.tenants:recover')
+  @Post('/tenants/:domain/recover-access')
+  recoverAccess(@Param('domain') domain: string, @Res() ctx: Context) {
+    return handle(ctx, async () => this.recovery.recover({ id: this.user.userId, email: this.user.email }, domain, await this.request.json()), 'Failed to restore access', 201);
   }
 
   @RequirePlatform('platform.audit:read')

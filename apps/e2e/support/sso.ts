@@ -45,8 +45,9 @@ export async function setUpSsoWith(api: Api, basePath: string, opts: { domain: s
   return { link, issuer, client };
 }
 
-export const idpUser = (email: string, opts: { password?: string; name?: string; mfa?: boolean; groups?: string[] } = {}) =>
-  controlFake('oidcIdp', '/users', { email, password: opts.password ?? 'idp-password-1', name: opts.name ?? 'Jane Doe', mfa: opts.mfa ?? true, groups: opts.groups ?? [] });
+/** A person at the fake IdP: its groups and extra ID token claims (department, region…) reach the SSO profile. */
+export const idpUser = (email: string, opts: { password?: string; name?: string; mfa?: boolean; groups?: string[]; claims?: Record<string, unknown> } = {}) =>
+  controlFake('oidcIdp', '/users', { email, password: opts.password ?? 'idp-password-1', name: opts.name ?? 'Jane Doe', mfa: opts.mfa ?? true, groups: opts.groups ?? [], claims: opts.claims ?? {} });
 
 /** Follow the SSO round trip without a browser: discovery → broker → IdP login form → back to the web app's hand-off. */
 export async function ssoSignInWithoutBrowser(redirectUrl: string, email: string, password = 'idp-password-1') {

@@ -1,3 +1,4 @@
+import { caseLive } from '../live/topics';
 import { Access, Require } from "../auth/access";
 import assert from "assert";
 import { WorkflowsService } from "../services/workflows.service";
@@ -12,7 +13,7 @@ import type { Context } from "hono";
 import { type AppRequest, REQUEST_PROXY } from "../injector/tokens/request-proxy.token";
 import { WorkflowLifecycleService } from "../services/workflow-lifecycle.service";
 import { CasesService } from "../services/cases.service";
-import { handle } from "../http/respond";
+import { handle, respondToChange } from "../http/respond";
 import { IdentityService } from "../auth/identity.service";
 import { TENANT } from "../injector/tokens/tenant.token";
 import type { Tenant } from "@repo/fintivio/schemas";
@@ -38,7 +39,7 @@ export class WorkflowHandler {
    * Published workflows a member may start by hand (no event subscription), with their inputs: what the "start an
    * application" dialog offers to relationship managers, who cannot read workflow definitions.
    */
-  @Require('cases:create')
+  @Access('member', 'api_client')
   @Get('/startable')
   async startable(@Res() ctx: Context): Promise<void> {
     await handle(ctx, () => this.lifecycle.startable(), 'Failed to list workflows');
@@ -52,10 +53,17 @@ export class WorkflowHandler {
   }
 
   /** Freeze the draft as the next immutable version; new cases use it. 422 with `errors` when invalid. */
+  /**
+   * Freeze the draft as the next version. A change of who may start it or see its cases (`access`) is an access change:
+   * `202` with the change while it waits for an administrator (docs/plans/15 §5.3).
+   */
   @Require('workflows:publish')
   @Post('/:workflowId/publish')
   async publish(@Param('workflowId') workflowId: string, @Res() ctx: Context): Promise<void> {
-    await handle(ctx, () => this.lifecycle.publish(workflowId), 'Failed to publish the workflow');
+    await respondToChange(ctx, async () => {
+      const body = await this.requestProxy.json<{ effectiveAt?: string }>().catch(() => ({} as { effectiveAt?: string }));
+      return this.lifecycle.publish(workflowId, { effectiveAt: body?.effectiveAt });
+    }, (result) => result, 'Failed to publish the workflow');
   }
 
   /** Retire the active version: no new cases (running ones continue). */
@@ -75,10 +83,12 @@ export class WorkflowHandler {
    * Start an execution (a case) on the active version: manual start from the back office or an API call from the
    * institution's systems. An `email` input identifies the applicant (created as a client if new). 409 on drafts.
    */
-  @Require('cases:create')
+  @Access('member', 'api_client')
   @Post('/:workflowId/executions')
   async startExecution(@Param('workflowId') workflowId: string, @Res() ctx: Context): Promise<void> {
     await handle(ctx, async () => {
+      // The workflow's start rule (docs/plans/15 §5.3), or cases:create when it has none.
+      await this.cases.assertCanStart(workflowId);
       const body = await this.requestProxy.json<{ inputs?: Record<string, unknown>; data?: Record<string, unknown> }>().catch(() => ({} as { inputs?: Record<string, unknown> }));
       const inputs = body.inputs ?? (body as { data?: Record<string, unknown> }).data ?? {};
       const email = typeof inputs.email === 'string' && inputs.email.includes('@') ? inputs.email : null;
@@ -89,7 +99,8 @@ export class WorkflowHandler {
         applicant: client ? { id: client.id, email: client.email, name: name ?? client.name } : null,
         initiatedBy: { type: this.user.kind, id: this.user.userId, email: this.user.email },
       });
-      return { caseId: kase.id, executionId: kase.id, reference: kase.reference, title: kase.title, status: kase.status };
+      // Listening from the start (docs/plans/17 §4.6): what the case publishes is kept for late listeners.
+      return { caseId: kase.id, executionId: kase.id, reference: kase.reference, title: kase.title, status: kase.status, live: caseLive(kase.id) };
     }, 'Failed to start the workflow', 202);
   }
 

@@ -4,17 +4,14 @@ import jsonata from 'jsonata';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
-  AlertTriangle, AppWindow, Check, CircleCheck, Database, ExternalLink, FileStack, History, LayoutTemplate, Loader2, Rocket, Route, Settings2,
+  AppWindow, Database, ExternalLink, FileStack, LayoutTemplate, Loader2, Rocket, Route, Settings2,
 } from 'lucide-react';
 import { appSources, ordered, validateClientApp, type ClientWidget } from '@repo/fintivio/schemas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { formatRelative } from '@/components/app/page';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { apiErrorDetails, apiErrorMessage, useApiQuery } from '@/lib/services/api';
 import { useAxios } from '@/lib/services/axios';
@@ -24,6 +21,7 @@ import { sampleData } from '@/client-app/sample-data';
 import type { AppData, AppDefinition } from '@/client-app/types';
 import type { SchemaFormContext } from '../workflows/components/catalog/SchemaForm';
 import { Canvas, DeviceToggle, PreviewAs, type Device } from './Canvas';
+import { Hint, ProblemsButton, SaveIndicator, StudioModeSwitch, VersionsMenu } from './studio-chrome';
 import { PageInspector, WidgetInspector } from './Inspector';
 import { PagesList, WidgetOutline } from './Outline';
 import { CollectionInspector, CollectionsList, JourneyInspector, JourneysList, SettingsInspector, SettingsList } from './panels';
@@ -238,7 +236,7 @@ export default function StudioPage() {
     <div className="flex h-full min-h-0 flex-col" data-testid="studio">
       {/* Header */}
       <header className="flex flex-wrap items-center gap-3 border-b px-4 py-2.5">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-soft text-primary"><AppWindow className="h-4 w-4" /></span>
+        <StudioModeSwitch fallback={<span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-soft text-primary"><AppWindow className="h-4 w-4" /></span>} />
         <Input
           aria-label="App name" value={definition.name} disabled={readOnly} onChange={(e) => edit((d) => ({ ...d, name: e.target.value }))}
           className="h-8 w-56 border-transparent bg-transparent px-2 text-[15px] font-semibold shadow-none hover:border-input focus-visible:border-input"
@@ -375,69 +373,6 @@ export default function StudioPage() {
           setWidgetId(null);
         }}
       />
-    </div>
-  );
-}
-
-function SaveIndicator({ state, readOnly }: { state: 'saved' | 'dirty' | 'saving' | 'error'; readOnly: boolean }) {
-  if (readOnly) return <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">Read only</span>;
-  return (
-    <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground" data-testid="save-state" data-state={state}>
-      {state === 'saving' || state === 'dirty' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : state === 'error' ? <AlertTriangle className="h-3.5 w-3.5 text-destructive" /> : <Check className="h-3.5 w-3.5 text-success" />}
-      {state === 'saved' ? 'Draft saved' : state === 'error' ? 'Not saved' : 'Saving…'}
-    </span>
-  );
-}
-
-function ProblemsButton({ errors }: { errors: string[] }) {
-  if (!errors.length) return <span className="inline-flex items-center gap-1.5 px-2 text-xs font-medium text-success" data-testid="app-valid"><CircleCheck className="h-4 w-4" />Ready to publish</span>;
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" data-testid="app-problems"><AlertTriangle className="h-4 w-4" />{errors.length} {errors.length === 1 ? 'problem' : 'problems'}</Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-[420px] p-0">
-        <p className="border-b px-4 py-2.5 text-sm font-semibold">Fix these before publishing</p>
-        <ul className="max-h-80 space-y-1.5 overflow-y-auto p-3 text-sm" data-testid="problems-list">{errors.map((e) => <li key={e} className="flex gap-2"><AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />{e}</li>)}</ul>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-function VersionsMenu({ app, canPublish, canManage, onActivate, onRestore }: { app: StudioApp; canPublish: boolean; canManage: boolean; onActivate: (v: number) => void; onRestore: (v: number) => void }) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button size="sm" variant="ghost" data-testid="versions"><History className="h-4 w-4" />{app.activeVersion ? `Live: v${app.activeVersion}` : 'Not published'}</Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-80">
-        <DropdownMenuLabel>Versions</DropdownMenuLabel>
-        {!app.versions.length && <p className="px-2 py-3 text-sm text-muted-foreground">Nothing published yet.</p>}
-        {app.versions.map((v) => (
-          <div key={v.version} className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5" data-testid="version" data-version={v.version}>
-            <div className="min-w-0">
-              <p className="text-sm font-medium">Version {v.version}{app.activeVersion === v.version && <span className="ml-2 rounded-full bg-success-soft px-1.5 py-0.5 text-[10.5px] font-semibold text-success">Live</span>}</p>
-              <p className="truncate text-xs text-muted-foreground">{v.publishedBy} · {formatRelative(v.publishedAt)}</p>
-            </div>
-            <span className="flex shrink-0 gap-1">
-              {canManage && <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => onRestore(v.version)}>Edit</Button>}
-              {canPublish && app.activeVersion !== v.version && <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => onActivate(v.version)} data-testid="make-live">Make live</Button>}
-            </span>
-          </div>
-        ))}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem disabled className="text-xs">“Make live” rolls back without touching the draft.</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
-
-function Hint({ icon: Icon, title, text }: { icon: typeof Route; title: string; text: string }) {
-  return (
-    <div className="p-6 text-center">
-      <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-primary-soft text-primary"><Icon className="h-5 w-5" /></span>
-      <p className="mt-3 text-sm font-semibold">{title}</p>
-      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{text}</p>
     </div>
   );
 }

@@ -155,6 +155,41 @@
       "when": 1794843107163,
       "tag": "0021_case_stages_signals",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794958278818,
+      "tag": "0022_access_control",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794969982361,
+      "tag": "0023_sso_linked_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794970299139,
+      "tag": "0024_back_office",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795004209834,
+      "tag": "0025_live_events",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795007675557,
+      "tag": "0026_live_case_triggers",
+      "breakpoints": true
     }
   ]
 }

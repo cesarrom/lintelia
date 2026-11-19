@@ -35,6 +35,12 @@ export const tenantSecurityPolicies = pgTable('tenant_security_policies', {
   id: uuid('id').primaryKey().defaultRandom(),
   tenantId: tenantIdColumn(),
   requireMfa: boolean('require_mfa').default(true).notNull(),
+  /** Access changes that grant something wait for a second administrator (`grants`) or apply at once (`off`). */
+  accessApproval: varchar('access_approval', { length: 16 }).$type<'off' | 'grants'>().default('off').notNull(),
+  /** Extra addresses told about privileged access changes (e.g. the security team's mailbox). */
+  accessNotify: text('access_notify').array().default(sql`'{}'::text[]`).notNull(),
+  /** Record who opened which client through the back office's custom pages (`client.viewed`, docs/plans/16 §5.5). */
+  readAudit: boolean('read_audit').default(false).notNull(),
   updatedByEmail: varchar('updated_by_email', { length: 320 }),
   updatedAt: timestamp('updated_at', { mode: 'date', withTimezone: true }).defaultNow().notNull().$onUpdate(() => new Date()),
 }, (table) => [

@@ -25,6 +25,9 @@ Latest batches (details in `docs/changes/`):
 
 | Batch | What | Try it |
 | --- | --- | --- |
+| [0014](docs/changes/0014-live-data-and-events.md) | **Live data and events**: events from your systems reach the running cases they are about (business keys: a loan, a card) — `event.wait`, start-or-deliver, `poll`; `POST /events` needs `events:publish`; pages update by themselves (Server-Sent Events: balances, notifications, tasks, queues, journeys' progress); `live.publish` to a case channel, the applicant, a member, a role or a webhook subscription | journey [J24](#j24--live-data-and-events) |
+| [0013](docs/changes/0013-back-office.md) | **The institution's own back office**: designers build pages, menu items, buttons and tabs on the client and case pages, dashboard widgets and actions that run workflows with **staff screens** (`team.screen`), each item gated by *Who gets it*; preview as a role, *Who gets what* per role; the *Fee waivers* template (Demo Bank has it published). Read auditing in *Settings → Security* | *Build → Back office*, journey [J23](#j23--the-institutions-own-back-office-fee-waivers) |
+| [0012](docs/changes/0012-access-control.md) | **Who sees what**: custom permissions, system roles extended with them, who may start a workflow and see its cases, roles from the identity provider, member attributes, time-bound roles, *Access changes* with notifications and an optional second administrator, staff restoring access | *Administration → Roles*, journey [J22](#j22--who-sees-what-custom-permissions-gated-workflows-a-second-administrator-roles-from-the-idp) |
 | [0011](docs/changes/0011-ui-building-blocks.md) | **UI building blocks**: journeys open as a dialog, a sheet or full screen (floating button, quick actions, deep links); QR / barcode **scanner** reading payment codes; screens that **continue by themselves**; signature, one-time code, slider, calculated and conditional fields, format rules; **branding** (presets, accent, fonts, button shapes, light/dark, colours from the logo, readability) and region. Banking app: **Pay with a QR code** | journey [J21](#j21--pay-with-a-qr-code-and-brand-the-app) |
 | [0010](docs/changes/0010-bun-e2e.md) | **`bun e2e`** runs the end-to-end suite in one command: attaches to the stack or starts it (refuses a partially up stack unless `--force`), decides headed or headless, runs, updates flow-status | `bun e2e` (§4) |
 | [0009](docs/changes/0009-experience-map.md) | **Experience map** (experiment): the layout, pages, journeys with their screens and what happens in between, workflows, functions, forms and events on one Figma-like canvas; follow links, personas, layers, open each editor and come back | *Build → Map*, journey [J20](#j20--the-experience-map) |
@@ -150,7 +153,7 @@ Password for every seeded account: **`fintivio-dev-password`** (override with `S
 | | `compliance@demo-bank.test` (Morgan MLRO) | compliance officer / MLRO: screening hits, investigations, data requests |
 | | `lead@demo-bank.test` (Lee Lead), `senior@demo-bank.test` (Jordan Senior) | senior reviewers: high-authority approvals (four-eyes), escalations |
 | | `analyst@demo-bank.test` (Alex Analyst) | reviewer: first-line queue |
-| | `rm@demo-bank.test` (Riley Relationship) | relationship manager: assisted applications, flags clients |
+| | `rm@demo-bank.test` (Riley Relationship) | relationship manager: assisted applications, flags clients; waives fees up to £50 (back office) |
 | | `designer@demo-bank.test` (Devon Designer) | flow designer: forms, workflows, editor |
 | | `integrations@demo-bank.test` (Ira Integrations) | integration manager: connections, API clients, webhooks |
 | | `support@demo-bank.test`, `auditor@demo-bank.test` | support agent, auditor (read-only oversight) |
@@ -804,6 +807,74 @@ the editor, *Your functions* in the palette and the ⚙ settings (stages, functi
    new field types (scanner, signature, one-time code, slider, calculated value), *Shown when*, format rules and
    *Continue by itself*.
 5. Watch it: `bun e2e --headed tests/client-app/pay-with-qr.ui.spec.ts` (the camera test films a generated code).
+
+### J22 — Who sees what: custom permissions, gated workflows, a second administrator, roles from the IdP
+
+Change log: [docs/changes/0012](docs/changes/0012-access-control.md); e2e: `bun e2e --grep "@FIA-1[3-9]|@STAFF-08"`.
+
+1. As `admin@demo-bank.test`, *Administration → Roles*: the *Matrix* tab (roles × permissions); open *Reviewer*: its
+   members (and how each got the role) and what it opens (queues, escalations, workflows it may start).
+2. *New permission* “Waive fees” (category Servicing): *Custom permissions* says nobody holds it. *Extend* Relationship
+   manager with it: the card shows it highlighted; `rm@demo-bank.test` holds it at their next request (*Team → Access*).
+3. As `designer@demo-bank.test`, open a workflow → settings → *Who may use it* → *Who may start it: only some members* →
+   *Waive fees* → Apply, save, *Publish*: “Sent for approval”. As `admin`, *Access changes* → *Approve*. Only members
+   holding “Waive fees” see it in *Start an application* (and the API refuses the others).
+4. *Settings → Security → Access changes*: require a second administrator (Demo Bank has one administrator: refused,
+   “needs at least two”; invite a second administrator first). Then change someone's role in *Team*: it waits in
+   *Access changes* for the other administrator; e-mails arrive at http://localhost:8025. Removing a role never waits.
+   *Edit roles* gives a role until a date; any change can take effect *from a date*.
+5. Roles from the identity provider: *Settings → Security → Roles from your identity provider*: map `KYC-Analysts` →
+   Reviewer and `Fintivio-Admins` → Administrator, preview. Set up single sign-on as in J15: as soon as the domain is
+   verified, roles of its people come from the IdP (the administrators get an e-mail). Create an IdP user with groups
+   (`POST http://localhost:9400/__control/users { email, password, groups: ["KYC-Analysts"] }`) and sign in with SSO:
+   the member holds Reviewer, read-only in *Team*. Change the groups and sign in again.
+6. As platform staff, *Platform → Institutions → Restore access*: an administrator invited with a ticket; the
+   institution's administrators receive an e-mail.
+
+### J23 — The institution's own back office: fee waivers
+
+Change log: [docs/changes/0013](docs/changes/0013-back-office.md); e2e: `bun e2e tests/back-office`.
+
+Demo Bank has the *Fee waivers* back office published (the seed): relationship managers and senior reviewers hold the
+custom permission *Waive fees*; `rm@demo-bank.test` may waive up to £50, `lead@` and `senior@` up to £1,000.
+
+1. As `rm@demo-bank.test`: the dashboard shows *Servicing* (fee waivers waiting for approval); the menu has
+   *Servicing → Servicing desk*. As `analyst@demo-bank.test` (a reviewer): none of it.
+2. As `rm@`, *Clients → Chris Client*: a *Waive a fee* button and a *Servicing* tab (the page's own content stays in
+   *Overview*). *Waive a fee* → choose the account, *Late payment*, £20, a reason → *Waive the fee*: done at once; the
+   *Servicing* tab lists the refund (and `client@demo-bank.test` sees it in the app, with a notification).
+3. Again with £80: *Sent — waiting for: Approve a fee waiver* (above the limit). As `lead@demo-bank.test`, *Tasks* →
+   claim and approve; the refund happens. The member who asked cannot approve their own.
+4. Start one more and close the dialog: the dashboard shows *Waiting for you* → *Continue*, and the case page a
+   *Continue* button.
+5. As `designer@demo-bank.test`, *Build → Back office*: pages, additions to the dashboard / client / case pages,
+   actions, menu and homes; select a widget on the canvas, change it; *Who gets it* on any item; *Preview as* Reviewer
+   (nothing) and Relationship manager; *Who gets what* (per role). *Templates*, *Publish*, *Live: vN* (roll back).
+6. As `admin@`, *Settings → Security → Who looked at which client*: on; open a client's *Servicing* tab as `rm@`, then
+   *Audit log* shows `client.viewed`.
+
+### J24 — Live data and events
+
+Change log: [docs/changes/0014](docs/changes/0014-live-data-and-events.md); e2e: `bun e2e tests/live tests/automation/events.api.spec.ts`.
+
+1. Pages update by themselves: the top bar shows **Live**. As `client@demo-bank.test` open the banking app; in
+   another terminal write a balance (`bun run demo:token admin@demo-bank.test`, then
+   `curl -X PUT localhost:8000/clients/<client id>/records/accounts/cur-1 -H "Authorization: Bearer <token>" -H "X-Tenant: demo-bank" -H "Content-Type: application/json" -d '{"data":{"name":"Everyday account","type":"current","number":"•• 4417","balance":999,"currency":"GBP","status":"active"}}'`):
+   the balance changes within a second (the client id is in the address of *Clients → Chris Client* as `admin@`). As `analyst@`, keep *Tasks → Team queue* open while `rm@` starts an
+   application: it appears without reloading.
+2. Events by business key: as `designer@`, publish a workflow with `correlation: { loan: "= input.loanId" }` and an
+   *Wait for an event* step (`event: api:loan.payment`, `match: { loan: "= data.loanId" }`); start two cases with
+   different `loanId`s; as `integrations@`, create an API client with **Publish events** and send
+   `POST /events { "id": "p1", "type": "loan.payment", "data": { "loanId": "…", "amount": 50 } }`: the answer names the
+   one case it reached; the case page lists what it waited for (*Signals and events*).
+3. Start or deliver: `startOn: [{ event: "api:loan.repayment", correlate: { loan: "= data.loanId" } }]` — the first
+   repayment opens the case, the next go to it.
+4. Progress: a journey whose workflow has *Send a live message* steps (`to: case`, `channel: progress`) shows each
+   message while it works; `{{case.live.progress}}` (save it on the case) opens in a browser or `curl -N` without an
+   account.
+5. A system listening: *Send a live message* with `to: webhook` and one of your subscriptions (*Build → Webhooks*):
+   the receiver gets a signed `case.message`.
+6. Load (spike S5): `bun run --cwd apps/core live:load 1000 300 100`.
 
 ## 7. Troubleshooting
 

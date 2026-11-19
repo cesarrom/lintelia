@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useApiQuery } from '@/lib/services/api';
+import { useAuth } from '@/lib/auth/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { useAxios } from '@/lib/services/axios';
 import { useWorkflow } from '../WorkflowContext';
@@ -44,6 +45,9 @@ export function ComponentConfigDialog({ nodeId, definition, open, onOpenChange }
 
   const { data: workflows = [] } = useApiQuery<Array<{ id: string; name: string; status: string }>>(['workflows', 'list'], '/workflows');
   const { data: forms = [] } = useApiQuery<Array<{ id: string; name: string }>>(['forms', 'list'], '/forms');
+  // Webhook subscriptions (live.publish to a webhook): for those who may see them; others type the id.
+  const { hasPermission } = useAuth();
+  const { data: subscriptions = [] } = useApiQuery<Array<{ id: string; url: string; description: string | null }>>(['webhooks'], hasPermission('webhooks:manage') ? '/webhooks' : null);
   // Dynamic options asked from the connector for the chosen connection (e.g. Didit workflows, Documenso templates).
   const dynamicFields = Object.entries(definition.configSchema.properties ?? {}).filter(([, field]) => typeof (field as Record<string, unknown>)['x-options'] === 'string')
     .map(([key, field]) => ({ key, name: String((field as Record<string, unknown>)['x-options']) }));
@@ -96,6 +100,7 @@ export function ComponentConfigDialog({ nodeId, definition, open, onOpenChange }
               options: { connection: connectionOptions, ...dynamicOptions },
               workflows: workflows.filter((w) => w.status === 'active').map((w) => ({ value: w.id, label: w.name })),
               forms: (Array.isArray(forms) ? forms : []).map((f) => ({ value: f.id, label: f.name })),
+              choices: Array.isArray(subscriptions) && subscriptions.length ? { webhook: subscriptions.map((w) => ({ value: w.id, label: w.description ? `${w.description} (${w.url})` : w.url })) } : undefined,
             }} />
         </div>
         <DialogFooter>

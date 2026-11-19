@@ -88,6 +88,7 @@ export function workflowToYaml(workflow: Workflow, nodes: Node<NodeData>[], edge
     ...(workflow.stages?.length ? { stages: workflow.stages } : {}),
     ...(workflow.function ? { function: true } : {}),
     ...(workflow.outputs && Object.keys(workflow.outputs).length ? { outputs: workflow.outputs } : {}),
+    ...(workflow.access && (workflow.access.start || workflow.access.cases) ? { access: workflow.access } : {}),
 
     // Convert triggers
     triggers: triggers,
@@ -178,6 +179,7 @@ export function yamlToWorkflow(yamlContent: string, options: { id?: string } = {
     stages: schema.stages,
     function: schema.function,
     outputs: schema.outputs,
+    access: schema.access,
   };
 
   // Convert to triggers

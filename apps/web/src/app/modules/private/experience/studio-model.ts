@@ -1,4 +1,4 @@
-import { clientWidgetDefinition, type ClientAppDefinition, type ClientPage, type ClientWidget } from '@repo/fintivio/schemas';
+import { clientWidgetDefinition, type ClientAppDefinition, type ClientPage, type ClientWidget, type ClientWidgetDefinition } from '@repo/fintivio/schemas';
 
 /**
  * Edits of the client app's draft (pure functions over the definition). Widgets are addressed by id (unique per page);
@@ -8,8 +8,8 @@ export type Definition = ClientAppDefinition;
 
 const shortId = () => Math.random().toString(36).slice(2, 7);
 
-export const newWidget = (type: string): ClientWidget => {
-  const definition = clientWidgetDefinition(type);
+export const newWidget = (type: string, definitionOf: (type: string) => ClientWidgetDefinition | undefined = clientWidgetDefinition): ClientWidget => {
+  const definition = definitionOf(type);
   return { id: `${type}-${shortId()}`, type, props: structuredClone(definition?.defaults ?? {}), ...(definition?.container ? { children: [] } : {}) };
 };
 
@@ -45,81 +45,90 @@ function editPage(definition: Definition, pageKey: string, edit: (widgets: Clien
   return next;
 }
 
-/** Insert: into the selected section, after the selected widget, or at the end of the page. */
-export function insertWidget(definition: Definition, pageKey: string, widget: ClientWidget, selectedId: string | null): Definition {
-  return editPage(definition, pageKey, (widgets) => {
-    const found = selectedId ? locate(widgets, selectedId) : null;
-    if (!found) return void widgets.push(widget);
-    const selected = found.list[found.index];
-    if (clientWidgetDefinition(selected.type)?.container && !clientWidgetDefinition(widget.type)?.container) {
-      selected.children = [...(selected.children ?? []), widget];
-      return;
-    }
-    // Sections are not nested: a section added next to a child goes after its parent section.
-    if (found.parent && clientWidgetDefinition(widget.type)?.container) {
-      const outer = locate(widgets, found.parent.id)!;
-      outer.list.splice(outer.index + 1, 0, widget);
-      return;
-    }
-    found.list.splice(found.index + 1, 0, widget);
-  });
+// --- edits of a list of widgets, in place (the client app's pages, the back office's pages and dashboard additions) ---
+
+/** Insert: into the selected section, after the selected widget, or at the end of the list. */
+export function insertIn(widgets: ClientWidget[], widget: ClientWidget, selectedId: string | null) {
+  const found = selectedId ? locate(widgets, selectedId) : null;
+  if (!found) return void widgets.push(widget);
+  const selected = found.list[found.index];
+  if (clientWidgetDefinition(selected.type)?.container && !clientWidgetDefinition(widget.type)?.container) {
+    selected.children = [...(selected.children ?? []), widget];
+    return;
+  }
+  // Sections are not nested: a section added next to a child goes after its parent section.
+  if (found.parent && clientWidgetDefinition(widget.type)?.container) {
+    const outer = locate(widgets, found.parent.id)!;
+    outer.list.splice(outer.index + 1, 0, widget);
+    return;
+  }
+  found.list.splice(found.index + 1, 0, widget);
 }
 
-export function updateWidget(definition: Definition, pageKey: string, id: string, change: (widget: ClientWidget) => ClientWidget): Definition {
-  return editPage(definition, pageKey, (widgets) => {
-    const found = locate(widgets, id);
-    if (found) found.list[found.index] = change(found.list[found.index]);
-  });
+export function updateIn(widgets: ClientWidget[], id: string, change: (widget: ClientWidget) => ClientWidget) {
+  const found = locate(widgets, id);
+  if (found) found.list[found.index] = change(found.list[found.index]);
 }
 
-export function removeWidget(definition: Definition, pageKey: string, id: string): Definition {
-  return editPage(definition, pageKey, (widgets) => {
-    const found = locate(widgets, id);
-    if (found) found.list.splice(found.index, 1);
-  });
+export function removeIn(widgets: ClientWidget[], id: string) {
+  const found = locate(widgets, id);
+  if (found) found.list.splice(found.index, 1);
 }
 
-export function duplicateWidget(definition: Definition, pageKey: string, id: string): { definition: Definition; id: string | null } {
-  let copyId: string | null = null;
-  const next = editPage(definition, pageKey, (widgets) => {
-    const found = locate(widgets, id);
-    if (!found) return;
-    const copy = cloneWidget(found.list[found.index]);
-    copyId = copy.id;
-    found.list.splice(found.index + 1, 0, copy);
-  });
-  return { definition: next, id: copyId };
+/** Duplicate in place; the copy's id. */
+export function duplicateIn(widgets: ClientWidget[], id: string): string | null {
+  const found = locate(widgets, id);
+  if (!found) return null;
+  const copy = cloneWidget(found.list[found.index]);
+  found.list.splice(found.index + 1, 0, copy);
+  return copy.id;
 }
 
 /** Move up/down among its siblings; at the edge of a section, out of it. Into a section right above/below when moving onto one. */
-export function moveWidget(definition: Definition, pageKey: string, id: string, direction: -1 | 1): Definition {
-  return editPage(definition, pageKey, (widgets) => {
-    const found = locate(widgets, id);
-    if (!found) return;
-    const { list, index, parent } = found;
-    const widget = list[index];
-    const target = index + direction;
-    if (target < 0 || target >= list.length) {
-      if (!parent) return;
-      // Leave the section: before or after it.
-      list.splice(index, 1);
-      const outer = locate(widgets, parent.id)!;
-      outer.list.splice(direction < 0 ? outer.index : outer.index + 1, 0, widget);
-      return;
-    }
-    const neighbour = list[target];
-    if (!parent && clientWidgetDefinition(neighbour.type)?.container && !clientWidgetDefinition(widget.type)?.container) {
-      // Enter the section: at its end when coming from above… at its start when coming from below.
-      list.splice(index, 1);
-      neighbour.children = neighbour.children ?? [];
-      if (direction > 0) neighbour.children.unshift(widget);
-      else neighbour.children.push(widget);
-      return;
-    }
+export function moveIn(widgets: ClientWidget[], id: string, direction: -1 | 1) {
+  const found = locate(widgets, id);
+  if (!found) return;
+  const { list, index, parent } = found;
+  const widget = list[index];
+  const target = index + direction;
+  if (target < 0 || target >= list.length) {
+    if (!parent) return;
+    // Leave the section: before or after it.
     list.splice(index, 1);
-    list.splice(target, 0, widget);
-  });
+    const outer = locate(widgets, parent.id)!;
+    outer.list.splice(direction < 0 ? outer.index : outer.index + 1, 0, widget);
+    return;
+  }
+  const neighbour = list[target];
+  if (!parent && clientWidgetDefinition(neighbour.type)?.container && !clientWidgetDefinition(widget.type)?.container) {
+    // Enter the section: at its end when coming from above… at its start when coming from below.
+    list.splice(index, 1);
+    neighbour.children = neighbour.children ?? [];
+    if (direction > 0) neighbour.children.unshift(widget);
+    else neighbour.children.push(widget);
+    return;
+  }
+  list.splice(index, 1);
+  list.splice(target, 0, widget);
 }
+
+export const insertWidget = (definition: Definition, pageKey: string, widget: ClientWidget, selectedId: string | null): Definition =>
+  editPage(definition, pageKey, (widgets) => insertIn(widgets, widget, selectedId));
+
+export const updateWidget = (definition: Definition, pageKey: string, id: string, change: (widget: ClientWidget) => ClientWidget): Definition =>
+  editPage(definition, pageKey, (widgets) => updateIn(widgets, id, change));
+
+export const removeWidget = (definition: Definition, pageKey: string, id: string): Definition =>
+  editPage(definition, pageKey, (widgets) => removeIn(widgets, id));
+
+export function duplicateWidget(definition: Definition, pageKey: string, id: string): { definition: Definition; id: string | null } {
+  let copyId: string | null = null;
+  const next = editPage(definition, pageKey, (widgets) => { copyId = duplicateIn(widgets, id); });
+  return { definition: next, id: copyId };
+}
+
+export const moveWidget = (definition: Definition, pageKey: string, id: string, direction: -1 | 1): Definition =>
+  editPage(definition, pageKey, (widgets) => moveIn(widgets, id, direction));
 
 /** `Open & apply` → `open-apply`; unique among existing keys. */
 export function keyFrom(title: string, existing: string[], fallback = 'page') {

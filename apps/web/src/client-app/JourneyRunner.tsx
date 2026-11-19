@@ -6,6 +6,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { apiErrorMessage } from '@/lib/services/api';
 import { useAxios } from '@/lib/services/axios';
+import { useLive, useLiveStatus } from '@/lib/live';
+import { followCase } from './live';
 import { cn } from '@/lib/utils';
 import { RequestCard, type ClientRequest } from '@/app/modules/portal/RequestCard';
 import { AppIcon } from './icons';
@@ -38,15 +40,29 @@ export function JourneyRunner({ caseId, onLeave, presentation = 'page', dismissi
   const [errors, setErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
 
+  const live = useLiveStatus() === 'connected';
   const { data: state, error: loadError, isLoading } = useQuery<JourneyState>({
     queryKey: journeyKey(caseId),
     queryFn: async () => (await axios.get(`${API_BASE_URL}/me/app/cases/${caseId}/journey`)).data,
     enabled: ready,
+    // With live updates the case tells us when it moves; polling is the safety net (docs/plans/17).
     refetchInterval: (query) => {
       const current = query.state.data?.state;
+      if (live) return current === 'working' ? 5000 : current === 'waiting' || current === 'request' ? 30_000 : false;
       return current === 'working' ? 700 : current === 'waiting' || current === 'request' ? 4000 : false;
     },
   });
+  // On screen: its notifications need not pop up too.
+  useEffect(() => { followCase(caseId); }, [caseId, state?.state]);
+  // What the workflow publishes on its "progress" channel ("Checking your ID…"), from the start.
+  const [notes, setNotes] = useState<Array<{ seq: number; text: string }>>([]);
+  useLive(state?.live?.topics ?? [], (event) => {
+    if (event.kind === 'change') void queryClient.invalidateQueries({ queryKey: journeyKey(caseId) });
+    else if (event.topic.endsWith('/channel/progress')) {
+      const text = String(event.payload.text ?? event.payload.title ?? '');
+      if (text) setNotes((list) => (list.some((n) => n.seq === event.seq) ? list : [...list, { seq: event.seq, text }].sort((a, b) => a.seq - b.seq)));
+    }
+  }, { replay: true });
 
   // Tell the host (embedded app) when the journey ends while the client looks at it.
   const previous = useRef<string | undefined>(undefined);
@@ -124,7 +140,12 @@ export function JourneyRunner({ caseId, onLeave, presentation = 'page', dismissi
         {state.state === 'working' && (
           <div className="flex flex-col items-center gap-3 py-10 text-center" data-testid="journey-working">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="font-medium">One moment…</p>
+            <p className="font-medium" data-testid="journey-progress">{notes.at(-1)?.text ?? 'One moment…'}</p>
+            {notes.length > 1 && (
+              <ol className="space-y-1 text-sm text-muted-foreground" data-testid="journey-progress-history">
+                {notes.slice(0, -1).map((n) => <li key={n.seq} className="flex items-center justify-center gap-1.5"><Check className="h-3.5 w-3.5 text-success" />{n.text}</li>)}
+              </ol>
+            )}
           </div>
         )}
         {state.state === 'waiting' && (

@@ -3,6 +3,8 @@ import { set } from 'lodash';
 import type { Tenant } from '@repo/fintivio/schemas';
 import { CaseRepository, isFinalStatus } from './case-repository';
 import { hookUrl, SIGNAL_NAME } from './signals';
+import { clearCaseKeys, computeKeys, setCaseKeys } from './events';
+import { channelExpiry, channelUrl } from '../live/topics';
 import { parseDefinition, type StepDefinition } from './definition';
 import { resolveConfig } from './expressions';
 import { Notifier } from './notifier';
@@ -98,15 +100,25 @@ export function createCaseRunner({ repository, audit, notifier, directory, servi
     // Signed addresses external systems call to signal the case (`webhook.wait` steps), known from the start.
     const hooks = Object.fromEntries(definition.steps.filter((s) => s.type === 'webhook.wait' && SIGNAL_NAME.test(String(s.config?.name ?? '')))
       .map((s) => [String(s.config.name), hookUrl(tenantId, caseId, String(s.config.name))]));
+    // Read-only addresses of its live channels (`live.publish` to the case), for screens we do not serve.
+    const live = Object.fromEntries(definition.steps.filter((s) => s.type === 'live.publish' && (s.config?.to ?? 'case') === 'case')
+      .map((s) => String(s.config?.channel ?? 'progress')).filter((c) => /^[a-z][a-z0-9_-]{0,63}$/.test(c))
+      .map((c) => [c, channelUrl(tenantId, caseId, c, channelExpiry(kase.createdAt))]));
     const vars: Record<string, any> = {
       input: kase.data,
-      case: { id: kase.id, reference: kase.reference, title: kase.title, applicant: { id: kase.applicantId, email: kase.applicantEmail, name: kase.applicantName }, hooks },
+      case: { id: kase.id, reference: kase.reference, title: kase.title, applicant: { id: kase.applicantId, email: kase.applicantEmail, name: kase.applicantName }, hooks, live },
       steps: {},
     };
+
+    // Business keys (docs/plans/17 §3.2): events about these values reach the case while it is open.
+    const correlation = definition.correlation;
+    const correlated = Object.keys(correlation).length > 0;
+    const syncKeys = async () => { if (correlated) await setCaseKeys(repository.db(tenantId), caseId, await computeKeys(correlation, vars)); };
 
     await ctx.run('case-started', async () => {
       await repository.updateCase(tenantId, caseId, { status: 'in_progress' });
       await audit.record(tenantId, WORKFLOW_ACTOR, 'case.started', { type: 'case', id: caseId }, { workflowVersion: kase.workflowVersion }, caseId);
+      await syncKeys();
     });
 
     const queue: StepDefinition[] = [start];
@@ -122,6 +134,7 @@ export function createCaseRunner({ repository, audit, notifier, directory, servi
         if (error instanceof restate.TerminalError) {
           await ctx.run(`failed-${label}`, async () => {
             await repository.updateCase(tenantId, caseId, { status: 'failed', completedAt: new Date() });
+            await clearCaseKeys(repository.db(tenantId), caseId);
             await audit.record(tenantId, WORKFLOW_ACTOR, 'case.failed', { type: 'case', id: caseId }, { step: step.id, error: error.message }, caseId);
           });
           if (kase.parentCaseId && services.notifyParent) {
@@ -132,7 +145,10 @@ export function createCaseRunner({ repository, audit, notifier, directory, servi
       }
       vars.steps[step.id] = result.output;
       if (!RESERVED_VARS.has(step.name) && result.event) set(vars, [step.name, result.event], result.output);
-      await ctx.run(`result-${label}`, () => repository.saveResult(tenantId, caseId, step.id, result.output));
+      await ctx.run(`result-${label}`, async () => {
+        await repository.saveResult(tenantId, caseId, step.id, result.output);
+        await syncKeys();
+      });
       // Branches may use a component's short names (a review's `approve` for `review_approved`).
       const aliases = getComponent(step.type)?.definition.events.aliases ?? {};
       const next = (step.events.find((event) => event.name === result.event) ?? step.events.find((event) => aliases[event.name] === result.event))?.next ?? [];
@@ -140,6 +156,7 @@ export function createCaseRunner({ repository, audit, notifier, directory, servi
     }
 
     const final = await ctx.run('case-finished', async () => {
+      await clearCaseKeys(repository.db(tenantId), caseId);
       const current = await repository.getCase(tenantId, caseId);
       if (current && !isFinalStatus(current.status)) {
         await repository.updateCase(tenantId, caseId, { status: 'completed', completedAt: new Date() });
@@ -185,7 +202,7 @@ export function createCaseRunner({ repository, audit, notifier, directory, servi
       /** Resolve a named promise: connector callbacks (`connector:*`) and child cases (`child:*`). API only. */
       resolve: restate.handlers.workflow.shared(async (ctx: restate.WorkflowSharedContext, input: CaseRunInput & { promise: string; signal: TaskSignal }) => {
         verify(ctx, input);
-        if (!/^(connector|child|party|hook):/.test(input.promise)) throw new restate.TerminalError('Unknown promise', { errorCode: 400 });
+        if (!/^(connector|child|party|hook|event):/.test(input.promise)) throw new restate.TerminalError('Unknown promise', { errorCode: 400 });
         await ctx.promise<TaskSignal>(input.promise).resolve(input.signal);
       }),
     },

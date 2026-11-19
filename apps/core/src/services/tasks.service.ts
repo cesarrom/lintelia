@@ -1,8 +1,9 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
-import { and, asc, desc, eq, inArray, isNull, ne, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, ne, notInArray, or, sql, type SQL } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import type { Tenant, User } from '@repo/fintivio/schemas';
 import { caseFiles, caseParties, cases, sysForms, tasks, users } from '../entities';
+import { hiddenWorkflowIds, subjectOf } from '../access/rules';
 import { TENANT } from '../injector/tokens/tenant.token';
 import { USER } from '../injector/tokens/user.token';
 import { CASE_REPOSITORY, ENGINE_CLIENT, EngineClient } from '../engine/engine.client';
@@ -54,6 +55,13 @@ export class TasksService {
     return this.user.userTenants[0]?.roleNames ?? [];
   }
 
+  private hidden: Promise<string[]> | null = null;
+
+  /** Tasks of workflows whose cases the member may not see are not theirs to see either (docs/plans/15 §5.3). */
+  private hiddenWorkflows() {
+    return (this.hidden ??= hiddenWorkflowIds(this.db, subjectOf(this.user)));
+  }
+
   private can(permission: string) {
     return this.user.permissions.includes(permission);
   }
@@ -83,9 +91,10 @@ export class TasksService {
       if (!this.can('tasks:assign')) throw new ForbiddenError('Seeing all tasks needs tasks:assign');
       condition = and(member, inArray(tasks.status, [...OPEN_STATUSES]));
     }
+    const hidden = await this.hiddenWorkflows();
     const rows = await this.db.select({ task: tasks, kase: cases }).from(tasks)
       .innerJoin(cases, and(eq(cases.id, tasks.caseId), eq(cases.tenantId, tasks.tenantId)))
-      .where(condition).orderBy(asc(tasks.dueAt), asc(tasks.createdAt)).limit(500);
+      .where(and(condition, hidden.length ? notInArray(cases.workflowId, hidden) : undefined)).orderBy(asc(tasks.dueAt), asc(tasks.createdAt)).limit(500);
     const emails = await this.emailsOf(rows.map((r) => r.task.assigneeId).filter(Boolean) as string[]);
     return rows.map(({ task, kase }) => this.present(task, kase, emails));
   }
@@ -122,7 +131,7 @@ export class TasksService {
     const [row] = await this.db.select({ task: tasks, kase: cases }).from(tasks)
       .innerJoin(cases, and(eq(cases.id, tasks.caseId), eq(cases.tenantId, tasks.tenantId)))
       .where(eq(tasks.id, taskId)).limit(1);
-    if (!row || !this.visible(row.task)) throw new NotFoundError('Task not found');
+    if (!row || !this.visible(row.task) || (await this.hiddenWorkflows()).includes(row.kase.workflowId)) throw new NotFoundError('Task not found');
     return row;
   }
 

@@ -21,6 +21,10 @@ const NewAnswerPage = lazy(() => import("./modules/private/forms/NewAnswerPage")
 const UsersPage = lazy(() => import("./modules/private/users/UsersPage"));
 const SettingsPage = lazy(() => import("./modules/private/settings/SettingsPage"));
 const RolesPage = lazy(() => import("./modules/private/roles/RolesPage"));
+const RolePage = lazy(() => import("./modules/private/roles/RolePage"));
+const WhoPage = lazy(() => import("./modules/private/roles/RolePage").then((m) => ({ default: m.WhoPage })));
+const AccessChangesPage = lazy(() => import("./modules/private/access/AccessChangesPage"));
+const BackOfficePageRoute = lazy(() => import("@/back-office/pages").then((m) => ({ default: m.BackOfficePageRoute })));
 const ProfilePage = lazy(() => import("./modules/private/profile/ProfilePage"));
 const KeysPage = lazy(() => import("./modules/private/keys/KeysPage"));
 const TablesPage = lazy(() => import("./modules/private/database/TablesPage"));
@@ -46,6 +50,7 @@ const PortalPrivacyPage = lazy(() => import("./modules/portal/PortalPrivacyPage"
 const PortalIndex = lazy(() => import("./modules/portal/PortalIndex"));
 const ClientAppPageRoute = lazy(() => import("@/client-app/pages").then((m) => ({ default: m.ClientAppPageRoute })));
 const StudioPage = lazy(() => import("./modules/private/experience/StudioPage"));
+const BackOfficeStudioPage = lazy(() => import("./modules/private/experience/back-office/BackOfficeStudioPage"));
 const MapPage = lazy(() => import("./modules/private/map/MapPage"));
 const StudioPreviewFrame = lazy(() => import("@/client-app/preview"));
 const EmbedAppFrame = lazy(() => import("@/client-app/embed"));
@@ -163,6 +168,7 @@ export const router = createBrowserRouter([
               { path: 'support-access', Component: SupportAccessPage },
               { path: 'integrations', Component: IntegrationsPage },
               { path: 'experience', Component: StudioPage },
+              { path: 'back-office', Component: BackOfficeStudioPage },
               { path: 'map', Component: MapPage },
               { path: 'platform/connectors', Component: ConnectorsPage },
               {
@@ -213,6 +219,10 @@ export const router = createBrowserRouter([
                 path: 'roles',
                 Component: RolesPage
               },
+              { path: 'roles/who', Component: WhoPage },
+              { path: 'roles/:roleKey', Component: RolePage },
+              { path: 'access-changes', Component: AccessChangesPage },
+              { path: 'x/:page', Component: BackOfficePageRoute },
               {
                 path: 'logs',
                 Component: LogsPage

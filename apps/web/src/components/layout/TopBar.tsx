@@ -1,6 +1,8 @@
 import { Fragment, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { ChevronRight, Moon, Search, Sun, UserRound } from 'lucide-react';
+import { ChevronRight, LayoutGrid, Moon, Search, Sun, UserRound } from 'lucide-react';
+import { useBackOffice } from '@/back-office/runtime';
+import { useLiveStatus } from '@/lib/live';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { useTheme } from '@/lib/providers/ThemeProvider';
@@ -18,7 +20,15 @@ const DETAIL: Record<string, string> = {
 
 function useRoutes() {
   const { kind, hasPermission } = useAuth();
-  return (kind === 'staff' ? staffRoutes : memberRoutes).filter((r) => !r.permissions || hasPermission(r.permissions));
+  const { definition } = useBackOffice();
+  const routes = (kind === 'staff' ? staffRoutes : memberRoutes).filter((r) => !r.permissions || hasPermission(r.permissions));
+  if (kind === 'staff' || !definition) return routes;
+  // The institution's own pages (its back office): their menu section, or "Back office" for pages reached by links.
+  const sectionOf = (page: string) => definition.navigation.find((n) => n.page === page)?.section ?? 'Back office';
+  const custom = Object.entries(definition.pages).filter(([, page]) => page.context === 'none').map(([key, page]) => ({
+    name: definition.navigation.find((n) => n.page === key)?.label ?? page.title, href: `/app/x/${key}`, section: sectionOf(key), icon: LayoutGrid,
+  }));
+  return [...routes, ...custom];
 }
 
 function useCrumbs(routes: AppRoute[]) {
@@ -82,6 +92,7 @@ export function TopBar() {
         <span className="flex-1 text-left">Jump to…</span>
         <kbd className="rounded border bg-background px-1.5 font-sans text-[10.5px] font-medium text-muted-foreground">{isMac ? '⌘' : 'Ctrl'} K</kbd>
       </button>
+      <LiveIndicator />
       <button
         type="button"
         aria-label={theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'}
@@ -117,5 +128,19 @@ export function TopBar() {
         </CommandList>
       </CommandDialog>
     </header>
+  );
+}
+
+/** Whether the screens update by themselves right now (docs/plans/17): live, or reconnecting (polling meanwhile). */
+function LiveIndicator() {
+  const status = useLiveStatus();
+  if (status === 'off') return null;
+  const live = status === 'connected';
+  return (
+    <span className="flex h-8 items-center gap-1.5 px-1.5 text-[11.5px] text-muted-foreground" data-testid="live-status" data-state={status}
+      title={live ? 'Live: pages update as things happen' : 'Reconnecting… pages refresh every few seconds meanwhile'}>
+      <span className={cn('h-2 w-2 rounded-full', live ? 'bg-success shadow-[0_0_0_3px_hsl(var(--success)/0.15)]' : 'animate-pulse bg-warning')} />
+      <span className="hidden lg:inline">{live ? 'Live' : 'Reconnecting'}</span>
+    </span>
   );
 }

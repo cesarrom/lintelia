@@ -39,6 +39,10 @@ import { installClientAppTemplate } from '../src/client-apps/templates';
 import { seedBankingCustomer } from '../src/client-apps/templates/banking-demo-data';
 import { ensureProfile } from '../src/client-apps/profiles';
 import { loadApp } from '../src/client-apps/runtime-data';
+import YAML from 'yaml';
+import { normalizeWorkflowAccess } from '@repo/fintivio/schemas';
+import { activeBackOffice, loadBackOffice, publishBackOffice, saveBackOfficeDraft } from '../src/back-office/store';
+import { FEE_WAIVER_PERMISSION, ensureAuthorityLimitAttribute, ensureFeeWaiverPermission, ensureFeeWaiverWorkflow, feeWaiversBackOffice } from '../src/back-office/templates';
 import { parseDefinition } from '../src/engine/definition';
 import type { Databases } from '../src/clients/database.client';
 import { hashPassword } from '../src/auth/passwords';
@@ -128,6 +132,45 @@ async function seedDemoContent(databases: Databases, tenantId: string) {
       const acceptedAt = new Date().toISOString();
       await db.update(clientProfiles).set({ consents: [{ key: 'terms', version: '2026-01', acceptedAt }, { key: 'privacy', version: '2026-01', acceptedAt }] }).where(eq(clientProfiles.id, profile.id));
     }
+  }
+}
+
+/**
+ * The institution's own back office (docs/plans/16): the "Fee waivers" template, installed and published, with
+ * "Waive fees" given to relationship managers and senior reviewers and authority limits set: rm@ may waive up to £50
+ * at once, above that lead@ / senior@ approve. Kept up to date while nobody changed it in the studio.
+ */
+async function seedBackOffice(databases: Databases, tenantId: string) {
+  const db = databases.forTenant(tenantId);
+  const existing = await loadBackOffice(db);
+  if (existing && existing.updatedBy !== 'seed') return;
+  await ensureFeeWaiverPermission(db, 'seed');
+  await ensureAuthorityLimitAttribute(db);
+  const workflow = await ensureFeeWaiverWorkflow(db, 'seed');
+  const [active] = await db.select({ yaml: workflowVersions.yaml }).from(workflowVersions)
+    .where(sql`${workflowVersions.workflowId} = ${workflow.id} and ${workflowVersions.status} = 'active'`).limit(1);
+  if (!active || active.yaml !== workflow.yaml) {
+    await db.update(workflowVersions).set({ status: 'retired' }).where(sql`${workflowVersions.workflowId} = ${workflow.id} and ${workflowVersions.status} = 'active'`);
+    const [latest] = await db.select({ version: sql<number>`coalesce(max(${workflowVersions.version}), 0)` }).from(workflowVersions).where(eq(workflowVersions.workflowId, workflow.id));
+    const definition = parseDefinition(workflow.yaml);
+    await db.insert(workflowVersions).values({ workflowId: workflow.id, version: Number(latest.version) + 1, yaml: workflow.yaml, startOn: definition.startOn, access: normalizeWorkflowAccess(YAML.parse(workflow.yaml).access), publishedBy: 'seed' });
+    await db.update(sysWorkflows).set({ status: 'active', yaml: workflow.yaml, version: Number(latest.version) + 1 }).where(eq(sysWorkflows.id, workflow.id));
+    console.log('seeded workflow "Fee waiver" (published)');
+  }
+  for (const role of ['relationship_manager', 'senior_reviewer']) {
+    await db.execute(sql`update roles set permissions = array_append(permissions, ${FEE_WAIVER_PERMISSION}) where key = ${role} and not (${FEE_WAIVER_PERMISSION} = any(permissions))`);
+  }
+  for (const [email, limit] of [['rm@demo-bank.test', 50], ['lead@demo-bank.test', 1000], ['senior@demo-bank.test', 1000]] as const) {
+    await db.execute(sql`update users set attributes = attributes || ${JSON.stringify({ authorityLimit: limit })}::jsonb where lower(email) = ${email} and not (attributes ? 'authorityLimit')`);
+  }
+  const definition = feeWaiversBackOffice(workflow.id) as unknown as Record<string, unknown>;
+  const app = await saveBackOfficeDraft(db, definition, 'seed');
+  const current = await activeBackOffice(db);
+  // JSONB does not keep key order: compare with sorted keys.
+  const stable = (value: unknown): string => JSON.stringify(value, (_k, v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b))) : v));
+  if (!current || stable(current.definition) !== stable(definition)) {
+    const version = await publishBackOffice(db, app.id, definition, 'seed');
+    console.log(`seeded the back office "Fee waivers" (published v${version}: servicing desk, a button and a tab on the client page, a dashboard widget)`);
   }
 }
 
@@ -246,7 +289,10 @@ export async function seedDevelopmentData(urls: { app: string; platform: string 
         }
         console.log(`seeded ${user.email} (${spec.domain})`);
       }
-      if (spec.domain === 'demo-bank') await seedDemoContent(databases, tenant.id);
+      if (spec.domain === 'demo-bank') {
+        await seedDemoContent(databases, tenant.id);
+        await seedBackOffice(databases, tenant.id);
+      }
       if (spec.domain === 'demo-auto') await seedDealer(databases, tenant.id);
     }
 

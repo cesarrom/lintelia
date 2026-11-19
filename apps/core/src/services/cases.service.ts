@@ -1,5 +1,5 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
-import { and, desc, eq, exists, inArray, or, sql, type SQL } from 'drizzle-orm';
+import { and, desc, eq, exists, inArray, notInArray, or, sql, type SQL } from 'drizzle-orm';
 import type { Tenant, User } from '@repo/fintivio/schemas';
 import { caseFiles, caseRecords, cases, sysWorkflows, tasks, users, workflowVersions } from '../entities';
 import { TENANT } from '../injector/tokens/tenant.token';
@@ -12,7 +12,8 @@ import { AuditWriter, type AuditActor } from './audit.writer';
 import { NOTIFIER } from '../engine/providers';
 import type { Notifier } from '../engine/notifier';
 import { randomUUID } from 'node:crypto';
-import { BadRequestError, ConflictError, NotFoundError } from '../http/errors';
+import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../http/errors';
+import { allows, hiddenWorkflowIds, startRuleOf, subjectOf } from '../access/rules';
 import { PartiesService } from './parties.service';
 
 export interface StartCaseInput {
@@ -48,6 +49,8 @@ const toTaskSummary = (task: TaskRow, emails: Map<string, string>) => ({
   requestItems: task.requestItems,
   response: task.response,
   parentTaskId: task.parentTaskId,
+  /** Staff screens (`team.screen`): the form to fill. */
+  screen: task.kind === 'screen' && task.audience === 'member' ? task.screen : null,
   createdAt: task.createdAt,
 });
 
@@ -171,8 +174,36 @@ export class CasesService {
     return updated;
   }
 
-  /** SQL condition: cases the current member may see. */
-  private scope(): SQL | undefined {
+  private hidden: Promise<string[]> | null = null;
+
+  /** Workflows whose `access.cases` rule excludes the caller (docs/plans/15 §5.3), once per request. */
+  hiddenWorkflows() {
+    if (!this.user) return Promise.resolve([] as string[]);
+    return (this.hidden ??= hiddenWorkflowIds(this.db, subjectOf(this.user)));
+  }
+
+  /**
+   * SQL condition: cases the current member may see — case scope, narrowed by the access rules of sensitive
+   * workflows (which apply to `cases:read_all` holders too).
+   */
+  async scope(): Promise<SQL | undefined> {
+    const hidden = await this.hiddenWorkflows();
+    const base = this.baseScope();
+    return hidden.length ? and(base ?? sql`true`, notInArray(cases.workflowId, hidden)) : base;
+  }
+
+  /**
+   * Who may start this workflow by hand or by API: its `access.start` rule, or `cases:create` when it has none.
+   * 403 (or 404 for a workflow the caller may not even see) otherwise.
+   */
+  async assertCanStart(workflowId: string) {
+    if (!this.user) throw new ForbiddenError();
+    if (!(await allows(await startRuleOf(this.db, workflowId), subjectOf(this.user)))) {
+      throw new ForbiddenError('You may not start this workflow');
+    }
+  }
+
+  private baseScope(): SQL | undefined {
     const user = this.user;
     if (!user) return sql`false`;
     if (user.permissions.includes('cases:read_all')) return undefined;
@@ -191,7 +222,7 @@ export class CasesService {
   }
 
   async list(filter: { status?: string; workflowId?: string; applicantId?: string; search?: string } = {}) {
-    const conditions: (SQL | undefined)[] = [this.scope()];
+    const conditions: (SQL | undefined)[] = [await this.scope()];
     if (filter.status) conditions.push(inArray(cases.status, filter.status.split(',') as any));
     if (filter.workflowId) conditions.push(eq(cases.workflowId, filter.workflowId));
     if (filter.applicantId) conditions.push(eq(cases.applicantId, filter.applicantId));
@@ -208,9 +239,10 @@ export class CasesService {
       .innerJoin(sysWorkflows, eq(sysWorkflows.id, workflowVersions.workflowId))
       .where(eq(workflowVersions.status, 'active'));
     // Busiest first (the board opens on it): cases in the member's scope per workflow.
-    const counts = await this.db.select({ workflowId: cases.workflowId, count: sql<number>`count(*)::int` }).from(cases).where(this.scope()).groupBy(cases.workflowId);
+    const counts = await this.db.select({ workflowId: cases.workflowId, count: sql<number>`count(*)::int` }).from(cases).where(await this.scope()).groupBy(cases.workflowId);
     const countOf = (id: string) => counts.find((c) => c.workflowId === id)?.count ?? 0;
-    return rows.map((row) => ({ id: row.workflowId, name: row.name, stages: parseDefinition(row.yaml).stages, cases: countOf(row.workflowId) }))
+    const hidden = await this.hiddenWorkflows();
+    return rows.filter((row) => !hidden.includes(row.workflowId)).map((row) => ({ id: row.workflowId, name: row.name, stages: parseDefinition(row.yaml).stages, cases: countOf(row.workflowId) }))
       .filter((p) => p.stages.length > 0).sort((a, b) => b.cases - a.cases || a.name.localeCompare(b.name));
   }
 
@@ -238,7 +270,7 @@ export class CasesService {
 
   /** 404 unless the caller may see the case (cheap check for sub-resources). */
   async assertVisible(caseId: string) {
-    const [row] = await this.db.select({ id: cases.id }).from(cases).where(and(eq(cases.id, caseId), this.scope())).limit(1);
+    const [row] = await this.db.select({ id: cases.id }).from(cases).where(and(eq(cases.id, caseId), await this.scope())).limit(1);
     if (!row) throw new NotFoundError('Case not found');
   }
 
@@ -246,7 +278,7 @@ export class CasesService {
   async get(caseId: string) {
     const [row] = await this.db.select({ kase: cases, workflowName: sysWorkflows.name }).from(cases)
       .leftJoin(sysWorkflows, eq(sysWorkflows.id, cases.workflowId))
-      .where(and(eq(cases.id, caseId), this.scope())).limit(1);
+      .where(and(eq(cases.id, caseId), await this.scope())).limit(1);
     if (!row) throw new NotFoundError('Case not found');
     const taskRows = await this.repository.tasksOfCase(this.tenant.id, caseId);
     const emails = await this.emailsOf(taskRows.map((t) => t.assigneeId).filter(Boolean) as string[]);

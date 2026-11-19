@@ -47,6 +47,7 @@ async function shots(): Promise<Shot[]> {
   const analyst = await member('analyst@demo-bank.test');
   const designer = await member('designer@demo-bank.test');
   const client = await member('client@demo-bank.test');
+  const rm = await member('rm@demo-bank.test');
   const staff = await staffSession();
   const caseId = await firstId(admin, '/cases', (rows) => rows.find((c) => c.status === 'in_review') ?? rows[0]);
   const clientId = await firstId(admin, '/clients');
@@ -76,6 +77,28 @@ async function shots(): Promise<Shot[]> {
     { name: 'integrations', url: bank('/app/integrations'), session: admin },
     { name: 'team', url: bank('/app/users'), session: admin },
     { name: 'roles', url: bank('/app/roles'), session: admin },
+    { name: 'roles-matrix', url: bank('/app/roles'), session: admin, ready: async (p: Page) => { await p.getByRole('tab', { name: 'Matrix' }).click(); } },
+    { name: 'roles-custom-permissions', url: bank('/app/roles'), session: admin, ready: async (p: Page) => { await p.getByRole('tab', { name: 'Custom permissions' }).click(); } },
+    { name: 'role', url: bank('/app/roles/reviewer'), session: admin },
+    { name: 'roles-who', url: bank('/app/roles/who?permission=tasks%3Awork'), session: admin },
+    { name: 'access-changes', url: bank('/app/access-changes'), session: admin },
+    { name: 'team-access', url: bank('/app/users'), session: admin, ready: async (p: Page) => { await p.getByTestId('member-row').filter({ hasText: 'analyst@' }).getByRole('button', { name: 'Access' }).click(); await p.getByTestId('member-access').waitFor(); } },
+    { name: 'settings-security', url: bank('/app/settings?tab=security'), session: admin },
+    { name: 'settings-read-audit', url: bank('/app/settings?tab=security'), session: admin, ready: async (p: Page) => { await p.getByTestId('read-audit').scrollIntoViewIfNeeded(); } },
+    // The institution's own back office (the "Fee waivers" template Demo Bank publishes), as a relationship manager.
+    { name: 'bo-desk', url: bank('/app/x/servicing'), session: rm, ready: async (p: Page) => { await p.getByTestId('back-office-widgets').waitFor(); } },
+    { name: 'bo-dashboard', url: bank('/app/dashboard'), session: rm, ready: async (p: Page) => { await p.getByTestId('dashboard-slot').waitFor(); } },
+    // The studio's back-office mode, as a designer.
+    { name: 'bo-studio', url: bank('/app/back-office'), session: designer, ready: async (p: Page) => { await p.getByTestId('bo-canvas').getByTestId('back-office-widgets').or(p.locator('[data-select-id]').first()).first().waitFor(); await p.waitForTimeout(500); } },
+    { name: 'bo-studio-client', url: bank('/app/back-office'), session: designer, ready: async (p: Page) => { await p.getByTestId('bo-slot').filter({ hasText: 'Client page' }).click(); await p.getByTestId('bo-builtin-page').waitFor(); } },
+    { name: 'bo-studio-preview', url: bank('/app/back-office'), session: designer, ready: async (p: Page) => { await p.getByTestId('bo-preview-as').selectOption('reviewer'); await p.getByTestId('bo-preview-banner').waitFor(); await p.waitForTimeout(1200); } },
+    { name: 'bo-studio-widget', url: bank('/app/back-office'), session: designer, ready: async (p: Page) => { await p.locator('[data-select-id]').nth(4).click(); await p.getByTestId('widget-inspector').waitFor(); } },
+    { name: 'bo-studio-action', url: bank('/app/back-office'), session: designer, ready: async (p: Page) => { await p.getByTestId('bo-tab-actions').click(); await p.getByTestId('action-inspector').waitFor(); } },
+    { name: 'bo-studio-menu', url: bank('/app/back-office'), session: designer, ready: async (p: Page) => { await p.getByTestId('bo-tab-menu').click(); await p.getByTestId('nav-inspector').waitFor(); await p.getByTestId('studio-inspector').evaluate((e) => e.scrollTo(0, 600)); } },
+    { name: 'bo-studio-report', url: bank('/app/back-office'), session: designer, ready: async (p: Page) => { await p.getByTestId('open-access-report').click(); await p.getByTestId('access-report').waitFor(); } },
+    ...(chrisId ? [
+      { name: 'bo-client-tab', url: bank(`/app/clients/${chrisId}`), session: rm, ready: async (p: Page) => { await p.getByRole('tab', { name: 'Servicing' }).click(); await p.getByTestId('back-office-widgets').waitFor(); } },
+    ] : []),
     { name: 'audit', url: bank('/app/audit'), session: admin },
     { name: 'settings', url: bank('/app/settings'), session: admin },
     { name: 'webhooks', url: bank('/app/webhooks'), session: admin },
@@ -109,7 +132,11 @@ for (const shot of await shots()) {
   if (dark) await context.addInitScript(() => window.localStorage.setItem('theme', 'dark'));
   const page = await context.newPage();
   try {
-    await page.goto(shot.url, { waitUntil: 'networkidle', timeout: 60_000 });
+    // Not "networkidle": pages keep a live stream open (docs/plans/17).
+    await page.goto(shot.url, { waitUntil: 'load', timeout: 60_000 });
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForFunction(() => !document.querySelector('[data-testid="page-loader"], .animate-pulse[data-skeleton]'), undefined, { timeout: 5_000 }).catch(() => undefined);
+    await page.waitForTimeout(1500);
     await shot.ready?.(page);
     await page.waitForTimeout(700);
     await page.screenshot({ path: join(out, `${shot.name}${dark ? '-dark' : ''}.png`), fullPage: full });

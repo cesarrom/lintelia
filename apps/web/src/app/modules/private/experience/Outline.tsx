@@ -1,5 +1,5 @@
-import { ArrowDown, ArrowUp, Copy, EyeOff, Home, Menu, Plus, Trash2 } from 'lucide-react';
-import { clientWidgetDefinition, ordered, type ClientWidget } from '@repo/fintivio/schemas';
+import { ArrowDown, ArrowUp, Copy, EyeOff, Home, Lock, Menu, Plus, Trash2 } from 'lucide-react';
+import { clientWidgetDefinition, ordered, type ClientWidget, type ClientWidgetDefinition } from '@repo/fintivio/schemas';
 import { Button } from '@/components/ui/button';
 import { AppIcon } from '@/client-app/icons';
 import { cn } from '@/lib/utils';
@@ -31,8 +31,11 @@ export function PagesList({ definition, current, onSelect, onAdd, readOnly }: { 
 }
 
 /** The widgets of the page as a tree: select, move, duplicate, remove; add from the catalogue. */
-export function WidgetOutline({ widgets, selected, onSelect, onMove, onDuplicate, onRemove, onAdd, readOnly }: {
+export function WidgetOutline({ widgets, selected, onSelect, onMove, onDuplicate, onRemove, onAdd, readOnly, palette, title = 'Widgets on this page' }: {
   widgets: ClientWidget[];
+  /** The catalogue to add from (default: the client app's). */
+  palette?: ClientWidgetDefinition[];
+  title?: string;
   selected: string | null;
   onSelect: (id: string | null) => void;
   onMove: (id: string, direction: -1 | 1) => void;
@@ -55,6 +58,7 @@ export function WidgetOutline({ widgets, selected, onSelect, onMove, onDuplicate
           <AppIcon name={definition?.icon} fallback="square" className="h-4 w-4 shrink-0 opacity-70" />
           <span className="min-w-0 flex-1 truncate">{widgetLabel(widget)}</span>
           {widget.visibleIf && <EyeOff className="h-3.5 w-3.5 shrink-0 opacity-50" aria-label="Shown conditionally" />}
+          {'access' in widget && !!widget.access && <Lock className="h-3.5 w-3.5 shrink-0 opacity-50" aria-label="Only for some members" />}
           {!readOnly && (
             <span className={cn('flex shrink-0 items-center', active ? 'flex' : 'hidden group-hover:flex')} onClick={(e) => e.stopPropagation()}>
               <IconButton label="Move up" onClick={() => onMove(widget.id, -1)}><ArrowUp className="h-3.5 w-3.5" /></IconButton>
@@ -71,9 +75,9 @@ export function WidgetOutline({ widgets, selected, onSelect, onMove, onDuplicate
   };
   return (
     <div className="space-y-2" data-testid="widget-outline">
-      <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Widgets on this page</p>
+      <p className="px-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{title}</p>
       {widgets.length ? <ul className="space-y-0.5">{widgets.map((w) => row(w, 0))}</ul> : <p className="rounded-lg border border-dashed p-4 text-center text-xs text-muted-foreground">This page is empty.</p>}
-      {!readOnly && <WidgetPalette onPick={onAdd} />}
+      {!readOnly && <WidgetPalette onPick={onAdd} widgets={palette} />}
     </div>
   );
 }

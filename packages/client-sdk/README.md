@@ -86,3 +86,28 @@ React hooks: `FintivioProvider`, `useAppData(sources)`, `useJourney(caseId)` fro
 ## Development
 
 `bun test` (jsdom) covers the embed protocol and the headless client.
+
+## Live updates
+
+Your own screens can follow what changes, as it happens (Server-Sent Events, docs/changes/0014):
+
+```ts
+const client = createClient({ apiUrl, tenant: 'your-bank', fetchClientSecret });
+const me = (await client.signIn()).user.userId;
+
+// Balances, notifications, applications: "changed" → fetch again with client.data(...)
+const live = client.subscribe([`client/${me}/records/*`, `client/${me}/notifications`, `client/${me}/cases`], (event) => {
+  if (event.type === 'change') refresh(event.topic);
+});
+
+// What a journey's workflow publishes while it works (its start answer says where to listen), from the start:
+const started = await client.startJourney<{ case: { id: string }; live: { topics: string[] } }>('open_account');
+client.subscribe(started.live.topics, (event) => {
+  if (event.type === 'message') showProgress(event.payload.text);
+}, { replay: true });
+
+live.close();
+```
+
+`EventSource` works too: `POST /live/tickets` (with the client's token) gives a single-use URL
+(`/live?ticket=…&topics=…`).

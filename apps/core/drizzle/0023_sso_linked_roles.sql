@@ -1,0 +1,1 @@
+ALTER TABLE "tenant_sso_settings" DROP COLUMN "role_source";

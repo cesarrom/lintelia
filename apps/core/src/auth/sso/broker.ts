@@ -33,13 +33,17 @@ export interface SsoBroker {
   authorizationUrl(input: { organizationId: string; redirectUri: string; state: string; loginHint?: string }): string;
   profile(code: string): Promise<SsoProfile>;
   directoryEvents(organizationId: string, after: string | null): Promise<{ events: DirectoryEvent[]; cursor: string | null }>;
+  /** The directory groups a directory user belongs to now (roles from the IdP, docs/plans/15 §5.4). */
+  userGroups(directoryUserId: string): Promise<Array<{ id: string; name: string }>>;
 }
 
 /** A provisioning change from the IdP's directory (SCIM through the broker's Directory Sync). */
 export interface DirectoryEvent {
   id: string;
-  type: 'dsync.user.created' | 'dsync.user.updated' | 'dsync.user.deleted';
-  user: { id: string; email: string; firstName: string | null; lastName: string | null; state: string };
+  type: 'dsync.user.created' | 'dsync.user.updated' | 'dsync.user.deleted' | 'dsync.group.user_added' | 'dsync.group.user_removed';
+  user: { id: string; email: string; firstName: string | null; lastName: string | null; state: string; rawAttributes?: Record<string, unknown>; customAttributes?: Record<string, unknown> };
+  /** Membership events: the group concerned. */
+  group?: { id: string; name: string };
 }
 
 export const SSO_BROKER = Symbol.for('SSO_BROKER');
@@ -80,13 +84,27 @@ export class WorkOsSsoBroker implements SsoBroker {
 
   async directoryEvents(organizationId: string, after: string | null) {
     const list = await this.workos.events.listEvents({
-      events: ['dsync.user.created', 'dsync.user.updated', 'dsync.user.deleted'], organizationId, ...(after ? { after } : {}), limit: 100,
+      events: ['dsync.user.created', 'dsync.user.updated', 'dsync.user.deleted', 'dsync.group.user_added', 'dsync.group.user_removed'], organizationId, ...(after ? { after } : {}), limit: 100,
     } as never);
-    const events = list.data.map((event) => {
-      const user = (event as unknown as { data: { id: string; email: string; firstName: string | null; lastName: string | null; state: string } }).data;
-      return { id: event.id, type: event.event as DirectoryEvent['type'], user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, state: user.state } };
+    type DirectoryUserData = { id: string; email: string; firstName: string | null; lastName: string | null; state: string; rawAttributes?: Record<string, unknown>; customAttributes?: Record<string, unknown> };
+    const userOf = (user: DirectoryUserData) => ({
+      id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, state: user.state,
+      rawAttributes: user.rawAttributes ?? {}, customAttributes: user.customAttributes ?? {},
+    });
+    const events = list.data.map((event): DirectoryEvent => {
+      const type = event.event as DirectoryEvent['type'];
+      if (type === 'dsync.group.user_added' || type === 'dsync.group.user_removed') {
+        const data = (event as unknown as { data: { user: DirectoryUserData; group: { id: string; name: string } } }).data;
+        return { id: event.id, type, user: userOf(data.user), group: { id: data.group.id, name: data.group.name } };
+      }
+      return { id: event.id, type, user: userOf((event as unknown as { data: DirectoryUserData }).data) };
     });
     return { events, cursor: events.at(-1)?.id ?? after };
+  }
+
+  async userGroups(directoryUserId: string) {
+    const groups = await this.workos.directorySync.listGroups({ user: directoryUserId, limit: 100 });
+    return (await groups.autoPagination()).map((g) => ({ id: g.id, name: g.name }));
   }
 
   async profile(code: string): Promise<SsoProfile> {

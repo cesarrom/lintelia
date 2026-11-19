@@ -49,6 +49,10 @@ export interface CaseRecord {
 
 export interface CaseSignal {
   id: string;
+  /** `signal`: called back by name (`webhook.wait`); `event`: an event about the case's business keys (`event.wait`). */
+  kind?: 'signal' | 'event';
+  /** Events: the case's keys the event must name (e.g. loan → L-42). */
+  keys?: Record<string, string>;
   name: string;
   status: 'waiting' | 'pending' | 'delivered' | 'cancelled';
   source: string | null;

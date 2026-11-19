@@ -37,7 +37,7 @@ export function corsMiddleware(directory: TenantDirectory): MiddlewareHandler {
     const allowedOrigin = origin && (await isAllowed(origin)) ? origin : '';
     return cors({
       origin: allowedOrigin,
-      allowHeaders: ['Authorization', 'Content-Type', 'X-Tenant', 'X-Embed-Origin'],
+      allowHeaders: ['Authorization', 'Content-Type', 'X-Tenant', 'X-Embed-Origin', 'Last-Event-ID'],
       allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       maxAge: 600,
     })(c, next);

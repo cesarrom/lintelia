@@ -1,4 +1,4 @@
-import { and, desc, eq, max, isNotNull } from 'drizzle-orm';
+import { and, desc, eq, max, isNotNull, sql } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
 import { cases, tasks, users, workflowVersions, FINAL_CASE_STATUSES, type CaseStatus, type TaskOutcome, caseParties } from '../entities';
 import type { Databases } from '../clients/database.client';
@@ -87,6 +87,11 @@ export class CaseRepository {
 
   async userById(tenantId: string, userId: string) {
     const [row] = await this.db(tenantId).select().from(users).where(eq(users.id, userId)).limit(1);
+    return row ?? null;
+  }
+
+  async memberByEmail(tenantId: string, email: string) {
+    const [row] = await this.db(tenantId).select().from(users).where(and(sql`lower(${users.email}) = ${email.toLowerCase()}`, eq(users.kind, 'member'))).limit(1);
     return row ?? null;
   }
 

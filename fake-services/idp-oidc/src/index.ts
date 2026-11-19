@@ -8,10 +8,10 @@ import { createFakeService, devPort, escapeHtml, jsonState, page } from '@repo/f
  * `amr` (`pwd`, plus `mfa` for users flagged as using MFA) — what Okta / Entra / Google send.
  *
  * Control API: `POST /__control/clients { redirectUris }` → `{ clientId, clientSecret }`,
- * `POST /__control/users { email, password, name, groups?, mfa? }`.
+ * `POST /__control/users { email, password, name, groups?, mfa?, claims? }` (claims: extra ID token claims, e.g. department).
  */
 interface Client { clientId: string; clientSecret: string; redirectUris: string[] }
-interface User { email: string; password: string; name: string; groups: string[]; mfa: boolean }
+interface User { email: string; password: string; name: string; groups: string[]; mfa: boolean; claims?: Record<string, unknown> }
 interface Code { clientId: string; redirectUri: string; email: string; nonce: string | null; codeChallenge: string | null; expiresAt: number }
 
 const port = devPort('idp-oidc', 9400);
@@ -107,6 +107,8 @@ app.post('/token', async (c) => {
   const idToken = await new SignJWT({
     email: person.email, email_verified: true, name: person.name, given_name: given, family_name: rest.join(' ') || undefined,
     groups: person.groups, amr: person.mfa ? ['pwd', 'mfa'] : ['pwd'], ...(entry.nonce ? { nonce: entry.nonce } : {}),
+    // Extra claims an IdP is configured to send (department, region, employee id…).
+    ...(person.claims ?? {}),
   }).setProtectedHeader({ alg: 'RS256', kid: keys.jwk.kid }).setIssuer(issuer).setAudience(found.clientId)
     .setSubject(createHash('sha256').update(person.email.toLowerCase()).digest('hex').slice(0, 24)).setIssuedAt().setExpirationTime('10m').sign(keys.privateKey);
   const accessToken = randomBytes(24).toString('base64url');
@@ -130,8 +132,8 @@ app.post('/__control/clients', async (c) => {
 });
 
 app.post('/__control/users', async (c) => {
-  const body = await c.req.json<{ email: string; password: string; name?: string; groups?: string[]; mfa?: boolean }>();
-  const next: User = { email: body.email, password: body.password, name: body.name ?? body.email, groups: body.groups ?? [], mfa: body.mfa ?? false };
+  const body = await c.req.json<{ email: string; password: string; name?: string; groups?: string[]; mfa?: boolean; claims?: Record<string, unknown> }>();
+  const next: User = { email: body.email, password: body.password, name: body.name ?? body.email, groups: body.groups ?? [], mfa: body.mfa ?? false, claims: body.claims ?? {} };
   state.set({ ...state.get(), users: [...state.get().users.filter((u) => u.email.toLowerCase() !== body.email.toLowerCase()), next] });
   return c.json({ email: next.email }, 201);
 });

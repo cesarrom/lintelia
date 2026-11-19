@@ -12,6 +12,9 @@ import { TenantDirectory } from '../../services/tenant-directory.service';
 import { OneTimeSecrets } from '../session.store';
 import { AuthError, IdentityService, type Session } from '../identity.service';
 import { SSO_BROKER, type SsoBroker } from './broker';
+import { RoleSync } from '../../access/role-sync';
+import { MemberAttributeSync } from '../../access/attributes';
+import { AccessNotifier } from '../../access/notify';
 
 const STATE_TTL_SECONDS = 10 * 60;
 const HANDOFF_TTL_SECONDS = 60;
@@ -32,6 +35,9 @@ export class SsoService {
     @Inject(IdentityService) private readonly identity: IdentityService,
     @Inject(TenantDirectory) private readonly directory: TenantDirectory,
     @Inject(AuditWriter) private readonly audit: AuditWriter,
+    @Inject(RoleSync) private readonly roleSync: RoleSync,
+    @Inject(MemberAttributeSync) private readonly attributes: MemberAttributeSync,
+    @Inject(AccessNotifier) private readonly notifier: AccessNotifier,
   ) { }
 
   private db(tenantId: string) {
@@ -52,14 +58,31 @@ export class SsoService {
   /** The organization's state at the broker; refreshes the cached verified domains. */
   async status(tenant: Tenant) {
     const settings = await this.settings(tenant.id);
-    if (!settings?.organizationId) return { configured: false, organizationId: null, connections: [], domains: [], enforce: false, jit: { enabled: false, defaultRoles: [] as string[] }, ready: false };
+    if (!settings?.organizationId) return { configured: false, organizationId: null, connections: [], domains: [], enforce: false, jit: { enabled: false, defaultRoles: [] as string[] }, ready: false, rolesFromIdp: false };
     const organization = await this.broker.organization(settings.organizationId);
     const verified = organization.domains.filter((d) => d.state === 'verified').map((d) => d.domain.toLowerCase());
-    if (verified.join(',') !== settings.verifiedDomains.join(',')) await this.save(tenant.id, { verifiedDomains: verified });
+    if (verified.join(',') !== settings.verifiedDomains.join(',')) {
+      await this.save(tenant.id, { verifiedDomains: verified });
+      // Single sign-on just got linked (a first verified domain): from now on, roles of its people come from the IdP.
+      const added = verified.filter((d) => !settings.verifiedDomains.includes(d));
+      if (added.length) {
+        await this.audit.record(tenant.id, { type: 'system', email: 'sso' }, 'sso.domains_verified', { type: 'tenant', id: tenant.id }, { domains: added });
+        await this.notifier.send(tenant, {
+          subject: `Roles of ${added.join(', ')} now come from your identity provider`,
+          lines: [
+            `Single sign-on is linked for ${added.join(', ')}. From their next sign-in through your identity provider (or its directory), people of these domains hold the roles their groups map to, and their roles can no longer be changed by hand.`,
+            'Map your groups to roles in Settings → Security before they sign in; administrators keep their role until a group is mapped to the Administrator role.',
+          ],
+          link: '/app/settings?tab=security',
+        }).catch(() => undefined);
+      }
+    }
     const ready = verified.length > 0 && organization.connections.some((c) => c.state === 'active');
     return {
       configured: true, organizationId: settings.organizationId, connections: organization.connections, domains: organization.domains,
       enforce: settings.enforce, jit: { enabled: settings.jitEnabled, defaultRoles: settings.jitDefaultRoles }, ready,
+      /** Roles of people of the verified domains come from the IdP's groups (docs/plans/15 §5.4, §13): linked SSO. */
+      rolesFromIdp: verified.length > 0,
     };
   }
 
@@ -234,16 +257,20 @@ export class SsoService {
       if (!settings.jitEnabled) throw new AuthError('You do not have an account in this workspace yet: ask an administrator to invite you', 403);
       const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ') || email;
       [user] = await db.insert(users).values({ email, name, kind: 'member', status: 'active' }).returning();
-      if (settings.jitDefaultRoles.length) {
+      // People of a verified SSO domain get their roles from their groups below (the default roles when none maps).
+      if (settings.jitDefaultRoles.length && !RoleSync.inSsoDomain(settings, email)) {
         const roleRows = await db.select({ id: roles.id }).from(roles).where(inArray(roles.key, settings.jitDefaultRoles));
-        if (roleRows.length) await db.insert(userRoles).values(roleRows.map((r) => ({ userId: user!.id, roleId: r.id }))).onConflictDoNothing();
+        if (roleRows.length) await db.insert(userRoles).values(roleRows.map((r) => ({ userId: user!.id, roleId: r.id, source: 'default' as const, grantedByEmail: 'just-in-time' }))).onConflictDoNothing();
       }
-      await this.audit.record(tenant.id, { ...actor, id: user.id }, 'member.jit_provisioned', { type: 'user', id: user.id }, { roles: settings.jitDefaultRoles, connection: profile.connectionId });
+      await this.audit.record(tenant.id, { ...actor, id: user.id }, 'member.jit_provisioned', { type: 'user', id: user.id }, { roles: RoleSync.inSsoDomain(settings, email) ? 'from groups' : settings.jitDefaultRoles, connection: profile.connectionId });
     } else if (user.status === 'invited') {
       [user] = await db.update(users).set({ status: 'active' }).where(eq(users.id, user.id)).returning();
     }
     await db.insert(ssoIdentities).values({ userId: user.id, profileId: profile.id, connectionId: profile.connectionId, idpId: profile.idpId, lastLoginAt: new Date() })
       .onConflictDoUpdate({ target: [ssoIdentities.tenantId, ssoIdentities.provider, ssoIdentities.profileId], set: { lastLoginAt: new Date(), userId: user.id } });
+    // What the IdP says about the member: attributes from its claims, roles from its groups (docs/plans/15 §5.4, §5.5).
+    await this.attributes.apply(tenant, user.id, 'sso', profile.rawAttributes ?? {});
+    await this.roleSync.recordGroups(tenant, user.id, 'sso', profile.groups ?? []);
     const amr = Array.isArray(profile.rawAttributes.amr) ? profile.rawAttributes.amr : [];
     await this.audit.record(tenant.id, { ...actor, id: user.id }, 'member.signed_in_sso', { type: 'user', id: user.id }, { connection: profile.connectionId, amr });
 

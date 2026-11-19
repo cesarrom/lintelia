@@ -3,8 +3,9 @@ import { and, eq, sql } from 'drizzle-orm';
 import { createRemoteJWKSet, decodeJwt, jwtVerify, type JWTVerifyGetKey } from 'jose';
 import { randomBytes } from 'node:crypto';
 import { CASE_RECORD_TYPES, type ConnectorManifest } from '@repo/fintivio/schemas';
-import { caseFiles, caseRecords, cases, clientProfiles, connectorInstallationIndex, connectorInstallations, uploads, users, workflowVersions } from '../entities';
+import { caseFiles, caseRecords, cases, clientProfiles, connectorInstallationIndex, connectorInstallations, uploads, users } from '../entities';
 import { deleteRecord, listRecords, writeRecord } from '../client-apps/profiles';
+import { EventRouter } from '../services/event-router';
 import { FileStore } from '../files/file-store';
 import { quarantineKey } from '../files/object-store';
 import { policyFor } from '../files/policy';
@@ -16,10 +17,7 @@ import { CORE_ISSUER, signAsCore, signingKey } from '../auth/signing-keys';
 import { env } from '../constants';
 import { AuditWriter } from '../services/audit.writer';
 import { TenantDirectory } from '../services/tenant-directory.service';
-import { CASE_REPOSITORY, ENGINE_CLIENT, EngineClient } from '../engine/engine.client';
-import type { CaseRepository } from '../engine/case-repository';
-import { parseDefinition, renderCaseTitle } from '../engine/definition';
-import { interpolate } from '../engine/expressions';
+import { ENGINE_CLIENT, EngineClient } from '../engine/engine.client';
 import { BadRequestError, ConflictError, ForbiddenError, HttpError, NotFoundError } from '../http/errors';
 import { ConnectorRegistry, connectorUrl } from './registry';
 import { CALLBACK_AUDIENCE, type CallbackClaims } from './connector-invoker';
@@ -64,9 +62,9 @@ export class ConnectorApiService {
     @Inject(ConnectorRegistry) private readonly registry: ConnectorRegistry,
     @Inject(AuditWriter) private readonly audit: AuditWriter,
     @Inject(TenantDirectory) private readonly directory: TenantDirectory,
-    @Inject(CASE_REPOSITORY) private readonly repository: CaseRepository,
     @Inject(ENGINE_CLIENT) private readonly engine: EngineClient,
     @Inject(FileStore) private readonly files: FileStore,
+    @Inject(EventRouter) private readonly router: EventRouter,
   ) { }
 
   // --- codes (browser hand-off) ------------------------------------------------------------------------------------
@@ -350,36 +348,26 @@ export class ConnectorApiService {
 
   // --- events ----------------------------------------------------------------------------------------------------
 
-  /** Connector events start the published workflows that list `connector:<id>/<type>` in `startOn`. */
+  /**
+   * Connector events (`connector:<id>/<type>`), routed like every event (docs/plans/17 §3.4): to the open cases
+   * waiting for them (by business keys, e.g. the loan a payment is about), then starting the workflows whose
+   * `startOn` lists them (or handing them to their open case).
+   */
   async publishEvent(principal: ConnectorPrincipal, body: { id?: string; type?: string; subject?: string; data?: Record<string, unknown>; applicantEmail?: string }) {
     if (!body.id || !body.type) throw new BadRequestError('id and type are required');
-    const fresh = await redis().send('SET', [`connector-event:${principal.installationId}:${body.id}`, '1', 'EX', String(7 * 24 * 3600), 'NX']);
-    if (!fresh) return { duplicate: true, started: [] };
     const event = `connector:${principal.connectorId}/${body.type}`;
     const db = this.databases.forTenant(principal.tenantId);
-    const subscribers = await db.select().from(workflowVersions)
-      .where(and(eq(workflowVersions.status, 'active'), sql`${event} = any(${workflowVersions.startOn})`));
     let applicant: { id: string; email: string; name: string } | null = null;
     if (body.applicantEmail) {
       const [client] = await db.select().from(users).where(and(sql`lower(${users.email}) = ${body.applicantEmail.toLowerCase()}`, eq(users.kind, 'client')));
       if (client) applicant = { id: client.id, email: client.email, name: client.name };
     }
-    const started: Array<{ id: string; reference: string }> = [];
-    for (const version of subscribers) {
-      const data = { ...(body.data ?? {}), subject: body.subject ?? null };
-      const definition = parseDefinition(version.yaml);
-      const kase = await this.repository.createCase(principal.tenantId, {
-        title: renderCaseTitle(version.yaml, data, applicant?.name ?? body.subject ?? event, interpolate),
-        workflowId: version.workflowId, workflowVersion: version.version, status: 'submitted',
-        applicantId: applicant?.id ?? null, applicantEmail: applicant?.email ?? null, applicantName: applicant?.name ?? null,
-        initiatedByType: 'connector', initiatedById: principal.installationId, initiatedByEmail: `${principal.connectorId}@connectors`,
-        source: `event:${event}`, data, clientVisibility: definition.clientVisibility,
-      });
-      await this.audit.record(principal.tenantId, this.actor(principal), 'case.created', { type: 'case', id: kase.id, reference: kase.reference }, { source: `event:${event}` }, kase.id);
-      await this.engine.start(principal.tenantId, kase.id);
-      started.push({ id: kase.id, reference: kase.reference });
-    }
-    return { duplicate: false, started };
+    const routed = await this.router.route(principal.tenantId, {
+      type: event, data: { ...(body.data ?? {}), subject: body.subject ?? null }, source: `connector:${principal.connectorId}`,
+      dedupeKey: `connector:${principal.installationId}:${body.id}`, applicant,
+      actor: { type: 'connector', id: principal.installationId, email: `${principal.connectorId}@connectors` },
+    });
+    return { duplicate: routed.duplicate, delivered: routed.delivered, started: routed.started };
   }
 
   /** The core's own URL, for the docs endpoint. */

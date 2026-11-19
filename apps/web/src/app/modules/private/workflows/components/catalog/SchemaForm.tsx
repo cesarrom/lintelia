@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import type { JsonSchema } from '@repo/fintivio/schemas';
 import { Input } from '@/components/ui/input';
@@ -177,10 +177,34 @@ function KeyValueField({ schema, value, onChange, label }: FieldProps) {
   );
 }
 
+/** Any JSON value as text (`x-widget: json`), e.g. the configuration of the step a `poll` calls. */
+function JsonField({ schema, value, onChange, label }: FieldProps) {
+  const id = useId();
+  const [text, setText] = useState(() => (value === undefined ? '' : JSON.stringify(value, null, 2)));
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <div className="space-y-1">
+      <Label htmlFor={id}>{label}</Label>
+      <Textarea id={id} aria-label={label} rows={5} className="font-mono text-xs" value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          try {
+            onChange(e.target.value.trim() ? JSON.parse(e.target.value) : undefined);
+            setError(null);
+          } catch (err) {
+            setError((err as Error).message);
+          }
+        }} />
+      {error ? <p className="text-xs text-destructive">Not valid JSON: {error}</p> : <Hint schema={schema} />}
+    </div>
+  );
+}
+
 function Field(props: FieldProps) {
   const { schema } = props;
   const type = Array.isArray(schema.type) ? schema.type[0] : schema.type;
   if (schema['x-widget'] === 'keyValue') return <KeyValueField {...props} />;
+  if (schema['x-widget'] === 'json') return <JsonField {...props} />;
   if (type === 'object') {
     return (
       <fieldset className="space-y-3 rounded-md border p-3">

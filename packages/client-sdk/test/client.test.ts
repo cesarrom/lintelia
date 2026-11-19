@@ -49,3 +49,35 @@ describe('headless client', () => {
     expect(error.details).toEqual([{ field: 'amount', message: 'required' }]);
   });
 });
+
+describe('live updates', () => {
+  test('subscribe streams changes and messages; closing stops it', async () => {
+    const encoder = new TextEncoder();
+    const calls: string[] = [];
+    const fetch = (async (url: string, init: RequestInit) => {
+      calls.push(url);
+      if (url.endsWith('/auth/client/session')) return new Response(JSON.stringify(session('t1')), { status: 200 });
+      expect((init.headers as Record<string, string>).Authorization).toBe('Bearer t1');
+      const body = new ReadableStream({
+        start(controller) {
+          controller.enqueue(encoder.encode('retry: 3000\nevent: ready\ndata: {"topics":[]}\n\n: ping\n\n'));
+          controller.enqueue(encoder.encode('event: change\ndata: {"topic":"client/u1/records/accounts"}\n\n'));
+          controller.enqueue(encoder.encode('id: 7\nevent: message\ndata: {"topic":"case/c1/channel/progress","seq":7,"payload":{"text":"Checking"}}\n\n'));
+          (init.signal as AbortSignal).addEventListener('abort', () => controller.error(new Error('aborted')));
+        },
+      });
+      return new Response(body, { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
+    }) as unknown as typeof globalThis.fetch;
+    const client = createClient({ apiUrl: 'https://api.example', tenant: 't', fetchClientSecret: async () => 'cs', fetch });
+    const events: unknown[] = [];
+    const subscription = client.subscribe(['client/u1/records/*', 'case/c1/channel/*'], (e) => events.push(e), { replay: true });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(subscription.connected).toBe(true);
+    expect(events).toEqual([
+      { type: 'change', topic: 'client/u1/records/accounts' },
+      { type: 'message', topic: 'case/c1/channel/progress', seq: 7, payload: { text: 'Checking' }, at: undefined },
+    ]);
+    expect(calls[1]).toContain('/live?topics=client%2Fu1%2Frecords%2F*%2Ccase%2Fc1%2Fchannel%2F*&replay=');
+    subscription.close();
+  });
+});

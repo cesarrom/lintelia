@@ -143,4 +143,6 @@ export interface JourneyState {
     items: Array<{ key: string; label: string; type: string }>;
     action: { type: string; sdk: string | null; url: string; title: string | null; instructions: string | null } | null;
   }>;
+  /** Where to listen from the start (docs/plans/17 §4.6): the case, and what its workflow publishes. */
+  live?: { topics: string[] };
 }
