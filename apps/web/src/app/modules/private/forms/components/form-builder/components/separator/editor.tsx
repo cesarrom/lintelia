@@ -3,7 +3,7 @@
 import { SeparatorHorizontal } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { SeparatorConfig } from '@repo/fintivio/schemas';
+import { SeparatorConfig } from '@repo/lintelia/schemas';
 import { EditorProps } from '../../schemas';
 
 export function SeparatorEditor({

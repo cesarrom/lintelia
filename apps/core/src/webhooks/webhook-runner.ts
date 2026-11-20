@@ -1,5 +1,5 @@
 import * as restate from '@restatedev/restate-sdk/fetch';
-import type { Tenant } from '@repo/fintivio/schemas';
+import type { Tenant } from '@repo/lintelia/schemas';
 import { env } from '../constants';
 import { INTERNAL_SIGNATURE_HEADER, verifyInternalSignature } from '../auth/internal-signature';
 import type { AuditWriter } from '../services/audit.writer';

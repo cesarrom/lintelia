@@ -90,7 +90,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_platform"
+            "lintelia_platform"
           ],
           "using": "true",
           "withCheck": "true"
@@ -247,7 +247,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_platform"
+            "lintelia_platform"
           ],
           "using": "true",
           "withCheck": "true"
@@ -257,7 +257,7 @@
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "\"tenants\".\"id\" = nullif(current_setting('app.tenant_id', true), '')::uuid"
         },
@@ -266,7 +266,7 @@
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "\"tenants\".\"id\" = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "\"tenants\".\"id\" = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -329,7 +329,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_platform"
+            "lintelia_platform"
           ],
           "using": "true",
           "withCheck": "true"
@@ -386,7 +386,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_platform"
+            "lintelia_platform"
           ],
           "using": "true",
           "withCheck": "true"
@@ -449,7 +449,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_platform"
+            "lintelia_platform"
           ],
           "using": "true",
           "withCheck": "true"
@@ -572,7 +572,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_platform"
+            "lintelia_platform"
           ],
           "using": "true",
           "withCheck": "true"
@@ -622,7 +622,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_platform"
+            "lintelia_platform"
           ],
           "using": "true",
           "withCheck": "true"
@@ -739,7 +739,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_platform"
+            "lintelia_platform"
           ],
           "using": "true",
           "withCheck": "true"
@@ -881,7 +881,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_platform"
+            "lintelia_platform"
           ],
           "using": "true",
           "withCheck": "true"
@@ -992,7 +992,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_platform"
+            "lintelia_platform"
           ],
           "using": "true",
           "withCheck": "true"
@@ -1147,7 +1147,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_platform"
+            "lintelia_platform"
           ],
           "using": "true",
           "withCheck": "true"
@@ -1258,7 +1258,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -1372,7 +1372,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -1494,7 +1494,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -1624,7 +1624,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -1739,7 +1739,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -1860,7 +1860,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -2021,7 +2021,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -2177,7 +2177,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -2310,7 +2310,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -2439,7 +2439,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -2561,7 +2561,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -2701,7 +2701,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -2827,7 +2827,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -2932,7 +2932,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -3058,7 +3058,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -3188,7 +3188,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -3291,7 +3291,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -3441,7 +3441,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -3610,7 +3610,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -3832,7 +3832,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -4166,7 +4166,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -4314,7 +4314,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -4602,7 +4602,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -4751,7 +4751,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -4973,7 +4973,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -5134,7 +5134,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -5282,7 +5282,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -5389,7 +5389,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -5597,7 +5597,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -5734,7 +5734,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -5924,7 +5924,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -6140,7 +6140,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -6288,7 +6288,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -6436,7 +6436,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -6533,7 +6533,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"
@@ -6657,7 +6657,7 @@
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "fintivio_app"
+            "lintelia_app"
           ],
           "using": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
           "withCheck": "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid"

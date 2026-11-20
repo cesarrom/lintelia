@@ -4,7 +4,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { ListFilter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ToolbarProps } from '../../schemas';
-import { selectConfigSchema } from '@repo/fintivio/schemas';
+import { selectConfigSchema } from '@repo/lintelia/schemas';
 
 export function SelectToolbar({ onDragStart, onDragEnd, disabled }: ToolbarProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({

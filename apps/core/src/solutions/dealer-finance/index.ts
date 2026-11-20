@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { eq, ne } from 'drizzle-orm';
-import { clientAppDefinitionSchema, type ClientAppDefinition } from '@repo/fintivio/schemas';
+import { clientAppDefinitionSchema, type ClientAppDefinition } from '@repo/lintelia/schemas';
 import { connectorInstallations, sysWorkflows, workflowVersions } from '../../entities';
 import type { TenantDatabase } from '../../clients/database.client';
 import { parseDefinition } from '../../engine/definition';

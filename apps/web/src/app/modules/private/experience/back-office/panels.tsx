@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowDown, ArrowUp, CircleAlert, Loader2, Lock, Plus, Trash2 } from 'lucide-react';
-import { BUILTIN_PAGES, backOfficeWidgetDefinition, type BackOfficeDefinition, type BackOfficeWidget, type JsonSchema } from '@repo/fintivio/schemas';
+import { BUILTIN_PAGES, backOfficeWidgetDefinition, type BackOfficeDefinition, type BackOfficeWidget, type JsonSchema } from '@repo/lintelia/schemas';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useDraggable } from '@dnd-kit/core';
 import { ToolbarProps } from '../../schemas';
 import { v4 as uuid } from 'uuid';
-import { numberConfigSchema } from '@repo/fintivio/schemas';
+import { numberConfigSchema } from '@repo/lintelia/schemas';
 
 export function NumberToolbar({ disabled }: ToolbarProps) {
   const { attributes, listeners, setNodeRef } = useDraggable({

@@ -1,7 +1,7 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
 import { and, eq, gt } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
-import type { Tenant, User } from '@repo/fintivio/schemas';
+import type { Tenant, User } from '@repo/lintelia/schemas';
 import { cases, publicFormKeys, sysForms } from '../entities';
 import type { Databases } from '../clients/database.client';
 import { DATABASES } from '../injector/tokens/databases.token';
@@ -58,7 +58,7 @@ export class PublicFormsService {
     const title = formName.replace(/"/g, '&quot;');
     return {
       url,
-      script: `<script src="${scriptSrc}" data-fintivio-form="${publicKey}" data-title="${title}" async></script>`,
+      script: `<script src="${scriptSrc}" data-lintelia-form="${publicKey}" data-title="${title}" async></script>`,
       iframe: `<iframe src="${url}" title="${title}" style="width:100%;min-height:640px;border:0" loading="lazy"></iframe>`,
     };
   }

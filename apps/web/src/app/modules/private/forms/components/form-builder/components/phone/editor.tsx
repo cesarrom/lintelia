@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { EditorProps } from '../../schemas';
-import { PhoneConfig } from '@repo/fintivio/schemas';
+import { PhoneConfig } from '@repo/lintelia/schemas';
 
 export function PhoneEditor({
   id,

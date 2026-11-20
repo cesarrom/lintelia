@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { CreateFormRequest, CreateTestFormInstanceRequest, Form, FormAnswer, FormConfig, FormInstance, GenerateFormAIRequest, UpdateFormRequest, SubmitFormAnswersRequest } from '@repo/fintivio/schemas';
+import { CreateFormRequest, CreateTestFormInstanceRequest, Form, FormAnswer, FormConfig, FormInstance, GenerateFormAIRequest, UpdateFormRequest, SubmitFormAnswersRequest } from '@repo/lintelia/schemas';
 import { useAxios } from './axios';
 
 const API_BASE_URL = import.meta.env.VITE_FILES_API_BASE_URL;

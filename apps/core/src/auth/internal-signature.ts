@@ -17,4 +17,4 @@ export const verifyInternalSignature = (signature: string | null | undefined, ..
   return expected.length === given.length && timingSafeEqual(expected, given);
 };
 
-export const INTERNAL_SIGNATURE_HEADER = 'x-fintivio-signature';
+export const INTERNAL_SIGNATURE_HEADER = 'x-lintelia-signature';

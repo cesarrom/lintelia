@@ -26,7 +26,7 @@ ALTER TABLE "case_parties" ADD CONSTRAINT "case_parties_person_fk" FOREIGN KEY (
 CREATE UNIQUE INDEX "case_parties_person_idx" ON "case_parties" USING btree ("tenant_id","case_id","person_id","role");--> statement-breakpoint
 CREATE INDEX "case_parties_person_lookup_idx" ON "case_parties" USING btree ("tenant_id","person_id");--> statement-breakpoint
 CREATE INDEX "cases_parent_idx" ON "cases" USING btree ("tenant_id","parent_case_id");--> statement-breakpoint
-CREATE POLICY "case_parties_tenant_isolation" ON "case_parties" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON "case_parties" TO fintivio_app;
+CREATE POLICY "case_parties_tenant_isolation" ON "case_parties" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+GRANT SELECT, INSERT, UPDATE, DELETE ON "case_parties" TO lintelia_app;
 --> statement-breakpoint
 ALTER TABLE "case_parties" FORCE ROW LEVEL SECURITY;

@@ -1,6 +1,6 @@
 import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { and, desc, eq, inArray, lte } from 'drizzle-orm';
-import { ACCESS_ADMINISTRATION_PERMISSIONS, TENANT_PERMISSION_IDS, resolvePermissions, type Tenant } from '@repo/fintivio/schemas';
+import { ACCESS_ADMINISTRATION_PERMISSIONS, TENANT_PERMISSION_IDS, resolvePermissions, type Tenant } from '@repo/lintelia/schemas';
 import { accessChanges, apiClients, roles, tenantSecurityPolicies, tenants, userRoles, users, type AccessChangeStatus } from '../entities';
 import type { Databases, TenantDatabase } from '../clients/database.client';
 import { DATABASES } from '../injector/tokens/databases.token';

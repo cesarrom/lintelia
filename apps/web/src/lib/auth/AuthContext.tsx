@@ -1,6 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import { useApiQuery } from '../services/api';
-import type { Tenant, User } from '@repo/fintivio/schemas';
+import type { Tenant, User } from '@repo/lintelia/schemas';
 import { useAuthActions, useSession, useUser } from './session';
 import { useTenant } from '../providers/TenantProvider';
 

@@ -7,7 +7,7 @@
  *
  *   bun run demo:auto-finance
  *
- * Then: http://demo-auto.localhost:3001 — staff (password fintivio-dev-password): underwriter@demo-auto.test,
+ * Then: http://demo-auto.localhost:3001 — staff (password lintelia-dev-password): underwriter@demo-auto.test,
  * funding@demo-auto.test, admin@demo-auto.test; the dealer portal: dealer@sunrise-motors.test (e-mailed code or the
  * same password). Fakes: LoanPro http://localhost:9410, QuickBooks :9411, Sheets :9412, AI :9409, Mailbox :8025.
  */
@@ -16,7 +16,7 @@ import { join } from 'node:path';
 
 const API = process.env.API_URL ?? 'http://localhost:8000';
 const TENANT = 'demo-auto';
-const PASSWORD = process.env.SEED_PASSWORD || 'fintivio-dev-password';
+const PASSWORD = process.env.SEED_PASSWORD || 'lintelia-dev-password';
 const ports = JSON.parse(readFileSync(join(import.meta.dir, '../../../dev/ports.json'), 'utf8')).services as Record<string, { port: number; url?: string }>;
 const fake = (name: string) => ports[name]?.url ?? `http://localhost:${ports[name]?.port}`;
 
@@ -46,7 +46,7 @@ async function submitConnectorPage(url: string, values: Record<string, string>) 
   if (!session) throw new Error(`No settings form at ${url}`);
   const target = new URL(url);
   const result = await (await fetch(new URL(target.pathname, target.origin), { method: 'POST', body: new URLSearchParams({ session, ...values }) })).text();
-  if (!result.includes('fintivio:connector-saved')) throw new Error(`The connector refused the settings: ${result.match(/<div class="error"[^>]*>([^<]*)</)?.[1] ?? result.slice(0, 200)}`);
+  if (!result.includes('lintelia:connector-saved')) throw new Error(`The connector refused the settings: ${result.match(/<div class="error"[^>]*>([^<]*)</)?.[1] ?? result.slice(0, 200)}`);
 }
 
 const CONNECTIONS: Array<{ key: string; connector: string; name?: string; values: Record<string, string> }> = [

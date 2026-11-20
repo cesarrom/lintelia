@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { BaseComponentSchema } from '../base-schema';
-import { RadioConfig, RadioOption } from '@repo/fintivio/schemas';
+import { RadioConfig, RadioOption } from '@repo/lintelia/schemas';
 
 // Value validation schema generator
 export class RadioComponentSchema extends BaseComponentSchema<z.ZodString, RadioConfig> {

@@ -1,5 +1,5 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
-import type { Tenant } from '@repo/fintivio/schemas';
+import type { Tenant } from '@repo/lintelia/schemas';
 import { TENANT } from '../injector/tokens/tenant.token';
 import type { AuditActor } from './audit.writer';
 import { EventRouter } from './event-router';

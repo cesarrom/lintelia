@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Editor } from '@monaco-editor/react';
-import { SystemVariable, ValueType } from '@repo/fintivio/schemas';
+import { SystemVariable, ValueType } from '@repo/lintelia/schemas';
 import { useSystemSetSystemVariable } from '@/lib/services/system.hooks';
 
 interface EditSystemVariableDialogProps {

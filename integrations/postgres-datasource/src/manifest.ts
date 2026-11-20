@@ -5,7 +5,7 @@ export const manifest: ManifestInput = {
   version: '1.0.0',
   name: 'PostgreSQL data source',
   description: "Look up data in your institution's own PostgreSQL database (parameterised, read-only unless you allow changes).",
-  publisher: { name: 'Fintivio', url: 'https://fintivio.dev', support: 'support@lintelia.example' },
+  publisher: { name: 'Lintelia', url: 'https://lintelia.example', support: 'support@lintelia.example' },
   categories: ['data'],
   icon: 'Database',
   audiences: ['tenant'],

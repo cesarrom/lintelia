@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { PropertiesProps } from '../../schemas';
 import { FileComponentSchema } from './schema';
-import { FileConfig } from '@repo/fintivio/schemas';
+import { FileConfig } from '@repo/lintelia/schemas';
 
 export function FileProperties({ config, onChange }: PropertiesProps<FileConfig>) {
   const schemaRef = useRef(new FileComponentSchema(config.propertyName));

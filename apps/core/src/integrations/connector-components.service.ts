@@ -1,6 +1,6 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
-import type { ComponentDefinition, Tenant } from '@repo/fintivio/schemas';
+import type { ComponentDefinition, Tenant } from '@repo/lintelia/schemas';
 import { connectorInstallations } from '../entities';
 import type { Databases } from '../clients/database.client';
 import { DATABASES } from '../injector/tokens/databases.token';

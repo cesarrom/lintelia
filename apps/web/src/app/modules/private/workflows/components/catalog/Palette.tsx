@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { v4 as uuid } from 'uuid';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { componentEvents, type ComponentDefinition, type NodeData } from '@repo/fintivio/schemas';
+import { componentEvents, type ComponentDefinition, type NodeData } from '@repo/lintelia/schemas';
 import { CATEGORY_LABELS, categoryStyle, iconFor } from './catalog';
 import { cn } from '@/lib/utils';
 

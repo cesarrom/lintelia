@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
-import type { ApiClientSecret } from '@repo/fintivio/entities/tenant';
+import type { ApiClientSecret } from '@repo/lintelia/entities/tenant';
 
 /** Access tokens of API clients live 15 minutes (docs/plans/04). */
 export const API_CLIENT_TOKEN_TTL_SECONDS = 900;

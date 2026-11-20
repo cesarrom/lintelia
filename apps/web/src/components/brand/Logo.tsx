@@ -2,7 +2,7 @@ import { useId } from 'react';
 import { cn } from '@/lib/utils';
 
 /**
- * The Fintivio mark: an "F" drawn as a workflow — a stem with two branches ending in nodes, the upper one completed
+ * The Lintelia mark: an "F" drawn as a workflow — a stem with two branches ending in nodes, the upper one completed
  * (cyan). Works from 16 px (favicon: public/favicon.svg) to hero sizes.
  */
 export function LogoMark({ className, title }: { className?: string; title?: string }) {
@@ -40,9 +40,9 @@ export function Logo({ className, tone = 'default', size = 'md' }: { className?:
     <span className={cn('inline-flex items-center gap-2.5', className)}>
       <LogoMark className={mark} />
       <span className={cn('font-semibold tracking-[-0.02em]', text, tone === 'light' ? 'text-white' : 'text-foreground')} aria-hidden="true">
-        fintivio
+        lintelia
       </span>
-      <span className="sr-only">Fintivio</span>
+      <span className="sr-only">Lintelia</span>
     </span>
   );
 }

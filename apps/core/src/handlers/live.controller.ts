@@ -1,7 +1,7 @@
 import { Controller, Get, Inject, Param, Post, Res, Scope } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import type { Context } from 'hono';
-import type { Tenant, User } from '@repo/fintivio/schemas';
+import type { Tenant, User } from '@repo/lintelia/schemas';
 import { Access, Public } from '../auth/access';
 import type { AuthContext } from '../auth/auth-context';
 import { IdentityService } from '../auth/identity.service';

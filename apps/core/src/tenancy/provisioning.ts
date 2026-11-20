@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { SYSTEM_ROLES, type Tenant } from '@repo/fintivio/schemas';
+import { SYSTEM_ROLES, type Tenant } from '@repo/lintelia/schemas';
 import { roles, tenants } from '../entities';
 import type { Databases } from '../clients/database.client';
 

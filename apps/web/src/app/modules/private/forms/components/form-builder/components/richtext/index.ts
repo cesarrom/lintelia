@@ -7,7 +7,7 @@ import { RichtextEditor } from './editor';
 import { RichtextViewer } from './viewer';
 import { RichtextProperties } from './properties';
 import { RichtextToolbar } from './toolbar';
-import { RichtextConfig, richtextConfigSchema } from '@repo/fintivio/schemas';
+import { RichtextConfig, richtextConfigSchema } from '@repo/lintelia/schemas';
 
 /**
  * Rich Text Component

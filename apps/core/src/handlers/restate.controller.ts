@@ -22,7 +22,7 @@ import { createIntakeRunner } from "../files/intake-runner";
 
 /**
  * Restate deployment endpoint (`/restate`), registered with the Restate server. It serves the durable parts of the
- * platform, all driven by the API with signed calls (`x-fintivio-signature`), never by end users:
+ * platform, all driven by the API with signed calls (`x-lintelia-signature`), never by end users:
  *  - `caseRun`: the case engine (one workflow per case);
  *  - `webhooks`: outbound webhook dispatch and deliveries;
  *  - `fileIntake`: the upload intake pipeline.

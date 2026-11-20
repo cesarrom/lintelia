@@ -1,6 +1,6 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
 import { asc, eq } from 'drizzle-orm';
-import { PLATFORM_ROLES, type User } from '@repo/fintivio/schemas';
+import { PLATFORM_ROLES, type User } from '@repo/lintelia/schemas';
 import { platformUsers } from '../entities';
 import type { Databases } from '../clients/database.client';
 import { DATABASES } from '../injector/tokens/databases.token';

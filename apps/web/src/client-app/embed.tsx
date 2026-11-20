@@ -1,7 +1,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { Loader2, LogOut, ShieldAlert } from 'lucide-react';
-import { isHostMessage, type AppMessage, type HostMessage } from '@fintivio/client-sdk/protocol';
+import { isHostMessage, type AppMessage, type HostMessage } from '@lintelia/client-sdk/protocol';
 import { API_BASE_URL, useAuthActions, useSession, type StoredSession } from '@/lib/auth/session';
 import { useDomain } from '@/lib/providers/TenantProvider';
 import { LogoMark } from '@/components/brand/Logo';
@@ -13,7 +13,7 @@ import { useRuntime, type AppRuntime } from './runtime';
 
 /**
  * The client app embedded in the institution's site or mobile app (`/embed/app`, docs/plans/11 §13 decision 4), driven
- * by `@fintivio/client-sdk`:
+ * by `@lintelia/client-sdk`:
  *  - the host says who it is (`?origin=`); the app only talks to it if the institution allowed that site (embedding
  *    settings, also enforced by the frame-ancestors policy), or to the WebView bridge of a mobile app;
  *  - without a session the app asks the host for one; the host gets a single-use client secret from its backend
@@ -62,7 +62,7 @@ export default function EmbedAppFrame() {
   }, [domain, host.origin]);
 
   const post = useCallback((message: Omit<AppMessage, 'source'> & { type: AppMessage['type'] }) => {
-    const full = { source: 'fintivio-app', ...message } as AppMessage;
+    const full = { source: 'lintelia-app', ...message } as AppMessage;
     const bridge = nativeBridge();
     if (bridge) return bridge.postMessage(JSON.stringify(full));
     if (trusted && window.parent !== window && host.origin) window.parent.postMessage(full, host.origin);
@@ -98,7 +98,7 @@ export default function EmbedAppFrame() {
     const subjectToken = hash.get('token');
     if (clientSecret || subjectToken) {
       history.replaceState(null, '', window.location.pathname + window.location.search);
-      void exchange({ source: 'fintivio-sdk', type: 'session', clientSecret: clientSecret ?? undefined, subjectToken: subjectToken ?? undefined });
+      void exchange({ source: 'lintelia-sdk', type: 'session', clientSecret: clientSecret ?? undefined, subjectToken: subjectToken ?? undefined });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -205,7 +205,7 @@ function Notice({ icon, title, text }: { icon: 'loading' | 'blocked' | 'signed-o
       </span>
       <p className="font-semibold">{title}</p>
       {text && <p className="max-w-sm text-sm text-muted-foreground">{text}</p>}
-      <p className="mt-4 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"><LogoMark className="h-3.5 w-3.5" />Secured by fintivio</p>
+      <p className="mt-4 inline-flex items-center gap-1.5 text-[11px] text-muted-foreground"><LogoMark className="h-3.5 w-3.5" />Secured by lintelia</p>
     </div>
   );
 }

@@ -71,11 +71,11 @@ test.describe('FIA-16 Roles come from the identity provider once single sign-on 
     expect(partial).toMatchObject({ linked: true, domains: [domain] });
     expect(partial.warnings.join(' ')).toContain('No group is mapped to the Administrator role');
 
-    const mappings = [{ group: 'KYC-Analysts', role: 'reviewer' }, { group: 'Fintivio-Admins', role: 'admin' }, { group: 'Team-Leads', role: 'senior_reviewer' }];
+    const mappings = [{ group: 'KYC-Analysts', role: 'reviewer' }, { group: 'Lintelia-Admins', role: 'admin' }, { group: 'Team-Leads', role: 'senior_reviewer' }];
     const preview = (await bank.adminApi.post('/sso/role-mappings/preview', { mappings })).body;
     expect(preview.administrators).toContain(bank.adminEmail);
     expectStatus(await bank.adminApi.put('/sso/role-mappings', { mappings }), 200);
-    expect((await bank.adminApi.get('/sso/role-mappings')).body.mappings).toEqual(expect.arrayContaining([{ group: 'Fintivio-Admins', role: 'admin' }]));
+    expect((await bank.adminApi.get('/sso/role-mappings')).body.mappings).toEqual(expect.arrayContaining([{ group: 'Lintelia-Admins', role: 'admin' }]));
   });
 
   test('the first SSO sign-in replaces hand-given roles by the groups’ roles, and every sign-in follows the groups', async () => {
@@ -92,7 +92,7 @@ test.describe('FIA-16 Roles come from the identity provider once single sign-on 
 
   test('administrative roles given by the IdP are told to the administrators', async () => {
     const since = Date.now() - 1000;
-    admin = await ssoSession(`it.admin@${domain}`, ['Fintivio-Admins']);
+    admin = await ssoSession(`it.admin@${domain}`, ['Lintelia-Admins']);
     expect(rolesOf(admin)).toEqual(['admin']);
     await waitForEmail({ tenant: bank.key, to: bank.adminEmail, subject: /Administrative roles changed by your identity provider/, since });
   });
@@ -136,7 +136,7 @@ test.describe('FIA-16 Roles come from the identity provider once single sign-on 
     await waitForEmail({ tenant: bank.key, to: `it.admin@${domain}`, subject: /Kept the administrator role/, since });
 
     // A group mapped to Administrator, but they left it and nobody else administers: kept too.
-    expectStatus(await itAdmin.put('/sso/role-mappings', { mappings: [{ group: 'KYC-Analysts', role: 'reviewer' }, { group: 'Fintivio-Admins', role: 'admin' }] }), 200);
+    expectStatus(await itAdmin.put('/sso/role-mappings', { mappings: [{ group: 'KYC-Analysts', role: 'reviewer' }, { group: 'Lintelia-Admins', role: 'admin' }] }), 200);
     since = Date.now() - 1000;
     const kept = await ssoSession(`it.admin@${domain}`, ['Everyone']);
     expect(rolesOf(kept)).toEqual(['admin']);

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from "zod-to-json-schema";
 import { jsonSchemaToZod } from "json-schema-to-zod";
-import type { BaseConfig } from '@repo/fintivio/schemas';
+import type { BaseConfig } from '@repo/lintelia/schemas';
 
 export abstract class BaseComponentSchema<T extends z.ZodType, C extends BaseConfig = BaseConfig> {
   protected schema: T;

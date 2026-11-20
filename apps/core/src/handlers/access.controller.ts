@@ -1,6 +1,6 @@
 import { Controller, Delete, Get, Inject, Param, Patch, Post, Put, Res, Scope } from '@nestjs/common';
 import type { Context } from 'hono';
-import type { Tenant, User } from '@repo/fintivio/schemas';
+import type { Tenant, User } from '@repo/lintelia/schemas';
 import { Access, Require, RequireAny } from '../auth/access';
 import { TENANT } from '../injector/tokens/tenant.token';
 import { USER } from '../injector/tokens/user.token';

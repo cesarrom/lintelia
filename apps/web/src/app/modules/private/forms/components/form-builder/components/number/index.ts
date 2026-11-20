@@ -5,7 +5,7 @@ import { NumberEditor } from './editor';
 import { NumberViewer } from './viewer';
 import { NumberProperties } from './properties';
 import { NumberToolbar } from './toolbar';
-import { NumberConfig, numberConfigSchema } from '@repo/fintivio/schemas';
+import { NumberConfig, numberConfigSchema } from '@repo/lintelia/schemas';
 
 /**
  * Number Input Component

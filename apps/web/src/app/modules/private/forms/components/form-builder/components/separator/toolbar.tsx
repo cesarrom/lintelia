@@ -5,7 +5,7 @@ import { SeparatorHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ToolbarProps } from '../../schemas';
 import { v4 as uuid } from 'uuid';
-import { separatorConfigSchema } from '@repo/fintivio/schemas';
+import { separatorConfigSchema } from '@repo/lintelia/schemas';
 
 export function SeparatorToolbar({ disabled }: ToolbarProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({

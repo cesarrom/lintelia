@@ -5,7 +5,7 @@ export const manifest: ManifestInput = {
   version: '1.0.0',
   name: 'Documenso e-signature',
   description: 'Have clients sign agreements from your Documenso templates; the signed PDF is attached to the case.',
-  publisher: { name: 'Fintivio', url: 'https://fintivio.dev', support: 'support@lintelia.example' },
+  publisher: { name: 'Lintelia', url: 'https://lintelia.example', support: 'support@lintelia.example' },
   categories: ['e_signature'],
   icon: 'Signature',
   audiences: ['tenant'],

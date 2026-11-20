@@ -3,7 +3,7 @@
 import { Palette } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDraggable } from '@dnd-kit/core';
-import { colorConfigSchema } from '@repo/fintivio/schemas';
+import { colorConfigSchema } from '@repo/lintelia/schemas';
 
 export function ColorToolbar() {
   const { attributes, listeners, setNodeRef } = useDraggable({

@@ -3,7 +3,7 @@ import YAML from 'yaml';
 import { and, desc, eq, isNotNull } from 'drizzle-orm';
 import {
   accessRuleErrors, normalizeWorkflowAccess, satisfiesAccessRule, type AccessRule, type User, type WorkflowAccess,
-} from '@repo/fintivio/schemas';
+} from '@repo/lintelia/schemas';
 import { roles, workflowVersions } from '../entities';
 import { grantablePermissionIds } from './catalog';
 import type { TenantDatabase } from '../clients/database.client';

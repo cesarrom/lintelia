@@ -1,5 +1,5 @@
 import { Inject, Injectable, Scope } from "@nestjs/common";
-import type { User } from "@repo/fintivio/schemas";
+import type { User } from "@repo/lintelia/schemas";
 import { AbstractService } from "./service";
 import type { AuthContext } from "../auth/auth-context";
 import { AUTH_CONTEXT } from "../injector/tokens/auth-context.token";

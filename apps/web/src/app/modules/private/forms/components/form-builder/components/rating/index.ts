@@ -5,7 +5,7 @@ import { RatingEditor } from './editor';
 import { RatingViewer } from './viewer';
 import { RatingProperties } from './properties';
 import { RatingToolbar } from './toolbar';
-import { RatingConfig, ratingConfigSchema } from '@repo/fintivio/schemas';
+import { RatingConfig, ratingConfigSchema } from '@repo/lintelia/schemas';
 
 /**
  * Rating Component

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ColumnDefinition, GetTablesResponse } from '@repo/fintivio/schemas';
+import { ColumnDefinition, GetTablesResponse } from '@repo/lintelia/schemas';
 import { PlusCircle, Trash2 } from 'lucide-react';
 import { CreateTable } from './CreateTable';
 

@@ -129,7 +129,7 @@ export function AppShell({ children, embedded, chrome = 'full' }: { children: Re
         {!embedded && (
           <footer className="mx-auto hidden max-w-5xl items-center justify-between gap-2 px-6 pb-8 text-[12px] text-muted-foreground lg:flex">
             <span>{institution.name}</span>
-            <span className="inline-flex items-center gap-1.5"><LogoMark className="h-3.5 w-3.5" />Secured by fintivio</span>
+            <span className="inline-flex items-center gap-1.5"><LogoMark className="h-3.5 w-3.5" />Secured by lintelia</span>
           </footer>
         )}
       </div>

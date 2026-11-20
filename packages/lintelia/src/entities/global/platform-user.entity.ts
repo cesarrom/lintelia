@@ -6,7 +6,7 @@ export const platformUserStatusEnum = pgEnum('platform_user_status', ['active', 
 
 /**
  * Platform staff ("us"): the people who onboard and operate tenants. Not visible to tenant-scoped connections
- * (no grants and no policy for `fintivio_app`).
+ * (no grants and no policy for `lintelia_app`).
  */
 export const platformUsers = pgTable('platform_users', {
   id: uuid('id').primaryKey().defaultRandom(),

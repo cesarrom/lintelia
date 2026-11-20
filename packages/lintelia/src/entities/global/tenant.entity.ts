@@ -5,7 +5,7 @@ import { appRole, currentTenantId, platformRole } from '../rls';
 export const tenantStatusEnum = pgEnum('tenant_status', ['active', 'suspended']);
 
 /**
- * A financial institution onboarded by platform staff. Platform table: managed through `fintivio_platform`.
+ * A financial institution onboarded by platform staff. Platform table: managed through `lintelia_platform`.
  * `domain` is the tenant's stable key (slug), used in URLs and by the web app to pick the tenant.
  */
 export const tenants = pgTable('tenants', {

@@ -6,9 +6,9 @@
 
 /** Host → app. */
 export type HostMessage =
-  | { source: 'fintivio-sdk'; type: 'session'; clientSecret?: string; subjectToken?: string }
-  | { source: 'fintivio-sdk'; type: 'navigate'; page: string; params?: Record<string, string> }
-  | { source: 'fintivio-sdk'; type: 'start-journey'; journey: string; input?: Record<string, unknown> };
+  | { source: 'lintelia-sdk'; type: 'session'; clientSecret?: string; subjectToken?: string }
+  | { source: 'lintelia-sdk'; type: 'navigate'; page: string; params?: Record<string, string> }
+  | { source: 'lintelia-sdk'; type: 'start-journey'; journey: string; input?: Record<string, unknown> };
 
 /** Events the app reports. */
 export type AppEventName = 'journey.started' | 'journey.completed' | 'signed-out' | 'session.expired' | 'page.viewed';
@@ -20,18 +20,18 @@ export interface AppEvent {
 
 /** App → host. */
 export type AppMessage =
-  | { source: 'fintivio-app'; type: 'needs-session'; reason: 'start' | 'expired' }
-  | { source: 'fintivio-app'; type: 'ready'; page: string }
-  | { source: 'fintivio-app'; type: 'resize'; height: number }
-  | { source: 'fintivio-app'; type: 'navigate'; page: string; params: Record<string, string> }
-  | { source: 'fintivio-app'; type: 'event'; event: AppEvent }
-  | { source: 'fintivio-app'; type: 'error'; message: string };
+  | { source: 'lintelia-app'; type: 'needs-session'; reason: 'start' | 'expired' }
+  | { source: 'lintelia-app'; type: 'ready'; page: string }
+  | { source: 'lintelia-app'; type: 'resize'; height: number }
+  | { source: 'lintelia-app'; type: 'navigate'; page: string; params: Record<string, string> }
+  | { source: 'lintelia-app'; type: 'event'; event: AppEvent }
+  | { source: 'lintelia-app'; type: 'error'; message: string };
 
 export const isAppMessage = (data: unknown): data is AppMessage =>
-  !!data && typeof data === 'object' && (data as { source?: unknown }).source === 'fintivio-app' && typeof (data as { type?: unknown }).type === 'string';
+  !!data && typeof data === 'object' && (data as { source?: unknown }).source === 'lintelia-app' && typeof (data as { type?: unknown }).type === 'string';
 
 export const isHostMessage = (data: unknown): data is HostMessage =>
-  !!data && typeof data === 'object' && (data as { source?: unknown }).source === 'fintivio-sdk' && typeof (data as { type?: unknown }).type === 'string';
+  !!data && typeof data === 'object' && (data as { source?: unknown }).source === 'lintelia-sdk' && typeof (data as { type?: unknown }).type === 'string';
 
 export interface EmbedUrlOptions {
   /** Where the institution's app is served, e.g. `https://app.your-bank.com`. */

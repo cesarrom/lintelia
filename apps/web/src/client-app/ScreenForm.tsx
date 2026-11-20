@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, Loader2, Timer } from 'lucide-react';
-import { parsePaymentCode, VALUE_CHECKS } from '@repo/fintivio/utilities';
+import { parsePaymentCode, VALUE_CHECKS } from '@repo/lintelia/utilities';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';

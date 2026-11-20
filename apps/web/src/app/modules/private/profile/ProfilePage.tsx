@@ -42,7 +42,7 @@ export default function ProfilePage() {
           </div>
           <div className="bg-card px-6 py-3.5">
             <dt className="text-xs text-muted-foreground">Institution</dt>
-            <dd className="mt-0.5 flex items-center gap-1.5 font-medium"><Building2 className="h-3.5 w-3.5 text-muted-foreground" />{tenant?.name ?? 'Fintivio platform'}</dd>
+            <dd className="mt-0.5 flex items-center gap-1.5 font-medium"><Building2 className="h-3.5 w-3.5 text-muted-foreground" />{tenant?.name ?? 'Lintelia platform'}</dd>
           </div>
           <div className="bg-card px-6 py-3.5">
             <dt className="text-xs text-muted-foreground">Roles</dt>

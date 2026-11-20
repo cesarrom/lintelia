@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { BaseComponentSchema } from '../base-schema';
-import { DatetimeConfig } from '@repo/fintivio/schemas';
+import { DatetimeConfig } from '@repo/lintelia/schemas';
 
 // Value validation schema generator
 export class DatetimeComponentSchema extends BaseComponentSchema<z.ZodString, DatetimeConfig> {

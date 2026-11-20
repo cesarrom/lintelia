@@ -30,7 +30,7 @@ import { useAuth } from '@/lib/auth/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import ViewLogDialog from './view-log-dialog';
 import { useLogsAcknowledgeLog } from '@/lib/services/logs.hooks';
-import { Log } from '@repo/fintivio/schemas';
+import { Log } from '@repo/lintelia/schemas';
 
 interface LogsTableProps {
   logs: Log[];

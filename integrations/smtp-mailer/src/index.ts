@@ -63,7 +63,7 @@ connector.action('email.send', async ({ installation, config, input, callback, c
       subject,
       text: String(config.body ?? ''),
       replyTo: config.replyTo || undefined,
-      headers: { 'X-Fintivio-Case': String(kase.reference ?? kase.id ?? '') },
+      headers: { 'X-Lintelia-Case': String(kase.reference ?? kase.id ?? '') },
     });
     const record = await installation.core.records.upsert({
       type: 'message', externalRef: info.messageId, status: 'sent', callbackToken: callback.token,

@@ -1,6 +1,6 @@
 import { Scope, Inject, Controller, Post, Delete, Get, Put, Res, Param } from "@nestjs/common";
 import type { Context } from "hono";
-import type { CreateTenant, UpdateTenantRequest } from "@repo/fintivio/schemas";
+import type { CreateTenant, UpdateTenantRequest } from "@repo/lintelia/schemas";
 import { TenantsService } from "../services/tenants.service";
 import { Access, Require, RequirePlatform } from "../auth/access";
 import { type AppRequest, REQUEST_PROXY } from "../injector/tokens/request-proxy.token";

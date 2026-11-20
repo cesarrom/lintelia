@@ -85,14 +85,14 @@ CREATE INDEX "case_keys_value_idx" ON "case_keys" USING btree ("tenant_id","name
 CREATE UNIQUE INDEX "inbound_events_dedupe_idx" ON "inbound_events" USING btree ("tenant_id","dedupe_key");--> statement-breakpoint
 CREATE INDEX "inbound_events_type_idx" ON "inbound_events" USING btree ("tenant_id","type","received_at");--> statement-breakpoint
 CREATE INDEX "live_messages_topic_idx" ON "live_messages" USING btree ("tenant_id","topic","seq");--> statement-breakpoint
-CREATE POLICY "case_event_waits_tenant_isolation" ON "case_event_waits" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-CREATE POLICY "case_events_tenant_isolation" ON "case_events" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-CREATE POLICY "case_keys_tenant_isolation" ON "case_keys" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-CREATE POLICY "inbound_events_tenant_isolation" ON "inbound_events" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-CREATE POLICY "live_messages_tenant_isolation" ON "live_messages" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON "inbound_events", "case_keys", "case_event_waits", "case_events", "live_messages" TO fintivio_app;
+CREATE POLICY "case_event_waits_tenant_isolation" ON "case_event_waits" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+CREATE POLICY "case_events_tenant_isolation" ON "case_events" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+CREATE POLICY "case_keys_tenant_isolation" ON "case_keys" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+CREATE POLICY "inbound_events_tenant_isolation" ON "inbound_events" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+CREATE POLICY "live_messages_tenant_isolation" ON "live_messages" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+GRANT SELECT, INSERT, UPDATE, DELETE ON "inbound_events", "case_keys", "case_event_waits", "case_events", "live_messages" TO lintelia_app;
 --> statement-breakpoint
-GRANT USAGE, SELECT ON SEQUENCE "live_messages_seq_seq" TO fintivio_app;
+GRANT USAGE, SELECT ON SEQUENCE "live_messages_seq_seq" TO lintelia_app;
 --> statement-breakpoint
 ALTER TABLE "inbound_events" FORCE ROW LEVEL SECURITY;
 --> statement-breakpoint
@@ -107,7 +107,7 @@ ALTER TABLE "live_messages" FORCE ROW LEVEL SECURITY;
 -- Live topics (docs/plans/17 §4): after commit, Postgres tells every API instance which topics changed ("thin" events:
 -- the screens fetch the data again through the normal, authorised endpoints). Identical notifications of one
 -- transaction are merged by Postgres.
-CREATE OR REPLACE FUNCTION fintivio_live_notify() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION lintelia_live_notify() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE
   topics text[] := '{}';
   rec record;
@@ -135,22 +135,22 @@ BEGIN
       END IF;
     END IF;
   ELSIF TG_TABLE_NAME = 'live_messages' THEN
-    PERFORM pg_notify('fintivio_live', json_build_object('t', rec.tenant_id, 'topics', json_build_array(rec.topic), 'seq', rec.seq,
+    PERFORM pg_notify('lintelia_live', json_build_object('t', rec.tenant_id, 'topics', json_build_array(rec.topic), 'seq', rec.seq,
       'payload', CASE WHEN octet_length(rec.payload::text) < 6000 THEN rec.payload ELSE NULL END)::text);
     RETURN NULL;
   END IF;
-  PERFORM pg_notify('fintivio_live', json_build_object('t', rec.tenant_id, 'topics', to_json(topics))::text);
+  PERFORM pg_notify('lintelia_live', json_build_object('t', rec.tenant_id, 'topics', to_json(topics))::text);
   RETURN NULL;
 END $$;
 --> statement-breakpoint
-CREATE TRIGGER client_records_live AFTER INSERT OR UPDATE OR DELETE ON "client_records" FOR EACH ROW EXECUTE FUNCTION fintivio_live_notify();
+CREATE TRIGGER client_records_live AFTER INSERT OR UPDATE OR DELETE ON "client_records" FOR EACH ROW EXECUTE FUNCTION lintelia_live_notify();
 --> statement-breakpoint
-CREATE TRIGGER client_notifications_live AFTER INSERT OR UPDATE OR DELETE ON "client_notifications" FOR EACH ROW EXECUTE FUNCTION fintivio_live_notify();
+CREATE TRIGGER client_notifications_live AFTER INSERT OR UPDATE OR DELETE ON "client_notifications" FOR EACH ROW EXECUTE FUNCTION lintelia_live_notify();
 --> statement-breakpoint
-CREATE TRIGGER client_profiles_live AFTER INSERT OR UPDATE ON "client_profiles" FOR EACH ROW EXECUTE FUNCTION fintivio_live_notify();
+CREATE TRIGGER client_profiles_live AFTER INSERT OR UPDATE ON "client_profiles" FOR EACH ROW EXECUTE FUNCTION lintelia_live_notify();
 --> statement-breakpoint
-CREATE TRIGGER cases_live AFTER INSERT OR UPDATE ON "cases" FOR EACH ROW EXECUTE FUNCTION fintivio_live_notify();
+CREATE TRIGGER cases_live AFTER INSERT OR UPDATE ON "cases" FOR EACH ROW EXECUTE FUNCTION lintelia_live_notify();
 --> statement-breakpoint
-CREATE TRIGGER tasks_live AFTER INSERT OR UPDATE OR DELETE ON "tasks" FOR EACH ROW EXECUTE FUNCTION fintivio_live_notify();
+CREATE TRIGGER tasks_live AFTER INSERT OR UPDATE OR DELETE ON "tasks" FOR EACH ROW EXECUTE FUNCTION lintelia_live_notify();
 --> statement-breakpoint
-CREATE TRIGGER live_messages_live AFTER INSERT ON "live_messages" FOR EACH ROW EXECUTE FUNCTION fintivio_live_notify();
+CREATE TRIGGER live_messages_live AFTER INSERT ON "live_messages" FOR EACH ROW EXECUTE FUNCTION lintelia_live_notify();

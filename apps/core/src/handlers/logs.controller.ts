@@ -3,7 +3,7 @@ import { LogsService } from "../services/logs.service";
 import { Scope, Inject, Controller, Get, Post, Patch, Req, Res, type RawBodyRequest, Param } from "@nestjs/common";
 import type { HonoRequest } from "hono/request";
 import type { Context } from "hono";
-import { LogCategory, LogLevel, type AcknowledgeLogRequest, type CreateLogRequest, type LogsFilterRequest } from "@repo/fintivio/schemas";
+import { LogCategory, LogLevel, type AcknowledgeLogRequest, type CreateLogRequest, type LogsFilterRequest } from "@repo/lintelia/schemas";
 import assert from 'assert';
 import { type AppRequest, REQUEST_PROXY } from "../injector/tokens/request-proxy.token";
 

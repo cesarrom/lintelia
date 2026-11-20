@@ -6,7 +6,7 @@ CREATE TABLE "platform_settings" (
 );
 --> statement-breakpoint
 ALTER TABLE "platform_settings" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
-CREATE POLICY "platform_settings_platform_all" ON "platform_settings" AS PERMISSIVE FOR ALL TO "fintivio_platform" USING (true) WITH CHECK (true);--> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON "platform_settings" TO fintivio_platform;
+CREATE POLICY "platform_settings_platform_all" ON "platform_settings" AS PERMISSIVE FOR ALL TO "lintelia_platform" USING (true) WITH CHECK (true);--> statement-breakpoint
+GRANT SELECT, INSERT, UPDATE, DELETE ON "platform_settings" TO lintelia_platform;
 --> statement-breakpoint
 ALTER TABLE "platform_settings" FORCE ROW LEVEL SECURITY;

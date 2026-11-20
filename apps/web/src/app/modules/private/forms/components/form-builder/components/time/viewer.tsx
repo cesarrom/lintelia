@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ViewerProps } from '../../schemas';
 import { useController } from 'react-hook-form';
-import { TimeConfig } from '@repo/fintivio/schemas';
+import { TimeConfig } from '@repo/lintelia/schemas';
 
 export function TimeViewer({
   id,

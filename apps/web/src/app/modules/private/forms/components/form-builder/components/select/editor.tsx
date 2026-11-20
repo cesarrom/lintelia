@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { Label } from '@/components/ui/label';
 import { EditorProps } from '../../schemas';
-import { SelectConfig, OptionsSource } from '@repo/fintivio/schemas';
+import { SelectConfig, OptionsSource } from '@repo/lintelia/schemas';
 import {
   Select,
   SelectContent,

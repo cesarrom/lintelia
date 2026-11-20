@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { arrayContains, eq, or } from 'drizzle-orm';
-import type { Tenant } from '@repo/fintivio/schemas';
+import type { Tenant } from '@repo/lintelia/schemas';
 import { tenants } from '../entities/globals';
 import type { PlatformDatabase } from '../clients/database.client';
 import { PLATFORM_CONNECTION } from '../injector/tokens/platform-connection.token';

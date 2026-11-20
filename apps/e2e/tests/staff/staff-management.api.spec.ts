@@ -6,7 +6,7 @@ import { totp } from '../../support/totp';
 import { env } from '../../support/env';
 
 async function inviteStaff(role: string): Promise<Session & { email: string }> {
-  const email = uniqueEmail(role, 'fintivio.local');
+  const email = uniqueEmail(role, 'lintelia.local');
   const since = Date.now() - 1000;
   const res = await Api.as(await staffSession()).post('/platform/staff', { email, name: role, roles: [role] });
   expectStatus(res, 201);
@@ -37,7 +37,7 @@ test.describe('STAFF-06 Manage platform staff and their roles', { tag: ['@staff'
 
   test('staff roles cannot be granted by staff who are not platform admins', async () => {
     const support = await inviteStaff('support');
-    expectForbidden(await Api.as(support).post('/platform/staff', { email: uniqueEmail('x', 'fintivio.local'), name: 'x', roles: ['platform_admin'] }));
+    expectForbidden(await Api.as(support).post('/platform/staff', { email: uniqueEmail('x', 'lintelia.local'), name: 'x', roles: ['platform_admin'] }));
   });
 });
 
@@ -58,7 +58,7 @@ test.describe('STAFF-07 Platform audit log', { tag: ['@staff', '@STAFF-07'] }, (
 
 test.describe('STAFF-01 Platform staff use MFA', { tag: ['@staff', '@STAFF-01'] }, () => {
   test('staff without a second factor must enrol TOTP, then sign-in requires a code', async () => {
-    const email = uniqueEmail('support', 'fintivio.local');
+    const email = uniqueEmail('support', 'lintelia.local');
     const since = Date.now() - 1000;
     expectStatus(await Api.as(await staffSession()).post('/platform/staff', { email, name: 'support', roles: ['support'] }), 201);
     const staffMember = { email };

@@ -152,7 +152,7 @@ export default class MonitorReporter implements Reporter {
 
   async onExit() {
     // The workers' lane locks (runtime.ts) live in a directory per run.
-    if (this.settings.enabled) rmSync(join(tmpdir(), 'fintivio-e2e-visual', this.settings.runId), { recursive: true, force: true });
+    if (this.settings.enabled) rmSync(join(tmpdir(), 'lintelia-e2e-visual', this.settings.runId), { recursive: true, force: true });
     if (!this.on) return;
     // Leave the final result on screen for a moment before closing the window.
     const hold = Number(process.env.E2E_VISUAL_MONITOR_HOLD ?? 4000);
@@ -208,7 +208,7 @@ export default class MonitorReporter implements Reporter {
       height: Math.round(cellHeight),
     };
     // An app window (no tab strip, no address bar) of its own browser, not one of the browsers under test.
-    this.profileDir = mkdtempSync(join(tmpdir(), 'fintivio-e2e-monitor-'));
+    this.profileDir = mkdtempSync(join(tmpdir(), 'lintelia-e2e-monitor-'));
     const context = await chromium.launchPersistentContext(this.profileDir, {
       headless: false,
       viewport: null,

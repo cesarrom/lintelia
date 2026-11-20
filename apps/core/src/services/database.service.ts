@@ -1,5 +1,5 @@
 import { HttpException, Injectable, Scope } from "@nestjs/common";
-import type { ColumnDefinition, GetTablesResponse } from '@repo/fintivio/schemas';
+import type { ColumnDefinition, GetTablesResponse } from '@repo/lintelia/schemas';
 import { AbstractService } from './service';
 import type { TenantDatabase } from '../clients/database.client';
 

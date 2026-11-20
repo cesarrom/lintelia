@@ -5,7 +5,7 @@ import { SeparatorHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ToolbarProps } from '../../schemas';
 import { v4 as uuid } from 'uuid';
-import { pageSeparatorConfigSchema } from '@repo/fintivio/schemas';
+import { pageSeparatorConfigSchema } from '@repo/lintelia/schemas';
 
 export function PageSeparatorToolbar({ disabled }: ToolbarProps) {
   const id = `toolbar-page-separator-${uuid()}`;

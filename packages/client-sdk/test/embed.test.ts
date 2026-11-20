@@ -32,7 +32,7 @@ describe('embed URL', () => {
   });
 
   test('recognises app messages only', () => {
-    expect(isAppMessage({ source: 'fintivio-app', type: 'ready' })).toBe(true);
+    expect(isAppMessage({ source: 'lintelia-app', type: 'ready' })).toBe(true);
     expect(isAppMessage({ source: 'other', type: 'ready' })).toBe(false);
     expect(isAppMessage('ready')).toBe(false);
   });
@@ -48,18 +48,18 @@ describe('mount', () => {
     const sent: Array<[unknown, string]> = [];
     (app.iframe.contentWindow as unknown as { postMessage: (m: unknown, o: string) => void }).postMessage = (message, origin) => sent.push([message, origin]);
 
-    fromApp(app.iframe, { source: 'fintivio-app', type: 'needs-session', reason: 'start' });
+    fromApp(app.iframe, { source: 'lintelia-app', type: 'needs-session', reason: 'start' });
     await tick();
     expect(secrets).toEqual(['cs_1']);
-    expect(sent).toEqual([[{ source: 'fintivio-sdk', type: 'session', clientSecret: 'cs_1' }, APP]]);
+    expect(sent).toEqual([[{ source: 'lintelia-sdk', type: 'session', clientSecret: 'cs_1' }, APP]]);
   });
 
   test('ignores messages from other origins or other frames', async () => {
     const { window, host, fromApp } = page();
     let calls = 0;
     const app = mount(host, { appUrl: APP, fetchClientSecret: async () => { calls++; return 'x'; } });
-    fromApp(app.iframe, { source: 'fintivio-app', type: 'needs-session', reason: 'start' }, 'https://evil.example');
-    fromApp(app.iframe, { source: 'fintivio-app', type: 'needs-session', reason: 'start' }, APP, window);
+    fromApp(app.iframe, { source: 'lintelia-app', type: 'needs-session', reason: 'start' }, 'https://evil.example');
+    fromApp(app.iframe, { source: 'lintelia-app', type: 'needs-session', reason: 'start' }, APP, window);
     await tick();
     expect(calls).toBe(0);
   });
@@ -71,10 +71,10 @@ describe('mount', () => {
       appUrl: APP, chrome: 'none', fetchClientSecret: async () => 'x',
       onEvent: (e) => events.push(e), onNavigate: (p, params) => events.push({ p, params }), onReady: (p) => events.push({ ready: p }),
     });
-    fromApp(app.iframe, { source: 'fintivio-app', type: 'ready', page: 'home' });
-    fromApp(app.iframe, { source: 'fintivio-app', type: 'resize', height: 1234.2 });
-    fromApp(app.iframe, { source: 'fintivio-app', type: 'navigate', page: 'cards', params: {} });
-    fromApp(app.iframe, { source: 'fintivio-app', type: 'event', event: { name: 'journey.completed', detail: { journey: 'transfer' } } });
+    fromApp(app.iframe, { source: 'lintelia-app', type: 'ready', page: 'home' });
+    fromApp(app.iframe, { source: 'lintelia-app', type: 'resize', height: 1234.2 });
+    fromApp(app.iframe, { source: 'lintelia-app', type: 'navigate', page: 'cards', params: {} });
+    fromApp(app.iframe, { source: 'lintelia-app', type: 'event', event: { name: 'journey.completed', detail: { journey: 'transfer' } } });
     expect(app.iframe.style.height).toBe('1235px');
     expect(events).toEqual([{ ready: 'home' }, { p: 'cards', params: {} }, { name: 'journey.completed', detail: { journey: 'transfer' } }]);
   });
@@ -88,13 +88,13 @@ describe('mount', () => {
     app.navigate('account', { key: 'cur-1' });
     app.startJourney('card_freeze', { card: 'c1' });
     expect(sent).toEqual([
-      { source: 'fintivio-sdk', type: 'navigate', page: 'account', params: { key: 'cur-1' } },
-      { source: 'fintivio-sdk', type: 'start-journey', journey: 'card_freeze', input: { card: 'c1' } },
+      { source: 'lintelia-sdk', type: 'navigate', page: 'account', params: { key: 'cur-1' } },
+      { source: 'lintelia-sdk', type: 'start-journey', journey: 'card_freeze', input: { card: 'c1' } },
     ]);
     const iframe = app.iframe;
     app.destroy();
     expect(host.querySelector('iframe')).toBeNull();
-    fromApp(iframe, { source: 'fintivio-app', type: 'needs-session', reason: 'expired' });
+    fromApp(iframe, { source: 'lintelia-app', type: 'needs-session', reason: 'expired' });
     expect(asked).toBe(0);
   });
 

@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useCallback, ReactNode, useRef, useMemo } from 'react';
 import { Node, Edge, useNodesState, useEdgesState, useNodeId, NodeProps } from 'reactflow';
-import { NodeData, TriggerDefinition, WorkflowYaml as Workflow, WorkflowSchema } from '@repo/fintivio/schemas';
+import { NodeData, TriggerDefinition, WorkflowYaml as Workflow, WorkflowSchema } from '@repo/lintelia/schemas';
 import React from 'react';
-import { ensureStartNode, validateWorkflowYaml, workflowToYaml, yamlToWorkflow } from '@repo/fintivio/utilities';
+import { ensureStartNode, validateWorkflowYaml, workflowToYaml, yamlToWorkflow } from '@repo/lintelia/utilities';
 
 // Initial start node position
 export interface WorkflowState {

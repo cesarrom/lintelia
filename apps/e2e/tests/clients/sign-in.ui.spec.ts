@@ -7,7 +7,7 @@ test.beforeAll(async () => { bank = await createTenant(); });
 test.afterAll(async () => { await deleteTenant(bank); });
 
 const session = async (page: import('@playwright/test').Page) =>
-  JSON.parse((await page.evaluate(() => localStorage.getItem('fintivio.session'))) ?? 'null');
+  JSON.parse((await page.evaluate(() => localStorage.getItem('lintelia.session'))) ?? 'null');
 
 test.describe("CLI-01 Create an account and sign in on the institution's portal", { tag: ['@client', '@CLI-01'] }, () => {
   test('a prospective client creates an account on the branded sign-on page', async ({ page }) => {

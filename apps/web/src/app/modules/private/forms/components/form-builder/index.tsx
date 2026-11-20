@@ -44,7 +44,7 @@ import { Loader2, MessageSquarePlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { FormToolbar } from './form-toolbar';
 import { VariablesProvider } from './context/variables';
-import { FormComponentConfig, FormConfig, formConfigSchema, FormVariable } from '@repo/fintivio/schemas';
+import { FormComponentConfig, FormConfig, formConfigSchema, FormVariable } from '@repo/lintelia/schemas';
 import { useFormGenerateFormWithAI } from '@/lib/services/form.hooks';
 
 // Register components

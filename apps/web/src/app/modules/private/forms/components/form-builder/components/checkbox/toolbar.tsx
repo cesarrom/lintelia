@@ -3,7 +3,7 @@
 import { CheckSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDraggable } from '@dnd-kit/core';
-import { checkboxConfigSchema } from '@repo/fintivio/schemas';
+import { checkboxConfigSchema } from '@repo/lintelia/schemas';
 
 export function CheckboxToolbar() {
   const { attributes, listeners, setNodeRef } = useDraggable({

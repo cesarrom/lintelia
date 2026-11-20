@@ -1,6 +1,6 @@
 import type * as restate from '@restatedev/restate-sdk/fetch';
-import type { ComponentDefinition } from '@repo/fintivio/schemas';
-import type { Tenant } from '@repo/fintivio/schemas';
+import type { ComponentDefinition } from '@repo/lintelia/schemas';
+import type { Tenant } from '@repo/lintelia/schemas';
 import type { CaseRepository } from '../case-repository';
 import type { StepDefinition } from '../definition';
 import type { Notifier } from '../notifier';

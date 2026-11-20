@@ -5,7 +5,7 @@ import { TextareaEditor } from './editor';
 import { TextareaViewer } from './viewer';
 import { TextareaProperties } from './properties';
 import { TextareaToolbar } from './toolbar';
-import { TextareaConfig, textareaConfigSchema } from '@repo/fintivio/schemas';
+import { TextareaConfig, textareaConfigSchema } from '@repo/lintelia/schemas';
 
 /**
  * Textarea Component

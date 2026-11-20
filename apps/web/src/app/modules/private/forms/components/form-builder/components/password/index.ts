@@ -5,7 +5,7 @@ import { PasswordEditor } from './editor';
 import { PasswordViewer } from './viewer';
 import { PasswordProperties } from './properties';
 import { PasswordToolbar } from './toolbar';
-import { PasswordConfig, passwordConfigSchema } from '@repo/fintivio/schemas';
+import { PasswordConfig, passwordConfigSchema } from '@repo/lintelia/schemas';
 
 /**
  * Password Input Component

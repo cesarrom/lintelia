@@ -1,6 +1,6 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
 import { eq, ne } from 'drizzle-orm';
-import { validateClientApp, type Tenant } from '@repo/fintivio/schemas';
+import { validateClientApp, type Tenant } from '@repo/lintelia/schemas';
 import { connectorInstallations, sysForms, sysWorkflows, workflowVersions } from '../entities';
 import { CASE_REPOSITORY } from '../engine/engine.client';
 import type { CaseRepository } from '../engine/case-repository';

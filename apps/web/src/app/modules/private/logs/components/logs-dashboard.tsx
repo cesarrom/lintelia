@@ -23,7 +23,7 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import { LogsFilterRequest } from '@repo/fintivio/schemas';
+import { LogsFilterRequest } from '@repo/lintelia/schemas';
 import { useLogsGetLogsAnalytics, useLogsGetLogsTrend, useLogsGetTopSources, useLogsGetTopUsers } from '@/lib/services/logs.hooks';
 
 interface LogsDashboardProps {

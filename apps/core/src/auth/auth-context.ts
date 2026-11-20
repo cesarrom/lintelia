@@ -1,4 +1,4 @@
-import type { Tenant, User } from '@repo/fintivio/schemas';
+import type { Tenant, User } from '@repo/lintelia/schemas';
 import type { SessionClaims } from './tokens';
 
 /**

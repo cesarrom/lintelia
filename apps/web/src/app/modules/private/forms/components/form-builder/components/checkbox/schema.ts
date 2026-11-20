@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { BaseComponentSchema } from '../base-schema';
-import { CheckboxConfig } from '@repo/fintivio/schemas';
+import { CheckboxConfig } from '@repo/lintelia/schemas';
 
 /**
  * Checkbox Component Schema

@@ -1,7 +1,7 @@
 import { Scope, Inject, Controller, Get, Post, Res } from "@nestjs/common";
 import type { Context } from "hono";
-import type { AfterLoginRequest, AfterLoginResponse, Tenant, User } from "@repo/fintivio/schemas";
-import { TriggerBuilder } from "@repo/fintivio/utilities";
+import type { AfterLoginRequest, AfterLoginResponse, Tenant, User } from "@repo/lintelia/schemas";
+import { TriggerBuilder } from "@repo/lintelia/utilities";
 import { LogsService } from "../services/logs.service";
 import { RolesService } from "../services/roles.service";
 import { PublicFormsService } from "../services/public-forms.service";
@@ -16,7 +16,7 @@ import { OneTimeSecrets } from "../auth/session.store";
 import { redis } from "../clients/redis.client";
 import { ClientProvisioningService } from "../client-apps/provisioning.service";
 
-const REFRESH_COOKIE = 'fintivio_refresh';
+const REFRESH_COOKIE = 'lintelia_refresh';
 import { Access, Public } from "../auth/access";
 import type { AuthContext } from "../auth/auth-context";
 import { AUTH_CONTEXT } from "../injector/tokens/auth-context.token";

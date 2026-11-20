@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import qrcode from 'qrcode-generator';
 import { Check, Copy, Loader2 } from 'lucide-react';
-import { buildEmvPayload, buildEpcPayload } from '@repo/fintivio/utilities';
+import { buildEmvPayload, buildEpcPayload } from '@repo/lintelia/utilities';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { resolveProps, useResolved } from '../expressions';

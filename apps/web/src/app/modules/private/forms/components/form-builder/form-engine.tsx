@@ -13,7 +13,7 @@ import { TestFormDialog } from './components/test-form-dialog';
 import { generateFormValuesSchema } from './validation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, FormProvider } from 'react-hook-form';
-import { FormConfig, FormVariable } from '@repo/fintivio/schemas';
+import { FormConfig, FormVariable } from '@repo/lintelia/schemas';
 import { FormEngineProps } from './schemas';
 
 // SortableComponent for editor mode

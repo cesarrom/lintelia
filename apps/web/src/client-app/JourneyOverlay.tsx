@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
-import type { JourneyPresentation } from '@repo/fintivio/schemas';
+import type { JourneyPresentation } from '@repo/lintelia/schemas';
 import { cn } from '@/lib/utils';
 import { JourneyRunner } from './JourneyRunner';
 import { appThemeProps, RuntimeProvider, useRuntime, type AppRuntime } from './runtime';

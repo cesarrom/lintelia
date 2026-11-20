@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import type { Form, FormConfig } from '@repo/fintivio/schemas';
+import type { Form, FormConfig } from '@repo/lintelia/schemas';
 import { useFormCreateForm, useFormUpdateForm } from '@/lib/services/form.hooks';
 import { useQueryClient } from '@tanstack/react-query';
 

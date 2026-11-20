@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 /**
  * Connector manifests (docs/plans/03): the contract between the core and a connector service. Served by each
- * connector at `/.well-known/fintivio-connector.json`, kept (versioned, approved) in the core's registry.
+ * connector at `/.well-known/lintelia-connector.json`, kept (versioned, approved) in the core's registry.
  */
 
 const jsonSchema = z.record(z.unknown());

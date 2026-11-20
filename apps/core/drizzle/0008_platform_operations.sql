@@ -39,12 +39,12 @@ ALTER TABLE "support_grants" ADD CONSTRAINT "support_grants_staff_fk" FOREIGN KE
 CREATE UNIQUE INDEX "platform_audit_events_seq_idx" ON "platform_audit_events" USING btree ("seq");--> statement-breakpoint
 CREATE INDEX "platform_audit_events_tenant_idx" ON "platform_audit_events" USING btree ("tenant_key");--> statement-breakpoint
 CREATE INDEX "support_grants_tenant_idx" ON "support_grants" USING btree ("tenant_id","status");--> statement-breakpoint
-CREATE POLICY "platform_audit_events_platform_all" ON "platform_audit_events" AS PERMISSIVE FOR ALL TO "fintivio_platform" USING (true) WITH CHECK (true);--> statement-breakpoint
-CREATE POLICY "support_grants_platform_all" ON "support_grants" AS PERMISSIVE FOR ALL TO "fintivio_platform" USING (true) WITH CHECK (true);--> statement-breakpoint
+CREATE POLICY "platform_audit_events_platform_all" ON "platform_audit_events" AS PERMISSIVE FOR ALL TO "lintelia_platform" USING (true) WITH CHECK (true);--> statement-breakpoint
+CREATE POLICY "support_grants_platform_all" ON "support_grants" AS PERMISSIVE FOR ALL TO "lintelia_platform" USING (true) WITH CHECK (true);--> statement-breakpoint
 -- Platform tables: only the platform role. The platform audit trail is append-only (no UPDATE/DELETE).
-GRANT SELECT, INSERT ON "platform_audit_events" TO fintivio_platform;
+GRANT SELECT, INSERT ON "platform_audit_events" TO lintelia_platform;
 --> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON "support_grants" TO fintivio_platform;
+GRANT SELECT, INSERT, UPDATE, DELETE ON "support_grants" TO lintelia_platform;
 --> statement-breakpoint
 ALTER TABLE "platform_audit_events" FORCE ROW LEVEL SECURITY;
 --> statement-breakpoint

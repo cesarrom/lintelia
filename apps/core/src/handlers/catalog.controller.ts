@@ -1,6 +1,6 @@
 import { Controller, Get, Res } from '@nestjs/common';
 import type { Context } from 'hono';
-import { PLATFORM_ROLES, PLATFORM_PERMISSION_CATALOG } from '@repo/fintivio/schemas';
+import { PLATFORM_ROLES, PLATFORM_PERMISSION_CATALOG } from '@repo/lintelia/schemas';
 import { RequirePlatform } from '../auth/access';
 import { json } from '../http/respond';
 

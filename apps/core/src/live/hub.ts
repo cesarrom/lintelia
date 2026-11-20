@@ -8,7 +8,7 @@ import { covers, isMessageTopic } from './topics';
 
 /**
  * Live updates (docs/plans/17 §4): Server-Sent Events to the screens. Postgres tells every API instance, after commit,
- * which topics changed (`NOTIFY fintivio_live` from triggers on records, notifications, profiles, cases, tasks and
+ * which topics changed (`NOTIFY lintelia_live` from triggers on records, notifications, profiles, cases, tasks and
  * live messages); each instance forwards to the streams it holds. Changes are thin ("topic X changed": the screen
  * fetches again through the authorised endpoint); messages (`live.publish`) are kept in `live_messages`, ordered, and
  * replayed to late listeners (`since`). Streams send a keep-alive comment, end when the access token expires (the
@@ -72,7 +72,7 @@ export class LiveHub implements OnModuleInit, OnModuleDestroy {
   constructor(@Inject(DATABASES) private readonly databases: Databases) { }
 
   async onModuleInit() {
-    const subscription = await this.databases.listen('fintivio_live', (payload) => this.dispatch(payload));
+    const subscription = await this.databases.listen('lintelia_live', (payload) => this.dispatch(payload));
     this.unlisten = () => subscription.unlisten();
     this.heartbeat = setInterval(() => this.tick(), Math.min(env.LIVE_HEARTBEAT_MS, env.LIVE_REVALIDATE_MS, 5000));
     this.retention = setInterval(() => void this.prune().catch((error) => console.error('live retention failed', (error as Error).message)), 3600_000);

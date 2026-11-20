@@ -1,6 +1,6 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
 import { and, desc, eq } from 'drizzle-orm';
-import type { Tenant, User } from '@repo/fintivio/schemas';
+import type { Tenant, User } from '@repo/lintelia/schemas';
 import { grantablePermissionIds } from '../access/catalog';
 import { apiClientIndex, apiClients } from '../entities';
 import type { Databases } from '../clients/database.client';

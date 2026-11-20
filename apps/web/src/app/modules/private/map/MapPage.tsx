@@ -7,7 +7,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { toast } from 'sonner';
 import { AlertTriangle, ArrowLeft, Layers, LayoutGrid, Loader2, Map as MapIcon, Maximize, Search, UserRound } from 'lucide-react';
-import type { ClientWidget } from '@repo/fintivio/schemas';
+import type { ClientWidget } from '@repo/lintelia/schemas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -55,7 +55,7 @@ const LEGEND: Array<{ kind: EdgeKind; label: string }> = [
   { kind: 'form', label: 'Form' }, { kind: 'notify', label: 'Notification opens a page' },
 ];
 
-const storage = (tenant: string, what: string) => `fintivio.map.${what}.${tenant}`;
+const storage = (tenant: string, what: string) => `lintelia.map.${what}.${tenant}`;
 const read = <T,>(key: string, fallback: T): T => {
   try {
     const raw = localStorage.getItem(key);

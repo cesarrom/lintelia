@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Fintivio connector: parameterised, read-only queries against the institution's own PostgreSQL database.",
+  "description": "Lintelia connector: parameterised, read-only queries against the institution's own PostgreSQL database.",
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
     "check-types": "tsc --noEmit -p ."
   },
-  "fintivio": {
+  "lintelia": {
     "connector": "postgres-datasource"
   },
   "dependencies": {

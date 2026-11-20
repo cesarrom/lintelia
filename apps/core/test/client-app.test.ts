@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { SYSTEM_ROLE_KEYS, validateClientApp, BLANK_CLIENT_APP, ordered, withKeyOrder } from '@repo/fintivio/schemas';
+import { SYSTEM_ROLE_KEYS, validateClientApp, BLANK_CLIENT_APP, ordered, withKeyOrder } from '@repo/lintelia/schemas';
 import { parseDefinition } from '../src/engine/definition';
 import { validateDefinition } from '../src/engine/components/validation';
 import { interpolate, resolveConfig } from '../src/engine/expressions';

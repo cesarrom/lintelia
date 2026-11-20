@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Fintivio connector: LoanPro loan servicing (board loans, post payments, loan status; servicing events and the borrower's loan in the client app).",
+  "description": "Lintelia connector: LoanPro loan servicing (board loans, post payments, loan status; servicing events and the borrower's loan in the client app).",
   "scripts": { "dev": "bun --watch src/index.ts", "start": "bun src/index.ts", "check-types": "tsc --noEmit -p ." },
-  "fintivio": { "connector": "loanpro" },
+  "lintelia": { "connector": "loanpro" },
   "dependencies": { "@repo/connector-sdk": "*" }
 }

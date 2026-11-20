@@ -21,7 +21,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { FormDialog } from './form-builder/FormDialog';
-import type { Form } from '@repo/fintivio/schemas';
+import type { Form } from '@repo/lintelia/schemas';
 import { useNavigate, useSearchParams } from 'react-router';
 
 interface FormsTableProps {

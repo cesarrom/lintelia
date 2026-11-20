@@ -11,7 +11,7 @@ export interface ClientSession {
 }
 
 export interface ClientOptions {
-  /** The Fintivio API, e.g. `https://api.fintivio.com` (or your institution's API address). */
+  /** The Lintelia API, e.g. `https://api.lintelia.example` (or your institution's API address). */
   apiUrl: string;
   /** Your institution's key or host (sent as `X-Tenant`). */
   tenant: string;
@@ -21,13 +21,13 @@ export interface ClientOptions {
   fetch?: typeof fetch;
 }
 
-export class FintivioApiError extends Error {
+export class LinteliaApiError extends Error {
   constructor(message: string, readonly status: number, readonly details?: unknown) {
     super(message);
   }
 }
 
-export interface FintivioClient {
+export interface LinteliaClient {
   signIn(): Promise<ClientSession>;
   session(): ClientSession | null;
   signOut(): Promise<void>;
@@ -59,7 +59,7 @@ export interface LiveSubscription {
 
 const MARGIN_MS = 60_000;
 
-export function createClient(options: ClientOptions): FintivioClient {
+export function createClient(options: ClientOptions): LinteliaClient {
   const api = options.apiUrl.replace(/\/+$/, '');
   const doFetch = options.fetch ?? fetch;
   let current: ClientSession | null = null;
@@ -73,7 +73,7 @@ export function createClient(options: ClientOptions): FintivioClient {
     });
     const text = await response.text();
     const parsed = text ? JSON.parse(text) : undefined;
-    if (!response.ok) throw new FintivioApiError(parsed?.error ?? parsed?.message ?? `HTTP ${response.status}`, response.status, parsed?.errors);
+    if (!response.ok) throw new LinteliaApiError(parsed?.error ?? parsed?.message ?? `HTTP ${response.status}`, response.status, parsed?.errors);
     return parsed as T;
   };
 
@@ -109,7 +109,7 @@ export function createClient(options: ClientOptions): FintivioClient {
       return await call<T>(method, path, body, await token());
     } catch (error) {
       // A revoked session: sign in again once.
-      if (error instanceof FintivioApiError && error.status === 401) {
+      if (error instanceof LinteliaApiError && error.status === 401) {
         current = null;
         return call<T>(method, path, body, await token());
       }
@@ -154,7 +154,7 @@ export function createClient(options: ClientOptions): FintivioClient {
             signal: controller.signal,
           });
           if (response.status === 401) current = null;
-          if (!response.ok || !response.body) throw new FintivioApiError(`HTTP ${response.status}`, response.status);
+          if (!response.ok || !response.body) throw new LinteliaApiError(`HTTP ${response.status}`, response.status);
           const reader = response.body.getReader();
           const decoder = new TextDecoder();
           let buffer = '';
@@ -169,7 +169,7 @@ export function createClient(options: ClientOptions): FintivioClient {
             }
           }
         } catch (error) {
-          if (error instanceof FintivioApiError && error.status === 403) closed = true;
+          if (error instanceof LinteliaApiError && error.status === 403) closed = true;
         }
         connected = false;
         if (closed) break;

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { BaseComponentSchema } from '../base-schema';
-import { TimeConfig } from '@repo/fintivio/schemas';
+import { TimeConfig } from '@repo/lintelia/schemas';
 
 const timeRegex = /^([0-1][0-9]|2[0-3]):[0-5][0-9]$/;
 

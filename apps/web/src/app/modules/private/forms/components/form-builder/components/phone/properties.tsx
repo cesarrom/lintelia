@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PropertiesProps } from '../../schemas';
 import { PhoneComponentSchema } from './schema';
-import { PhoneConfig } from '@repo/fintivio/schemas';
+import { PhoneConfig } from '@repo/lintelia/schemas';
 
 export function PhoneProperties({ config, onChange }: PropertiesProps<PhoneConfig>) {
   const schemaRef = useRef(new PhoneComponentSchema(config.propertyName));

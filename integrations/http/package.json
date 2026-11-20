@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Fintivio connector: any HTTP API (outbound requests with stored credentials) and inbound webhooks that start workflows.",
+  "description": "Lintelia connector: any HTTP API (outbound requests with stored credentials) and inbound webhooks that start workflows.",
   "scripts": { "dev": "bun --watch src/index.ts", "start": "bun src/index.ts", "check-types": "tsc --noEmit -p ." },
-  "fintivio": { "connector": "http" },
+  "lintelia": { "connector": "http" },
   "dependencies": { "@repo/connector-sdk": "*" }
 }

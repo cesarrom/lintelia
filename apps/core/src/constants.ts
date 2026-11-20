@@ -39,7 +39,7 @@ export const env = {
   AUTH_ACCESS_TTL_SECONDS: e.get('AUTH_ACCESS_TTL_SECONDS').default('900').asIntPositive(),
   /** Session (refresh) lifetime (seconds). */
   AUTH_SESSION_TTL_SECONDS: e.get('AUTH_SESSION_TTL_SECONDS').default(String(12 * 3600)).asIntPositive(),
-  AUTH_JWT_ISSUER: e.get('AUTH_JWT_ISSUER').default('fintivio').asString(),
+  AUTH_JWT_ISSUER: e.get('AUTH_JWT_ISSUER').default('lintelia').asString(),
 
   // SSO broker (docs/plans/02): WorkOS. Locally the WorkOS emulator (fake-services/workos) with the same SDK.
   WORKOS_API_KEY: e.get('WORKOS_API_KEY').default('sk_test_local_emulator').asString(),
@@ -57,7 +57,7 @@ export const env = {
   LIVE_MAX_STREAMS_PER_USER: e.get('LIVE_MAX_STREAMS_PER_USER').default('20').asInt(),
   ACCESS_CHANGES_INTERVAL_SECONDS: e.get('ACCESS_CHANGES_INTERVAL_SECONDS').default(process.env.NODE_ENV === 'production' ? '30' : '2').asInt(),
   /** Staff accounts that keep password + TOTP when staff SSO is enforced (break-glass; alert on use). */
-  STAFF_BREAK_GLASS_EMAILS: (e.get('STAFF_BREAK_GLASS_EMAILS').default('staff@fintivio.local').asArray(',') ?? []).map((x) => x.trim().toLowerCase()),
+  STAFF_BREAK_GLASS_EMAILS: (e.get('STAFF_BREAK_GLASS_EMAILS').default('staff@lintelia.local').asArray(',') ?? []).map((x) => x.trim().toLowerCase()),
 
   // Redis: sessions, one-time codes, rate limits
   REDIS_URL: e.get('REDIS_URL').default('redis://localhost:6380').asUrlString(),
@@ -86,7 +86,7 @@ export const env = {
   EMAIL_OUTBOX_DIR: e.get('EMAIL_OUTBOX_DIR').default('.data/outbox').asString(),
   /** Local signing keys (development); deployed environments set CORE_SIGNING_JWK. */
   KEYS_DIR: e.get('KEYS_DIR').default('.data/keys').asString(),
-  EMAIL_FROM: e.get('EMAIL_FROM').default('Fintivio <no-reply@fintivio.local>').asString(),
+  EMAIL_FROM: e.get('EMAIL_FROM').default('Lintelia <no-reply@lintelia.local>').asString(),
   SMTP_HOST: e.get('SMTP_HOST').asString(),
   SMTP_PORT: e.get('SMTP_PORT').asPortNumber(),
   SMTP_SECURE: e.get('SMTP_SECURE').default('false').asBool(),
@@ -107,7 +107,7 @@ export const env = {
   DNS_RESOLVER: e.get('DNS_RESOLVER').default(process.env.NODE_ENV === 'production' ? 'system' : 'http').asEnum(['system', 'http']),
   DNS_HTTP_URL: e.get('DNS_HTTP_URL').default('http://localhost:9408/resolve').asUrlString(),
   /** Where institutions point their custom host names (CNAME target of the edge). */
-  CUSTOM_DOMAIN_TARGET: e.get('CUSTOM_DOMAIN_TARGET').default('custom.fintivio.local').asString(),
+  CUSTOM_DOMAIN_TARGET: e.get('CUSTOM_DOMAIN_TARGET').default('custom.lintelia.local').asString(),
 
   // Vendors without a local fake yet: features using them fail with a clear "not configured" error.
   OPENAI_API_KEY: e.get('OPENAI_API_KEY').asString(),

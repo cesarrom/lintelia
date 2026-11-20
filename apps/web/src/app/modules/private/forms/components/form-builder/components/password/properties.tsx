@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { PropertiesProps } from '../../schemas';
 import { PasswordComponentSchema } from './schema';
-import { PasswordConfig } from '@repo/fintivio/schemas';
+import { PasswordConfig } from '@repo/lintelia/schemas';
 
 export function PasswordProperties({ config, onChange }: PropertiesProps<PasswordConfig>) {
   const schemaRef = useRef(new PasswordComponentSchema(config.propertyName));

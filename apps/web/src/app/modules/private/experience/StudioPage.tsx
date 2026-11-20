@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import {
   AppWindow, Database, ExternalLink, FileStack, LayoutTemplate, Loader2, Rocket, Route, Settings2,
 } from 'lucide-react';
-import { appSources, ordered, validateClientApp, type ClientWidget } from '@repo/fintivio/schemas';
+import { appSources, ordered, validateClientApp, type ClientWidget } from '@repo/lintelia/schemas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

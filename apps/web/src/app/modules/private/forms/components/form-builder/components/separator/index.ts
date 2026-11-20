@@ -5,7 +5,7 @@ import { SeparatorEditor } from './editor';
 import { SeparatorViewer } from './viewer';
 import { SeparatorProperties } from './properties';
 import { SeparatorToolbar } from './toolbar';
-import { SeparatorConfig, separatorConfigSchema } from '@repo/fintivio/schemas';
+import { SeparatorConfig, separatorConfigSchema } from '@repo/lintelia/schemas';
 
 /**
  * Separator Component

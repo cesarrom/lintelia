@@ -1,8 +1,8 @@
 import { Access, Require } from "../auth/access";
 import { DatabaseService as DBService } from "../services/database.service";
-import { type DatabaseNodeConfig, GetTablesResponse } from "@repo/fintivio/schemas";
+import { type DatabaseNodeConfig, GetTablesResponse } from "@repo/lintelia/schemas";
 import { LogsService } from "../services/logs.service";
-import { TriggerBuilder } from "@repo/fintivio/utilities";
+import { TriggerBuilder } from "@repo/lintelia/utilities";
 import { TENANT_CONNECTION } from "../injector/tokens/tenant-connection.token";
 import { type TenantDatabase } from "../clients/database.client";
 import { Scope, Inject, Controller, Get, Post, Res, Param } from "@nestjs/common";

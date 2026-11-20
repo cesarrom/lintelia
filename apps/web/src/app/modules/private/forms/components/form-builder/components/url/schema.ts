@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { BaseComponentSchema } from '../base-schema';
-import { UrlConfig } from '@repo/fintivio/schemas';
+import { UrlConfig } from '@repo/lintelia/schemas';
 
 // Value validation schema generator
 export class UrlComponentSchema extends BaseComponentSchema<z.ZodString, UrlConfig> {

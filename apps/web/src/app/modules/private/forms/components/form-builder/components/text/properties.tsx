@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { PropertiesProps } from '../../schemas';
 import { TextComponentSchema } from './schema';
-import { TextConfig } from '@repo/fintivio/schemas';
+import { TextConfig } from '@repo/lintelia/schemas';
 
 export function TextProperties({ config, onChange }: PropertiesProps<TextConfig>) {
   const schemaRef = useRef(new TextComponentSchema(config.propertyName));

@@ -11,8 +11,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { yamlToWorkflow } from '@repo/fintivio/utilities';
-import { WorkflowInputYaml } from '@repo/fintivio/schemas';
+import { yamlToWorkflow } from '@repo/lintelia/utilities';
+import { WorkflowInputYaml } from '@repo/lintelia/schemas';
 
 interface RunWorkflowDialogProps {
   open: boolean;

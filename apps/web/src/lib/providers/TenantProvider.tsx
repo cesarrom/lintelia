@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useTenantGetTenant } from "../services/tenant.hooks";
-import { Tenant } from '@repo/fintivio/schemas';
+import { Tenant } from '@repo/lintelia/schemas';
 // eslint-disable-next-line @typescript-eslint()
 import Cookies from 'js-cookie'
 
@@ -13,7 +13,7 @@ interface TenantContextType {
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
 
-const TENANT_COOKIE = 'fintivio-domain';
+const TENANT_COOKIE = 'lintelia-domain';
 /** Hosts that serve the platform (staff) app rather than a tenant, e.g. `localhost:3001`. */
 const ROOT_HOSTS = ((import.meta.env.VITE_ROOT_HOSTS as string | undefined) ?? 'localhost:3001,127.0.0.1:3001')
   .split(',').map((h) => h.trim().toLowerCase()).filter(Boolean);

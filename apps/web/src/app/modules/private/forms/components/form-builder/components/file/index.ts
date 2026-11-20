@@ -5,7 +5,7 @@ import { FileEditor } from './editor';
 import { FileViewer } from './viewer';
 import { FileProperties } from './properties';
 import { FileToolbar } from './toolbar';
-import { FileConfig, fileConfigSchema } from '@repo/fintivio/schemas';
+import { FileConfig, fileConfigSchema } from '@repo/lintelia/schemas';
 
 /**
  * File Input Component

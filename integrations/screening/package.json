@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Fintivio connector: sanctions, PEP and adverse media screening.",
+  "description": "Lintelia connector: sanctions, PEP and adverse media screening.",
   "scripts": { "dev": "bun --watch src/index.ts", "start": "bun src/index.ts", "check-types": "tsc --noEmit -p ." },
-  "fintivio": { "connector": "screening" },
+  "lintelia": { "connector": "screening" },
   "dependencies": { "@repo/connector-sdk": "*" }
 }

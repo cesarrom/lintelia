@@ -1,4 +1,4 @@
-import { ordered } from '@repo/fintivio/schemas';
+import { ordered } from '@repo/lintelia/schemas';
 import { evaluate } from './expressions';
 import type { AppData, AppDefinition, Me } from './types';
 

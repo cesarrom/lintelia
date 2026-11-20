@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TableEditor } from '@/components/ui/table-editor';
-import { ColumnDefinition, TableSchema } from '@repo/fintivio/schemas';
+import { ColumnDefinition, TableSchema } from '@repo/lintelia/schemas';
 
 interface CreateTableProps {
   schema: TableSchema;

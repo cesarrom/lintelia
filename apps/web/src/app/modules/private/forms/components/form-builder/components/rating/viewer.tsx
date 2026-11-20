@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { ViewerProps } from '../../schemas';
 import { cn } from '@/lib/utils';
 import { useController } from 'react-hook-form';
-import { RatingConfig } from '@repo/fintivio/schemas';
+import { RatingConfig } from '@repo/lintelia/schemas';
 
 export function RatingViewer({
   id,

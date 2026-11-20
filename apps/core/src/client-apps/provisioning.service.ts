@@ -3,7 +3,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { and, eq, sql } from 'drizzle-orm';
 import jsonata from 'jsonata';
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'jose';
-import { clientAppDefinitionSchema, clientIdentitySchema, type ClientIdentity, type Tenant } from '@repo/fintivio/schemas';
+import { clientAppDefinitionSchema, clientIdentitySchema, type ClientIdentity, type Tenant } from '@repo/lintelia/schemas';
 import { clientProfiles, clientRecords, users } from '../entities';
 import { TENANT } from '../injector/tokens/tenant.token';
 import { AUTH_CONTEXT } from '../injector/tokens/auth-context.token';

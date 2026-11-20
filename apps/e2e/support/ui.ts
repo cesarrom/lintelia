@@ -7,12 +7,12 @@ import { totp } from './totp';
 import type { FakeWebsite } from './website';
 
 /**
- * Start a browser page already signed in (the web app keeps the session in localStorage under `fintivio.session`).
+ * Start a browser page already signed in (the web app keeps the session in localStorage under `lintelia.session`).
  * Use the sign-in form only in tests that are about signing in.
  */
 export async function useSession(page: Page, session: Session) {
   await page.addInitScript((value) => {
-    window.localStorage.setItem('fintivio.session', value);
+    window.localStorage.setItem('lintelia.session', value);
   }, JSON.stringify(session));
 }
 

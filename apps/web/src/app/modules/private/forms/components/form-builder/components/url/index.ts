@@ -5,7 +5,7 @@ import { UrlEditor } from './editor';
 import { UrlViewer } from './viewer';
 import { UrlProperties } from './properties';
 import { UrlToolbar } from './toolbar';
-import { urlConfigSchema, UrlConfig } from '@repo/fintivio/schemas';
+import { urlConfigSchema, UrlConfig } from '@repo/lintelia/schemas';
 
 /**
  * URL Input Component

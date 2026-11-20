@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { PropertiesProps } from '../../schemas';
-import { SelectConfig, SelectOption, OptionsSource } from '@repo/fintivio/schemas';
+import { SelectConfig, SelectOption, OptionsSource } from '@repo/lintelia/schemas';
 import { PropertyWrapper } from '../../property-wrapper';
 import { 
   Select,

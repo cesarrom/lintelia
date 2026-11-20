@@ -1,7 +1,7 @@
 import { Inject, Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { and, desc, eq } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
-import { connectorManifestSchema, type ConnectorManifest } from '@repo/fintivio/schemas';
+import { connectorManifestSchema, type ConnectorManifest } from '@repo/lintelia/schemas';
 import { connectors, connectorVersions } from '../entities';
 import type { Databases } from '../clients/database.client';
 import { DATABASES } from '../injector/tokens/databases.token';

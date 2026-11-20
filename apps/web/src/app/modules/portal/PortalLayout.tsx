@@ -89,7 +89,7 @@ export function PortalLayout() {
       </main>
       <footer className="border-t bg-background/60">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-5 py-5 text-[12px] text-muted-foreground">
-          <span className="inline-flex items-center gap-1.5"><LogoMark className="h-4 w-4" />Secured by fintivio</span>
+          <span className="inline-flex items-center gap-1.5"><LogoMark className="h-4 w-4" />Secured by lintelia</span>
           <span>Documents are checked for malware before anyone opens them · Every access is recorded</span>
         </div>
       </footer>

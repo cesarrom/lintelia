@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * Marks of the connectors (integrations/*): a glyph drawn for each kind of service on its own gradient tile.
- * They are Fintivio's renderings of what the connector does, not the vendors' trademarks.
+ * They are Lintelia's renderings of what the connector does, not the vendors' trademarks.
  */
 const GLYPHS: Record<string, { from: string; to: string; glyph: ReactNode }> = {
   // Identity verification: a face inside a scanning frame.

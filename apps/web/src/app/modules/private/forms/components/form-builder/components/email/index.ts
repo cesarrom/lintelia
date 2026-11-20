@@ -5,7 +5,7 @@ import { EmailEditor } from './editor';
 import { EmailViewer } from './viewer';
 import { EmailProperties } from './properties';
 import { EmailToolbar } from './toolbar';
-import { EmailConfig, emailConfigSchema } from '@repo/fintivio/schemas';
+import { EmailConfig, emailConfigSchema } from '@repo/lintelia/schemas';
 
 /**
  * Email Input Component

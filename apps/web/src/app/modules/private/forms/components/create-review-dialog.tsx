@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { FormInstance } from '@repo/fintivio/schemas';
+import { FormInstance } from '@repo/lintelia/schemas';
 import { useReviewsCreateReviewMutation } from '@/lib/services/reviews.hook';
 
 interface CreateReviewDialogProps {

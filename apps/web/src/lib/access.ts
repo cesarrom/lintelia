@@ -54,5 +54,5 @@ export const CHANGE_STATUS_LABEL: Record<AccessChange['status'], string> = {
 };
 
 export const SOURCE_LABEL: Record<string, string> = {
-  manual: 'Assigned in Fintivio', idp: 'From your identity provider', default: 'Default role (just in time)', recovery: 'Restored by platform support',
+  manual: 'Assigned in Lintelia', idp: 'From your identity provider', default: 'Default role (just in time)', recovery: 'Restored by platform support',
 };

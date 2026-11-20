@@ -9,7 +9,7 @@ type TenantScoped = { tenantId: PgColumn; id: PgColumn };
  *  - `tenant_id` references `tenants` (rows disappear with their tenant),
  *  - `(tenant_id, id)` is unique so children can use composite foreign keys. Foreign key checks bypass RLS, so a plain
  *    `parent_id` FK would let one tenant point at another tenant's row; the composite key makes that impossible,
- *  - the tenant isolation policy for `fintivio_app`.
+ *  - the tenant isolation policy for `lintelia_app`.
  */
 export const tenantTable = <T extends TenantScoped>(name: string, table: T) => [
   foreignKey({ name: `${name}_tenant_fk`, columns: [table.tenantId], foreignColumns: [tenants.id] }).onDelete('cascade'),

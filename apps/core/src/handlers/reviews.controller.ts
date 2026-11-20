@@ -1,5 +1,5 @@
 import { Access, Require } from "../auth/access";
-import type { User, GetReviewsRequest, UpdateReviewsRequest, ApproveReviewRequest, RejectReviewRequest, RequestAdditionalDataRequest, CreateReviewRequest, ReviewStatus } from "@repo/fintivio/schemas";
+import type { User, GetReviewsRequest, UpdateReviewsRequest, ApproveReviewRequest, RejectReviewRequest, RequestAdditionalDataRequest, CreateReviewRequest, ReviewStatus } from "@repo/lintelia/schemas";
 import { ReviewsService } from "../services/reviews.service";
 import { USER } from "../injector/tokens/user.token";
 import { Inject, Scope, Controller, Post, Get, Patch, Put, Res, Param } from "@nestjs/common";

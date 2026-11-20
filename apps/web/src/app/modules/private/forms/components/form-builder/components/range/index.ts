@@ -5,7 +5,7 @@ import { RangeEditor } from './editor';
 import { RangeViewer } from './viewer';
 import { RangeProperties } from './properties';
 import { RangeToolbar } from './toolbar';
-import { RangeConfig, rangeConfigSchema } from '@repo/fintivio/schemas';
+import { RangeConfig, rangeConfigSchema } from '@repo/lintelia/schemas';
 
 /**
  * Range Input Component

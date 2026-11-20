@@ -92,7 +92,7 @@ test.describe('FIA-16 Roles from the identity provider, in the settings', { tag:
     const card = page.getByTestId('idp-roles');
     await expect(card.getByTestId('idp-roles-state')).toHaveAttribute('data-linked', 'yes');
     await expect(card.getByTestId('idp-roles-state')).toContainText(domain);
-    for (const [group, role] of [['Fintivio-Admins', 'admin'], ['KYC-Analysts', 'reviewer']]) {
+    for (const [group, role] of [['Lintelia-Admins', 'admin'], ['KYC-Analysts', 'reviewer']]) {
       await card.getByRole('button', { name: 'Add a group' }).click();
       await card.getByLabel('Group', { exact: true }).last().fill(group);
       await card.getByLabel('Role of the group').last().selectOption(role);

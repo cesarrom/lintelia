@@ -1,7 +1,7 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
 import { and, asc, desc, eq, inArray, isNull, ne, notInArray, or, sql, type SQL } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
-import type { Tenant, User } from '@repo/fintivio/schemas';
+import type { Tenant, User } from '@repo/lintelia/schemas';
 import { caseFiles, caseParties, cases, sysForms, tasks, users } from '../entities';
 import { hiddenWorkflowIds, subjectOf } from '../access/rules';
 import { TENANT } from '../injector/tokens/tenant.token';

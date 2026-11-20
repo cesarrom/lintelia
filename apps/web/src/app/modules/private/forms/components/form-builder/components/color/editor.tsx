@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { EditorProps } from '../../schemas';
-import { ColorConfig } from '@repo/fintivio/schemas';
+import { ColorConfig } from '@repo/lintelia/schemas';
 
 export function ColorEditor({
   id,

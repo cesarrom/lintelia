@@ -1,4 +1,4 @@
-import { backOfficePageSources, widgetsSources, type BackOfficeDefinition, type BackOfficeWidget } from '@repo/fintivio/schemas';
+import { backOfficePageSources, widgetsSources, type BackOfficeDefinition, type BackOfficeWidget } from '@repo/lintelia/schemas';
 import { bankingRecords } from '@/client-app/sample-data';
 import type { AppData } from '@/client-app/types';
 

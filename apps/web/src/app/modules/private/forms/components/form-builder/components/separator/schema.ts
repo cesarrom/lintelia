@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { BaseLayoutSchema } from '../base-schema';
-import { SeparatorConfig } from '@repo/fintivio/schemas';
+import { SeparatorConfig } from '@repo/lintelia/schemas';
 
 // Value validation schema generator
 export class SeparatorComponentSchema extends BaseLayoutSchema<z.ZodNull, SeparatorConfig> {

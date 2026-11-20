@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { PropertiesProps } from '../../schemas';
 import { RichtextComponentSchema } from './schema';
 import { Separator } from '@/components/ui/separator';
-import { RichtextConfig } from '@repo/fintivio/schemas';
+import { RichtextConfig } from '@repo/lintelia/schemas';
 
 export function RichtextProperties({ config, onChange }: PropertiesProps<RichtextConfig>) {
   const schemaRef = useRef(new RichtextComponentSchema(config.propertyName));

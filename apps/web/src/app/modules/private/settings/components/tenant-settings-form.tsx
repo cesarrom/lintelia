@@ -9,7 +9,7 @@ import { HexColorPicker } from 'react-colorful';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Edit2, Save } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { Tenant } from '@repo/fintivio/schemas';
+import { Tenant } from '@repo/lintelia/schemas';
 import { useTenant } from '@/lib/providers/TenantProvider';
 import { useTenantUpdateTenant } from '@/lib/services/tenant.hooks';
 

@@ -42,7 +42,7 @@ export async function submitConnectorPage(handOffUrl: string, values: Record<str
   const url = new URL(handOffUrl);
   const submitted = await fetch(new URL(url.pathname, url.origin), { method: 'POST', body: form });
   const result = await submitted.text();
-  return { status: submitted.status, html: result, error: alertOf(result), saved: result.includes('fintivio:connector-saved') };
+  return { status: submitted.status, html: result, error: alertOf(result), saved: result.includes('lintelia:connector-saved') };
 }
 
 /** Install a connector for the tenant of `api` and complete its connect page. Returns the installation id. */

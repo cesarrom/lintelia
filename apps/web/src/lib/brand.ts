@@ -35,7 +35,7 @@ function luminance(value: string) {
  * Theme variables that make `bg-primary`, rings, soft tints… use an institution's brand colour (client-facing pages:
  * sign-on, portal, client app, embedded forms), for the light and the dark theme: in the dark theme a dark brand colour
  * is lifted so it stays readable, and soft tints are dark. The element needs `data-brand` (see `brandProps`);
- * `globals.css` picks the light or dark set. Empty when the colour is not a hex value (the Fintivio theme stays).
+ * `globals.css` picks the light or dark set. Empty when the colour is not a hex value (the Lintelia theme stays).
  */
 export function brandStyle(color: string | null | undefined): CSSProperties {
   const hsl = hexToHsl(color);

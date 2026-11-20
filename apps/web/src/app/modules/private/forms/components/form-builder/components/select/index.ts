@@ -5,7 +5,7 @@ import { SelectEditor } from './editor';
 import { SelectViewer } from './viewer';
 import { SelectProperties } from './properties';
 import { SelectToolbar } from './toolbar';
-import { SelectConfig, selectConfigSchema } from '@repo/fintivio/schemas';
+import { SelectConfig, selectConfigSchema } from '@repo/lintelia/schemas';
 
 /**
  * Select Component

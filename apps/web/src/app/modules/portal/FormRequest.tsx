@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import type { FormConfig } from '@repo/fintivio/schemas';
+import type { FormConfig } from '@repo/lintelia/schemas';
 import { FormViewer } from '@/app/modules/private/forms/components/form-builder';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { apiErrorMessage, useApiMutation, useApiQuery } from '@/lib/services/api';

@@ -37,9 +37,9 @@ test.describe('FIA-12 Review and export the audit log', { tag: ['@fi-admin', '@F
 test.describe('X-04 Append-only, tamper-evident audit trail', { tag: ['@cross-cutting', '@X-04'] }, () => {
   test('the application role can insert audit events but never change or delete them', async () => {
     const privileges = await withOwnerDb((sql) => sql`
-      select has_table_privilege('fintivio_app', 'audit_events', 'INSERT') as can_insert,
-             has_table_privilege('fintivio_app', 'audit_events', 'UPDATE') as can_update,
-             has_table_privilege('fintivio_app', 'audit_events', 'DELETE') as can_delete`);
+      select has_table_privilege('lintelia_app', 'audit_events', 'INSERT') as can_insert,
+             has_table_privilege('lintelia_app', 'audit_events', 'UPDATE') as can_update,
+             has_table_privilege('lintelia_app', 'audit_events', 'DELETE') as can_delete`);
     expect(privileges[0]).toEqual({ can_insert: true, can_update: false, can_delete: false });
   });
 

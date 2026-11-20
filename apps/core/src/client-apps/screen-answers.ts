@@ -1,6 +1,6 @@
 import jsonata from 'jsonata';
 import { and, eq, inArray } from 'drizzle-orm';
-import { parsePaymentCode, VALUE_CHECKS } from '@repo/fintivio/utilities';
+import { parsePaymentCode, VALUE_CHECKS } from '@repo/lintelia/utilities';
 import { caseFiles } from '../entities';
 import type { TenantDatabase } from '../clients/database.client';
 import type { ScreenDefinition } from '../engine/components/client-app';

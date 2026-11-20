@@ -9,7 +9,7 @@ import DataView from './components/DataView';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useDatabaseExecuteQuery, useDatabaseGetTableSchema, useDatabaseListTables, useDatabaseCreateTableSchema } from '@/lib/services/database.hooks';
-import { GetTablesResponse } from '@repo/fintivio/schemas';
+import { GetTablesResponse } from '@repo/lintelia/schemas';
 import { Outlet, useNavigate, useParams } from 'react-router';
 
 export default function TablesPage() {

@@ -1,4 +1,4 @@
-import type { Tenant } from '@repo/fintivio/schemas';
+import type { Tenant } from '@repo/lintelia/schemas';
 import type { EmailProvider } from '../providers/email.provider';
 import { tenantWebUrl } from '../constants';
 

@@ -1,6 +1,6 @@
 import * as restate from '@restatedev/restate-sdk/fetch';
 import { set } from 'lodash';
-import type { Tenant } from '@repo/fintivio/schemas';
+import type { Tenant } from '@repo/lintelia/schemas';
 import { CaseRepository, isFinalStatus } from './case-repository';
 import { hookUrl, SIGNAL_NAME } from './signals';
 import { clearCaseKeys, computeKeys, setCaseKeys } from './events';

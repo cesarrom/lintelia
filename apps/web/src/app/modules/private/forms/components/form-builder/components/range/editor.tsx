@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
 import { EditorProps } from '../../schemas';
-import { RangeConfig } from '@repo/fintivio/schemas';
+import { RangeConfig } from '@repo/lintelia/schemas';
 
 export function RangeEditor({
   id,

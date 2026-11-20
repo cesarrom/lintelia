@@ -1,6 +1,6 @@
 import { and, desc, eq } from 'drizzle-orm';
 import YAML from 'yaml';
-import { normalizeWorkflowAccess } from '@repo/fintivio/schemas';
+import { normalizeWorkflowAccess } from '@repo/lintelia/schemas';
 import { sysWorkflows, workflowVersions } from '../entities';
 import type { TenantDatabase } from '../clients/database.client';
 import { parseDefinition } from '../engine/definition';

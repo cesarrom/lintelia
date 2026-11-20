@@ -1,5 +1,5 @@
 import { sysEmailTemplates } from "../entities/tenants";
-import type { CreateEmailTemplateRequest, UpdateEmailTemplateRequest, EmailTemplate } from "@repo/fintivio/schemas";
+import type { CreateEmailTemplateRequest, UpdateEmailTemplateRequest, EmailTemplate } from "@repo/lintelia/schemas";
 import { LogsService } from './logs.service';
 import { v4 as uuid } from 'uuid';
 import { AbstractService } from './service';
@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm';
 import { Injectable, Inject, Scope } from "@nestjs/common";
 import { TENANT_CONNECTION } from "../injector/tokens/tenant-connection.token";
 import { type TenantDatabase } from "../clients/database.client";
-import { EmailEvents } from "@repo/fintivio/utilities";
+import { EmailEvents } from "@repo/lintelia/utilities";
 
 @Injectable({
   scope: Scope.REQUEST

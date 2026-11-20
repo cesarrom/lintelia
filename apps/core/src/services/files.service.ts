@@ -1,5 +1,5 @@
 import { Injectable, Inject, Scope } from "@nestjs/common";
-import type { Tenant } from "@repo/fintivio/schemas";
+import type { Tenant } from "@repo/lintelia/schemas";
 import { AbstractService } from "./service";
 import { TENANT } from "../injector/tokens/tenant.token";
 import { STORAGE_PROVIDER, type StorageProvider } from "../providers/storage.provider";

@@ -8,7 +8,7 @@ import {
 import {
   BACK_OFFICE_WIDGETS, BLANK_BACK_OFFICE, BUILTIN_PAGES, backOfficeDefinitionSchema, backOfficeWidgetDefinition, ordered, validateBackOffice,
   type BackOfficeDefinition, type BackOfficeWidget,
-} from '@repo/fintivio/schemas';
+} from '@repo/lintelia/schemas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

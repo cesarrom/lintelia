@@ -1,6 +1,6 @@
 import { Controller, Get, Inject, Post, Put, Res, Scope } from '@nestjs/common';
 import type { Context } from 'hono';
-import type { Tenant, User } from '@repo/fintivio/schemas';
+import type { Tenant, User } from '@repo/lintelia/schemas';
 import { Public, Require, RequirePlatform } from '../auth/access';
 import { SsoService } from '../auth/sso/sso.service';
 import type { AuthContext } from '../auth/auth-context';
@@ -10,7 +10,7 @@ import { USER } from '../injector/tokens/user.token';
 import { type AppRequest, REQUEST_PROXY } from '../injector/tokens/request-proxy.token';
 import { BadRequestError, ForbiddenError } from '../http/errors';
 import { inArray } from 'drizzle-orm';
-import { TENANT_PERMISSION_IDS, resolvePermissions } from '@repo/fintivio/schemas';
+import { TENANT_PERMISSION_IDS, resolvePermissions } from '@repo/lintelia/schemas';
 import { roles } from '../entities';
 import type { Databases } from '../clients/database.client';
 import { DATABASES } from '../injector/tokens/databases.token';

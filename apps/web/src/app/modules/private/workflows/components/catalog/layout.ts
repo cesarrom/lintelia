@@ -1,6 +1,6 @@
 import ELK from 'elkjs/lib/elk.bundled.js';
 import type { Edge, Node } from 'reactflow';
-import type { NodeData } from '@repo/fintivio/schemas';
+import type { NodeData } from '@repo/lintelia/schemas';
 
 const elk = new ELK();
 

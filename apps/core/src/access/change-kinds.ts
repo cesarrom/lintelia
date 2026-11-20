@@ -4,7 +4,7 @@ import YAML from 'yaml';
 import {
   ACCESS_ADMINISTRATION_PERMISSIONS, SYSTEM_ROLES, TENANT_PERMISSION_IDS, accessRuleErrors, isCustomPermission,
   normalizeWorkflowAccess, resolvePermissions, sameAccess, type AccessRule, type WorkflowAccess,
-} from '@repo/fintivio/schemas';
+} from '@repo/lintelia/schemas';
 import { roleMappings, roles, sysWorkflows, tenantSecurityPolicies, userRoles, users, workflowVersions } from '../entities';
 import type { Databases, TenantDatabase } from '../clients/database.client';
 import { DATABASES } from '../injector/tokens/databases.token';

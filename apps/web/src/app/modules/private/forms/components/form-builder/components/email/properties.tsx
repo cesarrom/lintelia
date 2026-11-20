@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { PropertiesProps } from '../../schemas';
 import { EmailComponentSchema } from './schema';
-import { EmailConfig } from '@repo/fintivio/schemas';
+import { EmailConfig } from '@repo/lintelia/schemas';
 
 export function EmailProperties({ config, onChange }: PropertiesProps<EmailConfig>) {
   const schemaRef = useRef(new EmailComponentSchema(config.propertyName));

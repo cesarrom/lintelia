@@ -8,7 +8,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ViewerProps } from '../../schemas';
 import { useController, ControllerFieldState } from 'react-hook-form';
-import { PasswordConfig } from '@repo/fintivio/schemas';
+import { PasswordConfig } from '@repo/lintelia/schemas';
 
 export function PasswordViewer({
   id,

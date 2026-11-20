@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ViewerProps } from '../../schemas';
-import { FileConfig } from '@repo/fintivio/schemas';
+import { FileConfig } from '@repo/lintelia/schemas';
 import { useController, ControllerFieldState, ControllerRenderProps } from 'react-hook-form';
 
 // Define the file type

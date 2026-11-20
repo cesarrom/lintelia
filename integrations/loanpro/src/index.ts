@@ -68,7 +68,7 @@ async function syncClient(installation: Installation, loan: LoanView, client: { 
 const connector = createConnector({
   manifest: {
     id: 'loanpro', version: '1.0.0', name: 'LoanPro', description: 'Board funded loans into LoanPro, take payments, and follow servicing events (payments, delinquency, payoff).',
-    publisher: { name: 'Fintivio' }, categories: ['lending', 'servicing'], icon: 'Landmark', audiences: ['tenant'],
+    publisher: { name: 'Lintelia' }, categories: ['lending', 'servicing'], icon: 'Landmark', audiences: ['tenant'],
     scopes: ['installation:write', 'records:write', 'events:publish', 'client-records:write'],
     components: [
       {

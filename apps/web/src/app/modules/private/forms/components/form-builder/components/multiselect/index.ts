@@ -5,7 +5,7 @@ import { MultiselectEditor } from './editor';
 import { MultiselectViewer } from './viewer';
 import { MultiselectProperties } from './properties';
 import { MultiselectToolbar } from './toolbar';
-import { MultiselectConfig, multiselectConfigSchema } from '@repo/fintivio/schemas';
+import { MultiselectConfig, multiselectConfigSchema } from '@repo/lintelia/schemas';
 
 /**
  * Multiselect Input Component

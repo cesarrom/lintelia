@@ -1,7 +1,7 @@
 import { embedUrl, isAppMessage, originOf, type AppEvent, type AppMessage, type HostMessage } from './protocol';
 
 export interface MountOptions {
-  /** Where the institution's app is served, e.g. `https://app.your-bank.com` (its own domain, or the Fintivio host). */
+  /** Where the institution's app is served, e.g. `https://app.your-bank.com` (its own domain, or the Lintelia host). */
   appUrl: string;
   /**
    * Returns a single-use client secret your backend obtained from `POST /client-sessions` (with its API credentials).
@@ -39,8 +39,8 @@ export interface EmbeddedApp {
  */
 export function mount(target: HTMLElement | string, options: MountOptions): EmbeddedApp {
   const element = typeof target === 'string' ? document.querySelector<HTMLElement>(target) : target;
-  if (!element) throw new Error(`Fintivio: no element matches ${String(target)}`);
-  if (!options.fetchClientSecret && !options.fetchSubjectToken) throw new Error('Fintivio: fetchClientSecret or fetchSubjectToken is required');
+  if (!element) throw new Error(`Lintelia: no element matches ${String(target)}`);
+  if (!options.fetchClientSecret && !options.fetchSubjectToken) throw new Error('Lintelia: fetchClientSecret or fetchSubjectToken is required');
   const doc = element.ownerDocument;
   const win = doc.defaultView!;
   const appOrigin = originOf(options.appUrl);
@@ -49,7 +49,7 @@ export function mount(target: HTMLElement | string, options: MountOptions): Embe
   const iframe = doc.createElement('iframe');
   iframe.src = embedUrl({ appUrl: options.appUrl, page: options.page, params: options.params, chrome, hostOrigin: win.location.origin });
   iframe.title = options.title ?? 'Online banking';
-  iframe.setAttribute('data-fintivio-app', '');
+  iframe.setAttribute('data-lintelia-app', '');
   iframe.allow = 'camera; clipboard-write';
   Object.assign(iframe.style, { width: '100%', border: '0', display: 'block', colorScheme: 'normal' });
   iframe.style.height = chrome === 'none' ? '480px' : typeof options.height === 'number' ? `${options.height}px` : options.height ?? '760px';
@@ -59,8 +59,8 @@ export function mount(target: HTMLElement | string, options: MountOptions): Embe
 
   const provideSession = async () => {
     try {
-      if (options.fetchClientSecret) send({ source: 'fintivio-sdk', type: 'session', clientSecret: await options.fetchClientSecret() });
-      else send({ source: 'fintivio-sdk', type: 'session', subjectToken: await options.fetchSubjectToken!() });
+      if (options.fetchClientSecret) send({ source: 'lintelia-sdk', type: 'session', clientSecret: await options.fetchClientSecret() });
+      else send({ source: 'lintelia-sdk', type: 'session', subjectToken: await options.fetchSubjectToken!() });
     } catch (error) {
       options.onError?.(error instanceof Error ? error : new Error(String(error)));
     }
@@ -84,8 +84,8 @@ export function mount(target: HTMLElement | string, options: MountOptions): Embe
 
   return {
     iframe,
-    navigate: (page, params) => send({ source: 'fintivio-sdk', type: 'navigate', page, params }),
-    startJourney: (journey, input) => send({ source: 'fintivio-sdk', type: 'start-journey', journey, input }),
+    navigate: (page, params) => send({ source: 'lintelia-sdk', type: 'navigate', page, params }),
+    startJourney: (journey, input) => send({ source: 'lintelia-sdk', type: 'start-journey', journey, input }),
     refreshSession: provideSession,
     destroy: () => {
       win.removeEventListener('message', onMessage);

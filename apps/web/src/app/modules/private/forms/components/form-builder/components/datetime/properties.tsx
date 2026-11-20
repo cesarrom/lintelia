@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import { PropertiesProps } from '../../schemas';
 import { DatetimeComponentSchema } from './schema';
-import { DatetimeConfig } from '@repo/fintivio/schemas';
+import { DatetimeConfig } from '@repo/lintelia/schemas';
 
 export function DatetimeProperties({ config, onChange }: PropertiesProps<DatetimeConfig>) {
   const schemaRef = useRef(new DatetimeComponentSchema(config.propertyName));

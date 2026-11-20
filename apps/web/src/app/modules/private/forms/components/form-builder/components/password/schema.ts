@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { BaseComponentSchema } from '../base-schema';
-import { PasswordConfig } from '@repo/fintivio/schemas';
+import { PasswordConfig } from '@repo/lintelia/schemas';
 
 // Value validation schema generator
 export class PasswordComponentSchema extends BaseComponentSchema<z.ZodString, PasswordConfig> {

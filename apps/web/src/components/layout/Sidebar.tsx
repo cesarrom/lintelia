@@ -11,7 +11,7 @@ import { humanize } from '@/components/app/page';
 import { AppIcon } from '@/client-app/icons';
 import { useBackOffice } from '@/back-office/runtime';
 
-const COLLAPSED_KEY = 'fintivio.sidebar.collapsed';
+const COLLAPSED_KEY = 'lintelia.sidebar.collapsed';
 
 type NavEntry = Pick<AppRoute, 'name' | 'href' | 'icon' | 'section'> & { action?: string };
 
@@ -40,7 +40,7 @@ export function Sidebar() {
   const order = [...new Set(['Work', ...custom.map((c) => c.section), ...routes.map((r) => r.section)])];
   const ordered = Object.entries(sections).sort(([a], [b]) => order.indexOf(a) - order.indexOf(b));
   const staff = kind === 'staff';
-  const title = staff ? 'Fintivio platform' : tenant?.name ?? 'Fintivio';
+  const title = staff ? 'Lintelia platform' : tenant?.name ?? 'Lintelia';
   const brandColor = session?.tenant?.pallette?.primary;
   const roleLabel = staff ? (user?.platformRoles ?? []).join(', ') : (user?.userTenants?.[0]?.roleNames ?? []).join(', ');
   const displayName = (user as { name?: string } | null)?.name;

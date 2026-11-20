@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { PropertiesProps } from '../../schemas';
 import { RatingComponentSchema } from './schema';
 import { Slider } from '@/components/ui/slider';
-import { RatingConfig } from '@repo/fintivio/schemas';
+import { RatingConfig } from '@repo/lintelia/schemas';
 
 export function RatingProperties({ config, onChange }: PropertiesProps<RatingConfig>) {
   const schemaRef = useRef(new RatingComponentSchema(config.propertyName));

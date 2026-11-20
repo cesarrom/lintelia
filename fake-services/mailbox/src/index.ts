@@ -69,7 +69,7 @@ const smtp = new SMTPServer({
         subject: parsed.subject ?? '',
         text,
         html,
-        tenant: headers['x-fintivio-tenant'] ?? null,
+        tenant: headers['x-lintelia-tenant'] ?? null,
         headers,
         links: extractLinks(text, html),
         codes: extractCodes(`${parsed.subject ?? ''} ${text}`),

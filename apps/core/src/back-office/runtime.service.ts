@@ -1,6 +1,6 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
 import { and, desc, eq, inArray } from 'drizzle-orm';
-import { backOfficePageSources, widgetsSources, type BackOfficeDefinition, type Tenant, type User } from '@repo/fintivio/schemas';
+import { backOfficePageSources, widgetsSources, type BackOfficeDefinition, type Tenant, type User } from '@repo/lintelia/schemas';
 import { cases, clientRecords, tasks, tenantSecurityPolicies, users } from '../entities';
 import { TENANT } from '../injector/tokens/tenant.token';
 import { USER } from '../injector/tokens/user.token';

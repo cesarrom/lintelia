@@ -49,9 +49,9 @@ ALTER TABLE "uploads" ADD CONSTRAINT "uploads_tenant_fk" FOREIGN KEY ("tenant_id
 ALTER TABLE "uploads" ADD CONSTRAINT "uploads_case_fk" FOREIGN KEY ("tenant_id","case_id") REFERENCES "public"."cases"("tenant_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "case_files_case_idx" ON "case_files" USING btree ("tenant_id","case_id");--> statement-breakpoint
 CREATE INDEX "uploads_owner_idx" ON "uploads" USING btree ("tenant_id","owner_id","status");--> statement-breakpoint
-CREATE POLICY "case_files_tenant_isolation" ON "case_files" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-CREATE POLICY "uploads_tenant_isolation" ON "uploads" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON "uploads", "case_files" TO fintivio_app;
+CREATE POLICY "case_files_tenant_isolation" ON "case_files" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+CREATE POLICY "uploads_tenant_isolation" ON "uploads" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+GRANT SELECT, INSERT, UPDATE, DELETE ON "uploads", "case_files" TO lintelia_app;
 --> statement-breakpoint
 ALTER TABLE "uploads" FORCE ROW LEVEL SECURITY;
 --> statement-breakpoint

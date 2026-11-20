@@ -5,7 +5,7 @@ import { CheckboxEditor } from './editor';
 import { CheckboxViewer } from './viewer';
 import { CheckboxProperties } from './properties';
 import { CheckboxToolbar } from './toolbar';
-import { CheckboxConfig, checkboxConfigSchema } from '@repo/fintivio/schemas';
+import { CheckboxConfig, checkboxConfigSchema } from '@repo/lintelia/schemas';
 
 /**
  * Checkbox Input Component

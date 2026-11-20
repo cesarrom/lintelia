@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, Copy, EyeOff, Home, Lock, Menu, Plus, Trash2 } from 'lucide-react';
-import { clientWidgetDefinition, ordered, type ClientWidget, type ClientWidgetDefinition } from '@repo/fintivio/schemas';
+import { clientWidgetDefinition, ordered, type ClientWidget, type ClientWidgetDefinition } from '@repo/lintelia/schemas';
 import { Button } from '@/components/ui/button';
 import { AppIcon } from '@/client-app/icons';
 import { cn } from '@/lib/utils';

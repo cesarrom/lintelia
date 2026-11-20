@@ -2,7 +2,7 @@
 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { TextConfig } from '@repo/fintivio/schemas';
+import { TextConfig } from '@repo/lintelia/schemas';
 import { ViewerProps } from '../../schemas';
 import { useController, ControllerFieldState } from 'react-hook-form';
 

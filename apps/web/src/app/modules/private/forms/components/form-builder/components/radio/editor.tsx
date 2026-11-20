@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { EditorProps } from '../../schemas';
-import { RadioConfig } from '@repo/fintivio/schemas';
+import { RadioConfig } from '@repo/lintelia/schemas';
 
 export function RadioEditor({
   id,

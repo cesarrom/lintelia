@@ -5,10 +5,10 @@ import { AuditWriter } from '../services/audit.writer';
 
 export type AccessLevel = 'public' | 'staff' | 'member' | 'client' | 'api_client';
 
-const ACCESS_KEY = 'fintivio:access';
-const MEMBER_PERMISSIONS_KEY = 'fintivio:member-permissions';
-const PLATFORM_PERMISSIONS_KEY = 'fintivio:platform-permissions';
-const ANY_PERMISSION_KEY = 'fintivio:any-member-permission';
+const ACCESS_KEY = 'lintelia:access';
+const MEMBER_PERMISSIONS_KEY = 'lintelia:member-permissions';
+const PLATFORM_PERMISSIONS_KEY = 'lintelia:platform-permissions';
+const ANY_PERMISSION_KEY = 'lintelia:any-member-permission';
 
 /**
  * Route policies. Deny by default: a route with none of these decorators is refused.

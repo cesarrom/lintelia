@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { EditorProps } from '../../schemas';
-import { TextConfig } from '@repo/fintivio/schemas';
+import { TextConfig } from '@repo/lintelia/schemas';
 
 export function TextEditor({
   id,

@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { PropertiesProps } from '../../schemas';
-import { ImageConfig } from '@repo/fintivio/schemas';
+import { ImageConfig } from '@repo/lintelia/schemas';
 
 export function ImageProperties({
   config,

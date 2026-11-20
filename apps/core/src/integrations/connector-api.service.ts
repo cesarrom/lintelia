@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, sql } from 'drizzle-orm';
 import { createRemoteJWKSet, decodeJwt, jwtVerify, type JWTVerifyGetKey } from 'jose';
 import { randomBytes } from 'node:crypto';
-import { CASE_RECORD_TYPES, type ConnectorManifest } from '@repo/fintivio/schemas';
+import { CASE_RECORD_TYPES, type ConnectorManifest } from '@repo/lintelia/schemas';
 import { caseFiles, caseRecords, cases, clientProfiles, connectorInstallationIndex, connectorInstallations, uploads, users } from '../entities';
 import { deleteRecord, listRecords, writeRecord } from '../client-apps/profiles';
 import { EventRouter } from '../services/event-router';
@@ -23,7 +23,7 @@ import { ConnectorRegistry, connectorUrl } from './registry';
 import { CALLBACK_AUDIENCE, type CallbackClaims } from './connector-invoker';
 
 export const CONNECTOR_API_AUDIENCE = 'connector-api';
-export const TOKEN_ENDPOINT_AUDIENCE = 'fintivio-core';
+export const TOKEN_ENDPOINT_AUDIENCE = 'lintelia-core';
 const ACCESS_TTL_SECONDS = 900;
 const CODE_TTL_SECONDS = 120;
 

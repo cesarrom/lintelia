@@ -2,7 +2,7 @@ import { useSearchParams } from 'react-router';
 import { useMemo, useState } from 'react';
 import { Handle, Position, type NodeProps } from 'reactflow';
 import { AlertTriangle, Settings2 } from 'lucide-react';
-import { componentEvents, type NodeData } from '@repo/fintivio/schemas';
+import { componentEvents, type NodeData } from '@repo/lintelia/schemas';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';

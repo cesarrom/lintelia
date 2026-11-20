@@ -1,4 +1,4 @@
-import { clientWidgetDefinition, type ClientAppDefinition, type ClientPage, type ClientWidget, type ClientWidgetDefinition } from '@repo/fintivio/schemas';
+import { clientWidgetDefinition, type ClientAppDefinition, type ClientPage, type ClientWidget, type ClientWidgetDefinition } from '@repo/lintelia/schemas';
 
 /**
  * Edits of the client app's draft (pure functions over the definition). Widgets are addressed by id (unique per page);

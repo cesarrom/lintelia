@@ -6,7 +6,7 @@ import { platformUsers } from './platform-user.entity';
 
 /**
  * Platform audit trail: what staff did (onboarding, suspending, deleting institutions, staff changes, support-access
- * requests). Append-only for `fintivio_platform` (INSERT/SELECT grants only) and hash-chained like the tenant audit
+ * requests). Append-only for `lintelia_platform` (INSERT/SELECT grants only) and hash-chained like the tenant audit
  * trail. `tenant_id` has no foreign key so entries survive the institution they are about.
  */
 export const platformAuditEvents = pgTable('platform_audit_events', {

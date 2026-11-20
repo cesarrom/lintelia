@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { registry } from './registry';
-import { FormConfig, formConfigSchema } from '@repo/fintivio/schemas';
+import { FormConfig, formConfigSchema } from '@repo/lintelia/schemas';
 
 // Helper function to validate form config
 export function validateFormConfig(config: unknown) {

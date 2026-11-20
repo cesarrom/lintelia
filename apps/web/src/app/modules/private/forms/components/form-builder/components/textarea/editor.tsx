@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { EditorProps } from '../../schemas';
-import { TextareaConfig } from '@repo/fintivio/schemas';
+import { TextareaConfig } from '@repo/lintelia/schemas';
 
 export function TextareaEditor({
   id,

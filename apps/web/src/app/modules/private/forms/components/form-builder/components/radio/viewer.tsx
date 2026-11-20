@@ -5,7 +5,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { ViewerProps } from '../../schemas';
 import { useController, ControllerFieldState, ControllerRenderProps } from 'react-hook-form';
-import { RadioConfig } from '@repo/fintivio/schemas';
+import { RadioConfig } from '@repo/lintelia/schemas';
 
 export function RadioViewer({
   id,

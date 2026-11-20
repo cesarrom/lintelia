@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createClient, FintivioApiError } from '../src/client';
+import { createClient, LinteliaApiError } from '../src/client';
 
 type Call = { method: string; url: string; body: any; headers: Record<string, string> };
 
@@ -43,8 +43,8 @@ describe('headless client', () => {
   test('API errors carry the status and field errors', async () => {
     const api = fakeApi((c) => c.url.endsWith('/auth/client/session') ? { status: 200, body: session('t') } : { status: 422, body: { error: 'Please check the highlighted fields', errors: [{ field: 'amount', message: 'required' }] } });
     const client = createClient({ apiUrl: 'https://api.example', tenant: 't', fetchClientSecret: async () => 'cs', fetch: api.fetch });
-    const error = await client.submitScreen('c1', 't1', 'continue', {}).catch((e: FintivioApiError) => e) as FintivioApiError;
-    expect(error).toBeInstanceOf(FintivioApiError);
+    const error = await client.submitScreen('c1', 't1', 'continue', {}).catch((e: LinteliaApiError) => e) as LinteliaApiError;
+    expect(error).toBeInstanceOf(LinteliaApiError);
     expect(error.status).toBe(422);
     expect(error.details).toEqual([{ field: 'amount', message: 'required' }]);
   });

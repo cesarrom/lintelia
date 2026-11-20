@@ -14,7 +14,7 @@ import countries from '../data/countries.json'
 import timezones from '../data/timezones.json';
 import { TimePicker } from "@/components/TimePicker";
 import { OnboardingData, OnboardingDataSchema, onboardingDefaultValues } from "../types";
-import { CreateTenant, CreateTenantResponse } from "@repo/fintivio/schemas";
+import { CreateTenant, CreateTenantResponse } from "@repo/lintelia/schemas";
 import { useTenantCreateTenant } from "@/lib/services/tenant.hooks";
 import { useFilesPutObject } from "@/lib/services/files.hooks";
 import { toast } from "sonner";
@@ -139,7 +139,7 @@ export function TenantOnboardingPage() {
                 {...form.register('domain')}
               />
               <CardDescription>
-                {form.watch('domain') ? `https://${form.watch('domain')}.fintivio.org/` : ''}
+                {form.watch('domain') ? `https://${form.watch('domain')}.lintelia.org/` : ''}
               </CardDescription>
               {form.formState.errors.domain && (
                 <p className="text-red-500 text-sm">{form.formState.errors.domain.message}</p>

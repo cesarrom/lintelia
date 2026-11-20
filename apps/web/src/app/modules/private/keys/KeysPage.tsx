@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Copy, KeyRound, Plus, RotateCw, Trash2 } from 'lucide-react';
-import type { PermissionDefinition } from '@repo/fintivio/schemas';
+import type { PermissionDefinition } from '@repo/lintelia/schemas';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -96,7 +96,7 @@ function CreateDialog({ open, onOpenChange, catalog, onCreated }: { open: boolea
   );
 }
 
-/** API clients: the institution's systems calling Fintivio with OAuth 2.0 client credentials (docs/plans/04). */
+/** API clients: the institution's systems calling Lintelia with OAuth 2.0 client credentials (docs/plans/04). */
 export default function KeysPage() {
   const { data: clients = [], isLoading } = useApiQuery<ApiClient[]>(['api-clients'], '/api-clients');
   const { data: catalog = [] } = useApiQuery<PermissionDefinition[]>(['permissions'], '/permissions');
@@ -127,7 +127,7 @@ export default function KeysPage() {
     <PageContainer>
       <PageHeader
         title="API clients"
-        description="Credentials for your own systems to call Fintivio (OAuth 2.0 client credentials). Each client gets only the permissions you choose."
+        description="Credentials for your own systems to call Lintelia (OAuth 2.0 client credentials). Each client gets only the permissions you choose."
         actions={<Button onClick={() => setCreating(true)}><Plus className="h-4 w-4 mr-2" />New API client</Button>}
       />
       {!isLoading && clients.length === 0 ? <EmptyState art="connect" title="No API clients yet">Create credentials for a system that should start cases or read their status.</EmptyState> : (

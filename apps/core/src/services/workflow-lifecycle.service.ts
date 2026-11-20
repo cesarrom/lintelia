@@ -1,7 +1,7 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
 import { and, desc, eq } from 'drizzle-orm';
 import YAML from 'yaml';
-import { normalizeWorkflowAccess, sameAccess, type Tenant, type User } from '@repo/fintivio/schemas';
+import { normalizeWorkflowAccess, sameAccess, type Tenant, type User } from '@repo/lintelia/schemas';
 import { AccessChanges, actorOf } from '../access/changes';
 import { allows, DEFAULT_START_RULE, governingWorkflowAccess, subjectOf, workflowAccessErrors, workflowAccessOf } from '../access/rules';
 import { publishWorkflowVersion } from './workflow-publish';
@@ -9,7 +9,7 @@ import { publishWorkflowVersion } from './workflow-publish';
 export { publishWorkflowVersion };
 import type { TenantDatabase } from '../clients/database.client';
 import { connectorInstallations, roles, sysWorkflows, workflowVersions } from '../entities';
-import { parseConnectorComponentType } from '@repo/fintivio/schemas';
+import { parseConnectorComponentType } from '@repo/lintelia/schemas';
 import { TENANT } from '../injector/tokens/tenant.token';
 import { USER } from '../injector/tokens/user.token';
 import { CASE_REPOSITORY } from '../engine/engine.client';

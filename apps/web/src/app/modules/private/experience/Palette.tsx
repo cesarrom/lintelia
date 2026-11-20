@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Search } from 'lucide-react';
-import { CLIENT_WIDGETS, type ClientWidgetDefinition, type WidgetCategory } from '@repo/fintivio/schemas';
+import { CLIENT_WIDGETS, type ClientWidgetDefinition, type WidgetCategory } from '@repo/lintelia/schemas';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

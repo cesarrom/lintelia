@@ -77,14 +77,14 @@ CREATE UNIQUE INDEX "connector_versions_version_idx" ON "connector_versions" USI
 CREATE UNIQUE INDEX "case_records_ref_idx" ON "case_records" USING btree ("tenant_id","installation_id","type","external_ref");--> statement-breakpoint
 CREATE INDEX "case_records_case_idx" ON "case_records" USING btree ("tenant_id","case_id");--> statement-breakpoint
 CREATE INDEX "connector_installations_connector_idx" ON "connector_installations" USING btree ("tenant_id","connector_id");--> statement-breakpoint
-CREATE POLICY "connector_installation_index_platform_all" ON "connector_installation_index" AS PERMISSIVE FOR ALL TO "fintivio_platform" USING (true) WITH CHECK (true);--> statement-breakpoint
-CREATE POLICY "connector_versions_platform_all" ON "connector_versions" AS PERMISSIVE FOR ALL TO "fintivio_platform" USING (true) WITH CHECK (true);--> statement-breakpoint
-CREATE POLICY "connectors_platform_all" ON "connectors" AS PERMISSIVE FOR ALL TO "fintivio_platform" USING (true) WITH CHECK (true);--> statement-breakpoint
-CREATE POLICY "case_records_tenant_isolation" ON "case_records" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-CREATE POLICY "connector_installations_tenant_isolation" ON "connector_installations" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON "connector_installations", "case_records" TO fintivio_app;
+CREATE POLICY "connector_installation_index_platform_all" ON "connector_installation_index" AS PERMISSIVE FOR ALL TO "lintelia_platform" USING (true) WITH CHECK (true);--> statement-breakpoint
+CREATE POLICY "connector_versions_platform_all" ON "connector_versions" AS PERMISSIVE FOR ALL TO "lintelia_platform" USING (true) WITH CHECK (true);--> statement-breakpoint
+CREATE POLICY "connectors_platform_all" ON "connectors" AS PERMISSIVE FOR ALL TO "lintelia_platform" USING (true) WITH CHECK (true);--> statement-breakpoint
+CREATE POLICY "case_records_tenant_isolation" ON "case_records" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+CREATE POLICY "connector_installations_tenant_isolation" ON "connector_installations" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+GRANT SELECT, INSERT, UPDATE, DELETE ON "connector_installations", "case_records" TO lintelia_app;
 --> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON "connectors", "connector_versions", "connector_installation_index" TO fintivio_platform;
+GRANT SELECT, INSERT, UPDATE, DELETE ON "connectors", "connector_versions", "connector_installation_index" TO lintelia_platform;
 --> statement-breakpoint
 ALTER TABLE "connector_installations" FORCE ROW LEVEL SECURITY;
 --> statement-breakpoint

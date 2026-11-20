@@ -1,6 +1,6 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
 import { and, eq, sql } from 'drizzle-orm';
-import { CUSTOM_PERMISSION_RE, TENANT_PERMISSION_IDS, customPermissionKey, type Tenant, type User } from '@repo/fintivio/schemas';
+import { CUSTOM_PERMISSION_RE, TENANT_PERMISSION_IDS, customPermissionKey, type Tenant, type User } from '@repo/lintelia/schemas';
 import { apiClients, customPermissions, roles } from '../entities';
 import type { TenantDatabase } from '../clients/database.client';
 import { TENANT } from '../injector/tokens/tenant.token';

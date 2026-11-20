@@ -3,7 +3,7 @@ import { and, asc, desc, eq } from 'drizzle-orm';
 import {
   SOURCE_PERMISSIONS, TENANT_PERMISSION_IDS, backOfficeDefinitionSchema, backOfficePageSources, resolvePermissions, satisfiesAccessRule, sourceFamily,
   validateBackOffice, widgetsSources, type BackOfficeDefinition, type Tenant, type User,
-} from '@repo/fintivio/schemas';
+} from '@repo/lintelia/schemas';
 import { clientApps, clientAppVersions, roles, sysWorkflows, workflowVersions } from '../entities';
 import { TENANT } from '../injector/tokens/tenant.token';
 import { USER } from '../injector/tokens/user.token';

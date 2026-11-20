@@ -1,5 +1,5 @@
 import * as restate from '@restatedev/restate-sdk/fetch';
-import type { IntakeReport } from '@repo/fintivio/entities/tenant';
+import type { IntakeReport } from '@repo/lintelia/entities/tenant';
 import { INTERNAL_SIGNATURE_HEADER, verifyInternalSignature } from '../auth/internal-signature';
 import type { AuditWriter } from '../services/audit.writer';
 import { quarantineKey } from './object-store';

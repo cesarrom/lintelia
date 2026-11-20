@@ -4,7 +4,7 @@ export function monitorPage() {
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Fintivio e2e · live run</title>
+<title>Lintelia e2e · live run</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root { color-scheme: dark; --bg: #0b1020; --panel: #111831; --line: #1f2a4a; --text: #e2e8f0; --muted: #8b97b5;
@@ -49,7 +49,7 @@ export function monitorPage() {
 <body>
   <header>
     <span id="badge" class="pill live">live</span>
-    <span class="brand">Fintivio e2e</span>
+    <span class="brand">Lintelia e2e</span>
     <span class="spacer"></span>
     <span class="counts"><span class="ok" id="passed">✓ 0</span><span class="bad" id="failed">✘ 0</span><span class="warn" id="flaky"></span><span class="muted" id="skipped"></span><span class="muted" id="total">/ 0</span></span>
     <span class="clock" id="clock">00:00</span>
@@ -86,7 +86,7 @@ export function monitorPage() {
       const ok = state.finished.status === 'passed';
       badge.className = 'pill ' + (ok ? 'passed-all' : 'failed-all');
       badge.textContent = ok ? 'passed' : state.finished.status;
-      document.title = (ok ? '✓ ' : '✘ ') + 'Fintivio e2e · ' + c.passed + ' passed, ' + c.failed + ' failed';
+      document.title = (ok ? '✓ ' : '✘ ') + 'Lintelia e2e · ' + c.passed + ' passed, ' + c.failed + ' failed';
     }
 
     const running = $('running');

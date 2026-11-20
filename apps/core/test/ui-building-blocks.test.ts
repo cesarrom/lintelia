@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { buildEmvPayload, buildEpcPayload, crc16, isIban, isLuhn, parsePaymentCode } from '@repo/fintivio/utilities';
+import { buildEmvPayload, buildEpcPayload, crc16, isIban, isLuhn, parsePaymentCode } from '@repo/lintelia/utilities';
 import { CLIENT_APP_COMPONENTS } from '../src/engine/components/client-app';
 
 /** UI building blocks (docs/plans/14): payment codes, value checks, and the rules of client.screen's new options. */
@@ -13,7 +13,7 @@ describe('payment codes', () => {
   });
 
   test('a damaged EMV code is refused; auto detects the format', () => {
-    const payload = buildEmvPayload({ gui: 'uk.fintivio.demo', account: 'C-1/cur-1', name: 'Corner Shop', city: 'London', country: 'GB', currency: 'GBP' });
+    const payload = buildEmvPayload({ gui: 'uk.lintelia.example', account: 'C-1/cur-1', name: 'Corner Shop', city: 'London', country: 'GB', currency: 'GBP' });
     expect(parsePaymentCode(payload, 'auto')).toMatchObject({ format: 'emv', valid: true, currency: 'GBP', country: 'GB' });
     expect(parsePaymentCode(payload, 'auto').amount).toBeUndefined();
     const damaged = payload.replace('Corner', 'Korner');

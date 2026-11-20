@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ColumnDefinition, GetTablesResponse } from '@repo/fintivio/schemas';
+import { ColumnDefinition, GetTablesResponse } from '@repo/lintelia/schemas';
 import { PlusCircle, Trash2, Edit3 } from 'lucide-react';
 interface SchemaViewProps {
   table: GetTablesResponse | null;

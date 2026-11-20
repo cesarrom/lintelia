@@ -11,7 +11,7 @@ import { idpUser, setUpSsoWith, ssoSignInWithoutBrowser } from '../../support/ss
 test.describe('STAFF-01 Staff sign in with the company IdP', { tag: ['@staff', '@STAFF-01'] }, () => {
   test('invited staff sign in through the IdP; unknown people are refused; passwords are refused once enforced', async () => {
     const staff = Api.as(await staffSession());
-    const domain = `${uniqueKey('corp')}.fintivio-staff.example`;
+    const domain = `${uniqueKey('corp')}.lintelia-staff.example`;
     await setUpSsoWith(staff, '/platform/sso', { domain });
     const status = await staff.get('/platform/sso');
     expect(status.body).toMatchObject({ ready: true });

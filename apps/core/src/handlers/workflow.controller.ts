@@ -4,9 +4,9 @@ import assert from "assert";
 import { WorkflowsService } from "../services/workflows.service";
 import { LogsService } from "../services/logs.service";
 import { SystemTriggersService } from "../services/system-triggers.service";
-import { fromTriggerDefinition, yamlToWorkflow } from "@repo/fintivio/utilities";
+import { fromTriggerDefinition, yamlToWorkflow } from "@repo/lintelia/utilities";
 import { USER } from "../injector/tokens/user.token";
-import type { User } from "@repo/fintivio/schemas";
+import type { User } from "@repo/lintelia/schemas";
 import { Scope, Inject, Controller, Put, Get, Patch, Param, Res, Post, type RawBodyRequest } from "@nestjs/common";
 import type { HonoRequest } from "hono/request";
 import type { Context } from "hono";
@@ -16,7 +16,7 @@ import { CasesService } from "../services/cases.service";
 import { handle, respondToChange } from "../http/respond";
 import { IdentityService } from "../auth/identity.service";
 import { TENANT } from "../injector/tokens/tenant.token";
-import type { Tenant } from "@repo/fintivio/schemas";
+import type { Tenant } from "@repo/lintelia/schemas";
 
 @Controller({
   path: '/workflows',

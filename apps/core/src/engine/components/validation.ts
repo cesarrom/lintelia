@@ -1,5 +1,5 @@
 import type { WorkflowDefinition } from '../definition';
-import { componentEvents } from '@repo/fintivio/schemas';
+import { componentEvents } from '@repo/lintelia/schemas';
 import { getComponent, validateComponentConfig } from './index';
 
 /** Reasons a definition cannot be published (empty = valid): graph checks, then each step against its component. */

@@ -2,7 +2,7 @@ import { LogsService } from "./logs.service";
 import { AbstractService } from "./service";
 import { sysSystemVariables } from "../entities/tenants";
 import { asc, eq } from "drizzle-orm";
-import { CreateSystemVariableInput, SystemVariable, UpdateSystemVariableInput, ValueType, WorkflowValue } from "@repo/fintivio/schemas";
+import { CreateSystemVariableInput, SystemVariable, UpdateSystemVariableInput, ValueType, WorkflowValue } from "@repo/lintelia/schemas";
 import { TENANT_CONNECTION } from "../injector/tokens/tenant-connection.token";
 import { type TenantDatabase } from "../clients/database.client";
 import { Injectable, Inject, Scope } from "@nestjs/common";

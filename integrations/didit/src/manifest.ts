@@ -5,7 +5,7 @@ export const manifest: ManifestInput = {
   version: '1.0.0',
   name: 'Didit identity verification',
   description: 'Verify identities with an ID document and a selfie (liveness and face match), optionally AML screening.',
-  publisher: { name: 'Fintivio', url: 'https://fintivio.dev', support: 'support@lintelia.example' },
+  publisher: { name: 'Lintelia', url: 'https://lintelia.example', support: 'support@lintelia.example' },
   categories: ['identity_verification'],
   icon: 'ScanFace',
   audiences: ['tenant'],

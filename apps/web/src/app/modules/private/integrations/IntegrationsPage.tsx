@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 import { Plug, Settings2, Trash2 } from 'lucide-react';
-import { CONNECTOR_SCOPES } from '@repo/fintivio/schemas';
+import { CONNECTOR_SCOPES } from '@repo/lintelia/schemas';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -62,7 +62,7 @@ function ConnectDialog({ connector, onClose }: { connector: CatalogConnector | n
           <DialogTitle>Connect {connector?.name}</DialogTitle>
           <DialogDescription>
             You will continue on the {connector?.name} connector's page (by {connector?.publisher.name}) to enter its settings.
-            Secrets stay with the connector and are never shown to Fintivio.
+            Secrets stay with the connector and are never shown to Lintelia.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 text-sm">
@@ -94,7 +94,7 @@ function SettingsDialog({ handOff, title, onClose }: { handOff: HandOff | null; 
     if (!handOff) return;
     const origin = new URL(handOff.url).origin;
     const listener = (event: MessageEvent) => {
-      if (event.origin !== origin || event.data?.type !== 'fintivio:connector-saved') return;
+      if (event.origin !== origin || event.data?.type !== 'lintelia:connector-saved') return;
       toast.success(event.data.message ?? 'Saved');
       onClose(true);
     };

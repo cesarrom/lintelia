@@ -1,6 +1,6 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
 import { and, desc, eq, lt } from 'drizzle-orm';
-import type { Tenant, User } from '@repo/fintivio/schemas';
+import type { Tenant, User } from '@repo/lintelia/schemas';
 import { roles, supportGrants, tenants, userRoles, users } from '../entities';
 import type { Databases } from '../clients/database.client';
 import { DATABASES } from '../injector/tokens/databases.token';
@@ -69,8 +69,8 @@ export class SupportAccessService {
       .innerJoin(roles, and(eq(roles.id, userRoles.roleId), eq(roles.tenantId, userRoles.tenantId)))
       .where(and(eq(roles.key, 'admin'), eq(users.status, 'active')));
     for (const admin of admins) {
-      await this.notifier.send(tenant, admin.email, 'Fintivio support asks for read-only access',
-        [`${this.user.email} (Fintivio support) asks for read-only access to your workspace for ${minutes} minutes.`, `Reason: ${reason}`, 'Nothing happens unless you approve it; you can revoke it at any time.'],
+      await this.notifier.send(tenant, admin.email, 'Lintelia support asks for read-only access',
+        [`${this.user.email} (Lintelia support) asks for read-only access to your workspace for ${minutes} minutes.`, `Reason: ${reason}`, 'Nothing happens unless you approve it; you can revoke it at any time.'],
         { label: 'Review the request', url: tenantWebUrl(tenant.domain, '/app/support-access') }).catch(() => undefined);
     }
     return present(grant);

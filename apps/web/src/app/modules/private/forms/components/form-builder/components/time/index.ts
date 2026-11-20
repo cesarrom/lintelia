@@ -5,7 +5,7 @@ import { TimeEditor } from './editor';
 import { TimeViewer } from './viewer';
 import { TimeProperties } from './properties';
 import { TimeToolbar } from './toolbar';
-import { timeConfigSchema, TimeConfig } from '@repo/fintivio/schemas';
+import { timeConfigSchema, TimeConfig } from '@repo/lintelia/schemas';
 
 /**
  * Time Input Component

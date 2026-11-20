@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { LogsFilterRequest, Log, LogsAnalyticsResponse, TopUserLogsResponse, TopSourceLogsResponse, LogTrendsResponse, CreateLogRequest, AcknowledgeLogRequest } from '@repo/fintivio/schemas';
+import { LogsFilterRequest, Log, LogsAnalyticsResponse, TopUserLogsResponse, TopSourceLogsResponse, LogTrendsResponse, CreateLogRequest, AcknowledgeLogRequest } from '@repo/lintelia/schemas';
 import { useAxios } from './axios';
 
 const API_BASE_URL = import.meta.env.VITE_FILES_API_BASE_URL;

@@ -1,4 +1,4 @@
-import { CreateRoleRequest, Role, UpdateRoleRequest } from '@repo/fintivio/schemas';
+import { CreateRoleRequest, Role, UpdateRoleRequest } from '@repo/lintelia/schemas';
 import { useQuery, useMutation, UseMutationOptions, QueryKey } from '@tanstack/react-query';
 import { useAxios } from './axios'; 
 

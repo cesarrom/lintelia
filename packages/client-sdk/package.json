@@ -1,9 +1,9 @@
 {
-  "name": "@fintivio/client-sdk",
+  "name": "@lintelia/client-sdk",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Put your Fintivio client app in your own site or mobile app: embedded (iframe / WebView) or headless API client, with React and React Native bindings (docs/plans/11).",
+  "description": "Put your Lintelia client app in your own site or mobile app: embedded (iframe / WebView) or headless API client, with React and React Native bindings (docs/plans/11).",
   "exports": {
     ".": "./src/index.ts",
     "./react": "./src/react.tsx",
@@ -13,7 +13,7 @@
   "scripts": {
     "test": "bun test",
     "check-types": "tsc --noEmit -p .",
-    "build:browser": "bun build ./src/browser.ts --outfile dist/fintivio-client.js --minify"
+    "build:browser": "bun build ./src/browser.ts --outfile dist/lintelia-client.js --minify"
   },
   "peerDependencies": {
     "react": ">=18",

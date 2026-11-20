@@ -6,7 +6,7 @@
 @tailwind utilities;
 
 /*
- * Fintivio design tokens (docs/design/README.md).
+ * Lintelia design tokens (docs/design/README.md).
  * Colours are HSL channels so Tailwind can apply opacity (`bg-primary/10`).
  *  - ink: near-black with a cool blue cast for text; canvas: the app's backdrop (sidebar, portal background);
  *  - brand: indigo-violet; semantic colours for status (success, warning, danger, info).

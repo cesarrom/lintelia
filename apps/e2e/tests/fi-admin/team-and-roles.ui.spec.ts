@@ -62,7 +62,7 @@ test.describe('FIA-04 Manage the team (invite, roles, deactivate)', { tag: ['@fi
 
     // Deactivating signs the member out everywhere. (The session is read first: once deactivated, the invitee's page
     // may notice on its next request and drop it.)
-    const session = JSON.parse((await invitee.evaluate(() => localStorage.getItem('fintivio.session')))!);
+    const session = JSON.parse((await invitee.evaluate(() => localStorage.getItem('lintelia.session')))!);
     await page.reload();
     const row = page.getByTestId('member-row').filter({ hasText: email });
     await row.getByRole('button', { name: 'Deactivate' }).click();

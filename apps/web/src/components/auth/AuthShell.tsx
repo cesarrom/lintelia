@@ -67,7 +67,7 @@ export function AuthShell({ tenant, institution, title, description, children }:
         <footer className="flex flex-wrap items-center justify-between gap-3 text-[12px] text-muted-foreground">
           <span className="inline-flex items-center gap-1.5">
             <LogoMark className="h-4 w-4 opacity-80" />
-            {onTenant ? 'Secured by fintivio' : '© fintivio'}
+            {onTenant ? 'Secured by lintelia' : '© lintelia'}
           </span>
           <span>Two-factor sign-in · every action audited</span>
         </footer>

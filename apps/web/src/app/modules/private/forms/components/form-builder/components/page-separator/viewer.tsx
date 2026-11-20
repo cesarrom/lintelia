@@ -1,7 +1,7 @@
 'use client';
 
 import { ViewerProps } from '../../schemas';
-import { PageSeparatorConfig } from '@repo/fintivio/schemas';
+import { PageSeparatorConfig } from '@repo/lintelia/schemas';
 
 export function PageSeparatorViewer({
   id,

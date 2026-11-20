@@ -85,11 +85,11 @@ CREATE INDEX "access_changes_status_idx" ON "access_changes" USING btree ("tenan
 CREATE UNIQUE INDEX "custom_permissions_tenant_key_idx" ON "custom_permissions" USING btree ("tenant_id","key");--> statement-breakpoint
 CREATE UNIQUE INDEX "member_attribute_definitions_key_idx" ON "member_attribute_definitions" USING btree ("tenant_id","key");--> statement-breakpoint
 CREATE UNIQUE INDEX "role_mappings_group_role_idx" ON "role_mappings" USING btree ("tenant_id",lower("group_name"),"role_id");--> statement-breakpoint
-CREATE POLICY "access_changes_tenant_isolation" ON "access_changes" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-CREATE POLICY "custom_permissions_tenant_isolation" ON "custom_permissions" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-CREATE POLICY "member_attribute_definitions_tenant_isolation" ON "member_attribute_definitions" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-CREATE POLICY "role_mappings_tenant_isolation" ON "role_mappings" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON "access_changes", "custom_permissions", "member_attribute_definitions", "role_mappings" TO fintivio_app;
+CREATE POLICY "access_changes_tenant_isolation" ON "access_changes" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+CREATE POLICY "custom_permissions_tenant_isolation" ON "custom_permissions" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+CREATE POLICY "member_attribute_definitions_tenant_isolation" ON "member_attribute_definitions" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+CREATE POLICY "role_mappings_tenant_isolation" ON "role_mappings" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+GRANT SELECT, INSERT, UPDATE, DELETE ON "access_changes", "custom_permissions", "member_attribute_definitions", "role_mappings" TO lintelia_app;
 --> statement-breakpoint
 ALTER TABLE "access_changes" FORCE ROW LEVEL SECURITY;
 --> statement-breakpoint

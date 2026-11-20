@@ -11,7 +11,7 @@ import { IdentityService } from '../identity.service';
 import { SSO_BROKER, type DirectoryEvent, type SsoBroker } from './broker';
 import { RoleSync } from '../../access/role-sync';
 import { MemberAttributeSync } from '../../access/attributes';
-import type { Tenant } from '@repo/fintivio/schemas';
+import type { Tenant } from '@repo/lintelia/schemas';
 
 const DIRECTORY_ACTOR = { type: 'directory', email: 'directory-sync' };
 

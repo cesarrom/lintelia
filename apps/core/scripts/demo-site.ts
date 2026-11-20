@@ -1,8 +1,8 @@
 /**
  * The Demo Bank public website (`bun run demo:site`, http://localhost:4000), showing the two ways an institution puts
- * Fintivio in its own site:
+ * Lintelia in its own site:
  *  - `/`: the loan application form, embedded with the forms snippet (published by the seed for this origin);
- *  - `/online-banking`: the client app (banking), embedded with `@fintivio/client-sdk`. The site's backend opens a
+ *  - `/online-banking`: the client app (banking), embedded with `@lintelia/client-sdk`. The site's backend opens a
  *    client session for its signed-in customer (`POST /client-sessions` with its API client) and the SDK hands the
  *    single-use secret to the app.
  */
@@ -54,7 +54,7 @@ const loansPage = `<!doctype html>
       <p>We will e-mail you a code to confirm your address, then follow your application in your Demo Bank portal.</p>
     </section>
     <section>
-      <script src="${webHost}/embed.js" data-fintivio-form="${DEMO_LOAN_FORM_KEY}" data-title="Personal loan pre-approval" async></script>
+      <script src="${webHost}/embed.js" data-lintelia-form="${DEMO_LOAN_FORM_KEY}" data-title="Personal loan pre-approval" async></script>
     </section>
   </main>
 </body>
@@ -66,7 +66,7 @@ const bankingPage = (customer: string) => `<!doctype html>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Demo Bank — Online banking</title>
   <style>${STYLE}</style>
-  <script src="${webHost}/fintivio-client.js"></script>
+  <script src="${webHost}/lintelia-client.js"></script>
 </head>
 <body>
   ${header('banking')}
@@ -76,19 +76,19 @@ const bankingPage = (customer: string) => `<!doctype html>
       <select id="customer" data-testid="customer" onchange="location.search='?customer='+this.value">
         ${Object.entries(CUSTOMERS).map(([key, c]) => `<option value="${key}" ${key === customer ? 'selected' : ''}>${c.label}</option>`).join('')}
       </select>
-      <span style="color:#64748b">The app below is Fintivio, embedded with <code>@fintivio/client-sdk</code>.</span>
+      <span style="color:#64748b">The app below is Lintelia, embedded with <code>@lintelia/client-sdk</code>.</span>
     </div>
     <div class="frame" id="banking"></div>
     <div id="events" data-testid="sdk-events"></div>
   </main>
   <script>
     const log = (line) => { const el = document.getElementById('events'); el.textContent = line + '\\n' + el.textContent; };
-    window.fintivioApp = FintivioClient.mount('#banking', {
+    window.linteliaApp = LinteliaClient.mount('#banking', {
       appUrl: ${JSON.stringify(webHost)},
       height: 780,
       title: 'Demo Bank online banking',
       fetchClientSecret: async () => {
-        const response = await fetch('/api/fintivio/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customer: ${JSON.stringify(customer)} }) });
+        const response = await fetch('/api/lintelia/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ customer: ${JSON.stringify(customer)} }) });
         if (!response.ok) throw new Error('Could not open a session');
         log('session: client secret obtained by the site backend');
         return (await response.json()).clientSecret;
@@ -135,7 +135,7 @@ Bun.serve({
     const url = new URL(request.url);
     try {
       if (url.pathname === '/online-banking') return html(bankingPage(url.searchParams.get('customer') ?? 'chris'));
-      if (url.pathname === '/api/fintivio/session' && request.method === 'POST') {
+      if (url.pathname === '/api/lintelia/session' && request.method === 'POST') {
         const { customer } = await request.json().catch(() => ({})) as { customer?: string };
         return Response.json(await openClientSession(customer ?? 'chris'));
       }

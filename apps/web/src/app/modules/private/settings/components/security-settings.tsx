@@ -70,7 +70,7 @@ export default function SecuritySettings() {
       <Card data-testid="sso-settings">
         <CardHeader>
           <CardTitle>Single sign-on</CardTitle>
-          <CardDescription>Your IT team connects your identity provider (Entra ID, Okta, Google…) and verifies your e-mail domains in a secure setup portal. Fintivio never sees their secrets.</CardDescription>
+          <CardDescription>Your IT team connects your identity provider (Entra ID, Okta, Google…) and verifies your e-mail domains in a secure setup portal. Lintelia never sees their secrets.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
           <div className="flex flex-wrap gap-2">

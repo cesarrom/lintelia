@@ -7,7 +7,7 @@ import { embedUrl, isAppMessage, type AppEvent, type HostMessage } from './proto
  * React Native: the client app in a WebView. Same protocol as the web embed; the WebView bridge carries the messages
  * (`window.ReactNativeWebView.postMessage` out, injected `postMessage` in).
  */
-export interface FintivioAppViewProps {
+export interface LinteliaAppViewProps {
   appUrl: string;
   fetchClientSecret?: () => Promise<string>;
   fetchSubjectToken?: () => Promise<string>;
@@ -21,7 +21,7 @@ export interface FintivioAppViewProps {
   onError?: (error: Error) => void;
 }
 
-export function FintivioAppView({ appUrl, fetchClientSecret, fetchSubjectToken, page, params, chrome = 'full', style, onReady, onEvent, onNavigate, onError }: FintivioAppViewProps) {
+export function LinteliaAppView({ appUrl, fetchClientSecret, fetchSubjectToken, page, params, chrome = 'full', style, onReady, onEvent, onNavigate, onError }: LinteliaAppViewProps) {
   const view = useRef<WebView>(null);
   const send = useCallback((message: HostMessage) => {
     // Delivered as a window message inside the page, which only trusts messages from its own window in a WebView.
@@ -39,8 +39,8 @@ export function FintivioAppView({ appUrl, fetchClientSecret, fetchSubjectToken, 
     switch (data.type) {
       case 'needs-session':
         try {
-          if (fetchClientSecret) send({ source: 'fintivio-sdk', type: 'session', clientSecret: await fetchClientSecret() });
-          else if (fetchSubjectToken) send({ source: 'fintivio-sdk', type: 'session', subjectToken: await fetchSubjectToken() });
+          if (fetchClientSecret) send({ source: 'lintelia-sdk', type: 'session', clientSecret: await fetchClientSecret() });
+          else if (fetchSubjectToken) send({ source: 'lintelia-sdk', type: 'session', subjectToken: await fetchSubjectToken() });
         } catch (error) {
           onError?.(error as Error);
         }

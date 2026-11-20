@@ -6,8 +6,8 @@ import * as schema from '../entities';
  * Database access.
  *
  * Two pools, neither of them privileged:
- *  - `app` connects as `fintivio_app`: every table it touches is filtered by row level security on `app.tenant_id`.
- *  - `platform` connects as `fintivio_platform`: tenant directory and staff accounts only (no tenant data grants).
+ *  - `app` connects as `lintelia_app`: every table it touches is filtered by row level security on `app.tenant_id`.
+ *  - `platform` connects as `lintelia_platform`: tenant directory and staff accounts only (no tenant data grants).
  *
  * `tenantDatabase(tenantId)` returns a drizzle instance whose every statement runs in its own short transaction that
  * starts with `set_config('app.tenant_id', tenantId, true)` (transaction-local). Explicit `db.transaction()` blocks set

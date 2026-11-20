@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { BaseComponentSchema } from '../base-schema';
-import { NumberConfig } from '@repo/fintivio/schemas';
+import { NumberConfig } from '@repo/lintelia/schemas';
 
 // Value validation schema generator
 export class NumberComponentSchema extends BaseComponentSchema<z.ZodNumber, NumberConfig> {

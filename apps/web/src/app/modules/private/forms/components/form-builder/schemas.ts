@@ -1,5 +1,5 @@
 import { DragEndEvent, DragStartEvent } from '@dnd-kit/core';
-import { FormComponentConfig, FormConfig, FormVariable } from '@repo/fintivio/schemas';
+import { FormComponentConfig, FormConfig, FormVariable } from '@repo/lintelia/schemas';
 import { LucideIcon } from 'lucide-react';
 import { FormState, UseFormRegister } from 'react-hook-form';
 import { BaseComponentSchema, BaseLayoutSchema } from './components/base-schema';

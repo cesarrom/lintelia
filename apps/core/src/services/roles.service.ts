@@ -1,6 +1,6 @@
 import { Injectable, Inject, Scope } from "@nestjs/common";
 import { and, asc, eq, sql } from "drizzle-orm";
-import { ACCESS_ADMINISTRATION_PERMISSIONS, SYSTEM_ROLES, TENANT_PERMISSION_IDS, isCustomPermission, resolvePermissions, type Role, type Tenant, type User, type UserInput } from "@repo/fintivio/schemas";
+import { ACCESS_ADMINISTRATION_PERMISSIONS, SYSTEM_ROLES, TENANT_PERMISSION_IDS, isCustomPermission, resolvePermissions, type Role, type Tenant, type User, type UserInput } from "@repo/lintelia/schemas";
 import { AbstractService } from "./service";
 import { TENANT } from "../injector/tokens/tenant.token";
 import { TENANT_CONNECTION } from "../injector/tokens/tenant-connection.token";

@@ -23,12 +23,12 @@ export const env = {
   /** Local mailbox (fake-services/mailbox): every e-mail the stack sends. */
   mailboxUrl: process.env.E2E_MAILBOX_URL ?? 'http://localhost:8025',
   /** Owner connection: only for environment setup and white-box security assertions (e.g. secrets at rest). */
-  ownerDatabaseUrl: process.env.E2E_DATABASE_OWNER_URL ?? 'postgres://postgres:postgres@localhost:5433/fintivio',
+  ownerDatabaseUrl: process.env.E2E_DATABASE_OWNER_URL ?? 'postgres://postgres:postgres@localhost:5433/lintelia',
   staff: {
-    email: process.env.E2E_STAFF_EMAIL ?? 'staff@fintivio.local',
-    password: process.env.SEED_PASSWORD ?? 'fintivio-dev-password',
+    email: process.env.E2E_STAFF_EMAIL ?? 'staff@lintelia.local',
+    password: process.env.SEED_PASSWORD ?? 'lintelia-dev-password',
     /** Second factor of the seeded staff account (development secret, apps/core/scripts/seed.ts). */
-    totpSecret: process.env.E2E_STAFF_TOTP_SECRET ?? 'FINTIVIODEVSTAFFSECRETAAAAAAAAAA',
+    totpSecret: process.env.E2E_STAFF_TOTP_SECRET ?? 'LINTELIADEVSTAFFSECRETAAAAAAAAAA',
   },
   /** Connector services of the local stack (integrations/*), from dev/ports.json; E2E_CONNECTOR_<ID>_URL overrides. */
   connectors: connectorUrls(),

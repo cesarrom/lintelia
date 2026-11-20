@@ -5,7 +5,7 @@ import { v4 as uuid } from 'uuid';
 import { sysKeyValues } from "../entities/tenants";
 import { eq, inArray } from "drizzle-orm";
 import { WebService } from "./web.service";
-import { CreateKeyValueInput, KeyValue, UpdateKeyValueInput } from "@repo/fintivio/schemas";
+import { CreateKeyValueInput, KeyValue, UpdateKeyValueInput } from "@repo/lintelia/schemas";
 import { TENANT_CONNECTION } from "../injector/tokens/tenant-connection.token";
 import { type TenantDatabase } from "../clients/database.client";
 import { Injectable, Inject, Scope } from "@nestjs/common";

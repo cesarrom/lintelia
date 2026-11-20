@@ -1,8 +1,8 @@
 import jsonata from 'jsonata';
-import { parsePaymentCode, VALUE_CHECKS } from '@repo/fintivio/utilities';
+import { parsePaymentCode, VALUE_CHECKS } from '@repo/lintelia/utilities';
 import { Inject, Injectable, Scope } from '@nestjs/common';
 import { and, eq, inArray } from 'drizzle-orm';
-import type { Tenant, User } from '@repo/fintivio/schemas';
+import type { Tenant, User } from '@repo/lintelia/schemas';
 import { caseFiles, clientProfiles } from '../entities';
 import { TENANT } from '../injector/tokens/tenant.token';
 import { USER } from '../injector/tokens/user.token';

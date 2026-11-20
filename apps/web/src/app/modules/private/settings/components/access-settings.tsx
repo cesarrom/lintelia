@@ -137,7 +137,7 @@ function PreviewTable({ preview, roles }: { preview: Preview; roles: RoleOption[
 /**
  * Roles from the identity provider (docs/plans/15 §5.4, §13): as soon as single sign-on is linked (a verified domain),
  * people of that domain hold the roles their groups map to — from their first sign-in through the IdP — and cannot be
- * given roles by hand. Without single sign-on, roles are managed in Fintivio. Mappings can be prepared beforehand.
+ * given roles by hand. Without single sign-on, roles are managed in Lintelia. Mappings can be prepared beforehand.
  */
 export function IdpRolesCard({ roles }: { roles: RoleOption[] }) {
   const { data } = useApiQuery<MappingsState>(['sso', 'role-mappings'], '/sso/role-mappings');
@@ -177,7 +177,7 @@ export function IdpRolesCard({ roles }: { roles: RoleOption[] }) {
           <AlertDescription>
             {data?.linked
               ? <>Single sign-on is linked: people of <strong>{data.domains.join(', ')}</strong> hold the roles their groups map to, from their first sign-in through your identity provider, and their roles cannot be changed by hand. Local accounts of other domains (emergency administrators, consultants) keep roles assigned here.</>
-              : <>Single sign-on is not linked yet: roles are managed in Fintivio. Prepare the mappings now; as soon as a domain is verified, roles of its people come from your identity provider.</>}
+              : <>Single sign-on is not linked yet: roles are managed in Lintelia. Prepare the mappings now; as soon as a domain is verified, roles of its people come from your identity provider.</>}
           </AlertDescription>
         </Alert>
 

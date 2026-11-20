@@ -1,6 +1,6 @@
 import { Access, Require } from "../auth/access";
 import { UsersService } from "../services/users.service";
-import type { InviteUserInput } from "@repo/fintivio/schemas";
+import type { InviteUserInput } from "@repo/lintelia/schemas";
 import { Scope, Inject, Controller, Get, Post, Put, Patch, Req, Res, type RawBodyRequest, Param } from "@nestjs/common";
 import type { HonoRequest } from "hono/request";
 import type { Context } from "hono";

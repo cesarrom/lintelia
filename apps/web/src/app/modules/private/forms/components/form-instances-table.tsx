@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useNavigate } from 'react-router';
 import { useFormGetFormInstances } from '@/lib/services/form.hooks';
-import { FormInstance } from '@repo/fintivio/schemas';
+import { FormInstance } from '@repo/lintelia/schemas';
 
 interface FormInstancesTableProps {
   formId: string;

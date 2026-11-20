@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { PropertiesProps } from '../../schemas';
 import { RangeComponentSchema } from './schema';
 import { Slider } from '@/components/ui/slider';
-import { RangeConfig } from '@repo/fintivio/schemas';
+import { RangeConfig } from '@repo/lintelia/schemas';
 
 export function RangeProperties({ config, onChange }: PropertiesProps<RangeConfig>) {
   const schemaRef = useRef(new RangeComponentSchema(config.propertyName));

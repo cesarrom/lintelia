@@ -97,7 +97,7 @@ export const router = createBrowserRouter([
         path: 'embed/forms/:publicKey',
         Component: EmbedFormPage
       },
-      // The client app embedded in the institution's site or mobile app (@fintivio/client-sdk).
+      // The client app embedded in the institution's site or mobile app (@lintelia/client-sdk).
       {
         path: 'embed/app',
         Component: EmbedAppFrame,

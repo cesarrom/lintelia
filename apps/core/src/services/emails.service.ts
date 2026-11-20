@@ -3,7 +3,7 @@ import { AbstractService } from './service';
 import assert from 'assert';
 import { Injectable, Inject, Scope } from "@nestjs/common";
 import { TENANT } from '../injector/tokens/tenant.token';
-import type { Tenant, SendEmailRequest, SendTemplateRequest } from '@repo/fintivio/schemas';
+import type { Tenant, SendEmailRequest, SendTemplateRequest } from '@repo/lintelia/schemas';
 import { EMAIL_PROVIDER, type EmailProvider } from '../providers/email.provider';
 
 @Injectable({

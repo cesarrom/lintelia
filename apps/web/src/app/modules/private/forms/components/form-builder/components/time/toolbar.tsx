@@ -4,7 +4,7 @@ import { Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDraggable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
-import { timeConfigSchema } from '@repo/fintivio/schemas';
+import { timeConfigSchema } from '@repo/lintelia/schemas';
 
 export function TimeToolbar() {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({

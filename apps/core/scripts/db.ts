@@ -9,8 +9,8 @@
  * Postgres refuses to run as root: run these as a normal user.
  * Connection settings come from apps/core/.env (see .env.example):
  *   DATABASE_OWNER_URL     owner/superuser, used ONLY here for migrations (never by the app)
- *   DATABASE_URL           fintivio_app (tenant-scoped, row level security)
- *   DATABASE_PLATFORM_URL  fintivio_platform (tenant directory, staff)
+ *   DATABASE_URL           lintelia_app (tenant-scoped, row level security)
+ *   DATABASE_PLATFORM_URL  lintelia_platform (tenant directory, staff)
  */
 import EmbeddedPostgres from 'embedded-postgres';
 import postgres from 'postgres';

@@ -4,7 +4,7 @@ import { CalendarDays } from 'lucide-react';
 import { ToolbarProps } from '../../schemas';
 import { Button } from '@/components/ui/button';
 import { useDraggable } from '@dnd-kit/core';
-import { dateConfigSchema } from '@repo/fintivio/schemas';
+import { dateConfigSchema } from '@repo/lintelia/schemas';
 
 export function DateToolbar() {
   const { attributes, listeners, setNodeRef } = useDraggable({

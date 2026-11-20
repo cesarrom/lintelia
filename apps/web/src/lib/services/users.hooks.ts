@@ -1,5 +1,5 @@
 import { useQuery, useMutation, UseQueryOptions, UseMutationOptions, QueryKey } from '@tanstack/react-query';
-import type { UserResponse as UserSchema, InviteUserInput, UpdateUserRolesRequest } from '@repo/fintivio/schemas';
+import type { UserResponse as UserSchema, InviteUserInput, UpdateUserRolesRequest } from '@repo/lintelia/schemas';
 import { useAxios } from './axios'; // Import useAxios
 
 const API_BASE_URL = import.meta.env.VITE_FILES_API_BASE_URL; // Use consistent naming

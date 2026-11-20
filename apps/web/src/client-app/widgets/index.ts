@@ -7,7 +7,7 @@ import { ApplicationsWidget, JourneysWidget, NotificationsWidget, QuickActionsWi
 import { PrivacyWidget, ProfileWidget, SecurityWidget } from './profile';
 import type { WidgetProps } from './shared';
 
-/** Renderers of the widget catalogue (`CLIENT_WIDGETS` in @repo/fintivio/schemas); `section` is drawn by the runtime. */
+/** Renderers of the widget catalogue (`CLIENT_WIDGETS` in @repo/lintelia/schemas); `section` is drawn by the runtime. */
 export const WIDGETS: Record<string, ComponentType<WidgetProps>> = {
   hero: HeroWidget,
   heading: HeadingWidget,

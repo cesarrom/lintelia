@@ -10,9 +10,9 @@
  *
  * What it shows: a cursor that follows the (real, CDP-dispatched) mouse, a ripple on each press, a glow on fields as
  * they are filled, and — in the top frame — a heads-up display with the running test, the step in progress and the
- * persona signed in to this window. State comes from the runner through the `__fintivioE2eVisual` binding.
+ * persona signed in to this window. State comes from the runner through the `__linteliaE2eVisual` binding.
  */
-export const VISUAL_BINDING = '__fintivioE2eVisual';
+export const VISUAL_BINDING = '__linteliaE2eVisual';
 
 export interface OverlayOptions {
   binding: string;
@@ -25,8 +25,8 @@ export interface OverlayOptions {
 /** Serialised by Playwright and evaluated in the page before any of its scripts: must be self-contained. */
 export function installOverlay(options: OverlayOptions) {
   const w = window as any;
-  if (w.__fintivioE2eOverlay) return;
-  w.__fintivioE2eOverlay = true;
+  if (w.__linteliaE2eOverlay) return;
+  w.__linteliaE2eOverlay = true;
 
   const isTop = window === window.top;
   /** Is this window the one in use? (Updated from the runner's state and from input events.) */
@@ -90,7 +90,7 @@ export function installOverlay(options: OverlayOptions) {
   const fields: Record<string, HTMLElement> = {};
 
   function build() {
-    const host = document.createElement('fintivio-e2e-overlay');
+    const host = document.createElement('lintelia-e2e-overlay');
     host.style.setProperty('all', 'initial');
     host.style.setProperty('position', 'fixed');
     host.style.setProperty('inset', '0');

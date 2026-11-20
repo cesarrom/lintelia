@@ -23,7 +23,7 @@ const full = args.includes('--full');
 const out = resolve(option('out') ?? join(import.meta.dirname, '../../../.data/screens', new Date().toISOString().replace(/[:.]/g, '-')));
 mkdirSync(out, { recursive: true });
 
-const PASSWORD = process.env.SEED_PASSWORD ?? 'fintivio-dev-password';
+const PASSWORD = process.env.SEED_PASSWORD ?? 'lintelia-dev-password';
 const BANK = 'demo-bank';
 
 async function member(email: string): Promise<Session> {
@@ -127,7 +127,7 @@ for (const shot of await shots()) {
     viewport: shot.mobile ? { width: 390, height: 844 } : { width: 1440, height: 900 }, deviceScaleFactor: shot.mobile ? 2 : 1, colorScheme: dark ? 'dark' : 'light',
   });
   if (shot.session) {
-    await context.addInitScript((value) => window.localStorage.setItem('fintivio.session', value), JSON.stringify(shot.session));
+    await context.addInitScript((value) => window.localStorage.setItem('lintelia.session', value), JSON.stringify(shot.session));
   }
   if (dark) await context.addInitScript(() => window.localStorage.setItem('theme', 'dark'));
   const page = await context.newPage();

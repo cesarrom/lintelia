@@ -1,11 +1,11 @@
 /**
  * Development seed data. Idempotent: existing tenants/users are left alone.
  *
- * It connects with the same restricted roles as the API (fintivio_platform / fintivio_app), so seeding also checks
+ * It connects with the same restricted roles as the API (lintelia_platform / lintelia_app), so seeding also checks
  * that grants and row level security policies allow the normal provisioning path.
  *
  * Accounts (password = SEED_PASSWORD, default below; development only):
- *   staff@fintivio.local           platform staff, platform_admin (no tenant; sign in on the root app); second factor:
+ *   staff@lintelia.local           platform staff, platform_admin (no tenant; sign in on the root app); second factor:
  *                                  TOTP with the development secret below (`bun run totp` prints the current code)
  *   Demo Bank (tenant key demo-bank), one member per system role:
  *     admin@demo-bank.test         admin
@@ -33,14 +33,14 @@ import { apiClientIndex, apiClients, clientProfiles, platformMfaFactors, platfor
 import { encryptSecret } from '../src/auth/data-encryption';
 
 /** TOTP secret of the seeded staff account (development only; base32). */
-export const DEV_STAFF_TOTP_SECRET = process.env.SEED_STAFF_TOTP_SECRET || 'FINTIVIODEVSTAFFSECRETAAAAAAAAAA';
+export const DEV_STAFF_TOTP_SECRET = process.env.SEED_STAFF_TOTP_SECRET || 'LINTELIADEVSTAFFSECRETAAAAAAAAAA';
 import { templateYaml } from '../src/engine/templates';
 import { installClientAppTemplate } from '../src/client-apps/templates';
 import { seedBankingCustomer } from '../src/client-apps/templates/banking-demo-data';
 import { ensureProfile } from '../src/client-apps/profiles';
 import { loadApp } from '../src/client-apps/runtime-data';
 import YAML from 'yaml';
-import { normalizeWorkflowAccess } from '@repo/fintivio/schemas';
+import { normalizeWorkflowAccess } from '@repo/lintelia/schemas';
 import { activeBackOffice, loadBackOffice, publishBackOffice, saveBackOfficeDraft } from '../src/back-office/store';
 import { FEE_WAIVER_PERMISSION, ensureAuthorityLimitAttribute, ensureFeeWaiverPermission, ensureFeeWaiverWorkflow, feeWaiversBackOffice } from '../src/back-office/templates';
 import { parseDefinition } from '../src/engine/definition';
@@ -50,7 +50,7 @@ import { hashSecret } from '../src/api-clients/api-clients';
 import { randomUUID } from 'node:crypto';
 import { provisionTenant, syncSystemRoles } from '../src/tenancy/provisioning';
 
-export const DEFAULT_SEED_PASSWORD = 'fintivio-dev-password';
+export const DEFAULT_SEED_PASSWORD = 'lintelia-dev-password';
 
 /** Public key of the demo loan form (hosted at http://demo-bank.localhost:3001/embed/forms/pf_demo_loan_form). */
 export const DEMO_LOAN_FORM_KEY = 'pf_demo_loan_form';
@@ -245,23 +245,23 @@ export async function seedDevelopmentData(urls: { app: string; platform: string 
   const databases = createDatabases(urls);
 
   try {
-    const [staff] = await databases.platform.select().from(platformUsers).where(sql`lower(${platformUsers.email}) = 'staff@fintivio.local'`);
+    const [staff] = await databases.platform.select().from(platformUsers).where(sql`lower(${platformUsers.email}) = 'staff@lintelia.local'`);
     if (staff && !staff.roles.includes('platform_admin')) {
       await databases.platform.update(platformUsers).set({ roles: ['platform_admin'] }).where(eq(platformUsers.id, staff.id));
     }
     if (!staff) {
-      await databases.platform.insert(platformUsers).values({ email: 'staff@fintivio.local', name: 'Platform Staff', passwordHash, roles: ['platform_admin'] });
-      console.log('seeded staff@fintivio.local');
+      await databases.platform.insert(platformUsers).values({ email: 'staff@lintelia.local', name: 'Platform Staff', passwordHash, roles: ['platform_admin'] });
+      console.log('seeded staff@lintelia.local');
     }
     // Staff always need a second factor: the seeded account gets a TOTP factor with a development secret
     // (`bun run totp` prints the current code; the e2e suite computes it from the same secret).
-    const [staffRow] = await databases.platform.select().from(platformUsers).where(sql`lower(${platformUsers.email}) = 'staff@fintivio.local'`);
+    const [staffRow] = await databases.platform.select().from(platformUsers).where(sql`lower(${platformUsers.email}) = 'staff@lintelia.local'`);
     const [factor] = await databases.platform.select({ id: platformMfaFactors.id }).from(platformMfaFactors).where(eq(platformMfaFactors.staffId, staffRow.id));
     if (!factor) {
       await databases.platform.insert(platformMfaFactors).values({
         staffId: staffRow.id, type: 'totp', secretCiphertext: encryptSecret(DEV_STAFF_TOTP_SECRET, `mfa:platform:${staffRow.id}`), recoveryCodes: [],
       });
-      console.log(`seeded a TOTP factor for staff@fintivio.local (development secret ${DEV_STAFF_TOTP_SECRET}; current code: bun run totp)`);
+      console.log(`seeded a TOTP factor for staff@lintelia.local (development secret ${DEV_STAFF_TOTP_SECRET}; current code: bun run totp)`);
     }
 
     for (const spec of TENANTS) {

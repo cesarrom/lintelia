@@ -1,5 +1,5 @@
 /**
- * Row level security: tenant isolation is enforced by Postgres for the role the API uses (fintivio_app).
+ * Row level security: tenant isolation is enforced by Postgres for the role the API uses (lintelia_app).
  * Assertions run through the restricted roles; the owner connection is only used to prepare and inspect.
  * Requires the local database (`bun run db:start`).
  */
@@ -42,13 +42,13 @@ afterAll(async () => {
 });
 
 describe('schema guarantees', () => {
-  test('every table with tenant_id has RLS enabled and forced, a fintivio_app policy and grants', async () => {
+  test('every table with tenant_id has RLS enabled and forced, a lintelia_app policy and grants', async () => {
     const owner = ownerSql();
     try {
       const rows = await owner<{ table: string; enabled: boolean; forced: boolean; policies: number; canSelect: boolean }[]>`
         select c.relname as table, c.relrowsecurity as enabled, c.relforcerowsecurity as forced,
-               (select count(*)::int from pg_policies p where p.tablename = c.relname and 'fintivio_app' = any(p.roles)) as policies,
-               has_table_privilege('fintivio_app', c.oid, 'SELECT') as "canSelect"
+               (select count(*)::int from pg_policies p where p.tablename = c.relname and 'lintelia_app' = any(p.roles)) as policies,
+               has_table_privilege('lintelia_app', c.oid, 'SELECT') as "canSelect"
         from pg_class c join pg_namespace n on n.oid = c.relnamespace
         where n.nspname = 'public' and c.relkind = 'r'
           and exists (select 1 from information_schema.columns col where col.table_name = c.relname and col.column_name = 'tenant_id')`;
@@ -66,7 +66,7 @@ describe('schema guarantees', () => {
   test('the application roles are neither superusers nor exempt from RLS', async () => {
     const owner = ownerSql();
     try {
-      const rows = await owner`select rolname, rolsuper, rolbypassrls from pg_roles where rolname in ('fintivio_app', 'fintivio_platform')`;
+      const rows = await owner`select rolname, rolsuper, rolbypassrls from pg_roles where rolname in ('lintelia_app', 'lintelia_platform')`;
       expect(rows.length).toBe(2);
       for (const role of rows) {
         expect(role.rolsuper).toBe(false);
@@ -78,7 +78,7 @@ describe('schema guarantees', () => {
   });
 });
 
-describe('tenant isolation (fintivio_app)', () => {
+describe('tenant isolation (lintelia_app)', () => {
   test('a tenant only reads its own rows', async () => {
     const a = await databases.forTenant(tenantA.id).select({ name: sysWorkflows.name }).from(sysWorkflows);
     const b = await databases.forTenant(tenantB.id).select({ name: sysWorkflows.name }).from(sysWorkflows);
@@ -139,15 +139,15 @@ describe('tenant isolation (fintivio_app)', () => {
 });
 
 describe('role separation', () => {
-  test('fintivio_app cannot read staff accounts', async () => {
+  test('lintelia_app cannot read staff accounts', async () => {
     await expectDbError(() => databases.forTenant(tenantA.id).select().from(platformUsers).execute(), /permission denied/);
   });
 
-  test('fintivio_platform cannot read tenant data', async () => {
+  test('lintelia_platform cannot read tenant data', async () => {
     await expectDbError(() => databases.platform.select().from(users).execute(), /permission denied/);
   });
 
-  test('fintivio_app without a tenant context sees nothing', async () => {
+  test('lintelia_app without a tenant context sees nothing', async () => {
     const raw = (await import('postgres')).default;
     const { testUrls } = await import('./support/databases');
     const app = raw(testUrls.app, { max: 1 });

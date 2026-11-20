@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { PropertiesProps } from '../../schemas';
 import { UrlComponentSchema } from './schema';
-import { UrlConfig } from '@repo/fintivio/schemas';
+import { UrlConfig } from '@repo/lintelia/schemas';
 
 export function UrlProperties({ config, onChange }: PropertiesProps<UrlConfig>) {
   const schemaRef = useRef(new UrlComponentSchema(config.propertyName));

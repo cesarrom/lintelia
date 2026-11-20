@@ -1,7 +1,7 @@
 import { and, desc, eq } from 'drizzle-orm';
 import {
   BLANK_BACK_OFFICE, backOfficeDefinitionSchema, type AccessRule, type BackOfficeDefinition, type BackOfficeWidget,
-} from '@repo/fintivio/schemas';
+} from '@repo/lintelia/schemas';
 import { clientApps, clientAppVersions } from '../entities';
 import type { TenantDatabase } from '../clients/database.client';
 import { allows, startRuleOf, type RuleSubject } from '../access/rules';

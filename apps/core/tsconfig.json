@@ -23,8 +23,8 @@
       "bun"
     ],
     "paths": {
-      "@repo/fintivio/*": [
-        "../../packages/fintivio/src/*"
+      "@repo/lintelia/*": [
+        "../../packages/lintelia/src/*"
       ]
     }
   },

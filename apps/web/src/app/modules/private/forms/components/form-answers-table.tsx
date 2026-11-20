@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { MoreHorizontal, Eye, MessageSquare } from 'lucide-react';
 import { useFormGetAnswers } from '@/lib/services/form.hooks';
 import { useNavigate } from 'react-router';
-import { FormAnswer, FormConfig } from '@repo/fintivio/schemas';
+import { FormAnswer, FormConfig } from '@repo/lintelia/schemas';
 
 interface FormAnswersTableProps {
   formId: string;

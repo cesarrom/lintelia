@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react';
-import { ordered, type JsonSchema } from '@repo/fintivio/schemas';
+import { ordered, type JsonSchema } from '@repo/lintelia/schemas';
 import { Button } from '@/components/ui/button';
 import { AppIcon } from '@/client-app/icons';
 import { cn } from '@/lib/utils';
@@ -140,7 +140,7 @@ export const SETTINGS: Array<{
     },
   },
   {
-    key: 'embed', title: 'Embedding', description: 'Sites that may show the app inside their pages with the SDK (@fintivio/client-sdk).',
+    key: 'embed', title: 'Embedding', description: 'Sites that may show the app inside their pages with the SDK (@lintelia/client-sdk).',
     schema: { type: 'object', properties: { allowedOrigins: { type: 'array', title: 'Allowed sites', description: 'origins, e.g. https://www.bank.com', items: { type: 'string' } } } },
   },
 ];
@@ -260,12 +260,12 @@ export function SettingsInspector({ definition, section, context, onChange, read
       </InspectorSection>
       {setting.key === 'embed' && (
         <InspectorSection title="Embed it" description="In your site, with a client session your backend creates (POST /client-sessions):">
-          <pre className="overflow-x-auto rounded-lg bg-muted p-3 text-[11px] leading-relaxed">{`import { mount } from '@fintivio/client-sdk';
+          <pre className="overflow-x-auto rounded-lg bg-muted p-3 text-[11px] leading-relaxed">{`import { mount } from '@lintelia/client-sdk';
 
 mount('#banking', {
   baseUrl: '${portalUrl ? new URL(portalUrl).origin : 'https://app.your-bank.com'}',
   fetchClientSecret: () =>
-    fetch('/api/fintivio-session', { method: 'POST' })
+    fetch('/api/lintelia-session', { method: 'POST' })
       .then((r) => r.json()).then((b) => b.clientSecret),
 });`}</pre>
           <p className="text-xs text-muted-foreground">Your own address (e.g. app.your-bank.com): Settings → Domains.</p>

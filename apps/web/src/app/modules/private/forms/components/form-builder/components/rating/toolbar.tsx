@@ -5,7 +5,7 @@ import { ToolbarProps } from '../../schemas';
 import { Button } from '@/components/ui/button';
 import { useDraggable } from '@dnd-kit/core';
 import { v4 as uuid } from 'uuid';
-import { ratingConfigSchema } from '@repo/fintivio/schemas';
+import { ratingConfigSchema } from '@repo/lintelia/schemas';
 
 export function RatingToolbar({ disabled }: ToolbarProps) {
   const { attributes, listeners, setNodeRef } = useDraggable({

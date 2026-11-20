@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
-import type { Tenant } from '@repo/fintivio/schemas';
+import type { Tenant } from '@repo/lintelia/schemas';
 import { platformSettings, platformUsers, roles, ssoIdentities, ssoOrganizationIndex, tenantSsoSettings, userRoles, users } from '../../entities';
 import type { Databases } from '../../clients/database.client';
 import { DATABASES } from '../../injector/tokens/databases.token';
@@ -164,7 +164,7 @@ export class SsoService {
   async staffSetupLink(intent: 'sso' | 'domain_verification', by: string) {
     let settings = await this.staffSettings();
     if (!settings.organizationId) {
-      const organizationId = await this.broker.createOrganization({ name: 'Fintivio staff', externalId: 'fintivio-staff' });
+      const organizationId = await this.broker.createOrganization({ name: 'Lintelia staff', externalId: 'lintelia-staff' });
       settings = await this.saveStaffSettings({ organizationId }, by);
     }
     return { link: await this.broker.setupLink(settings.organizationId!, intent, new URL('/app/platform/staff', env.WEB_URL).toString()), organizationId: settings.organizationId };

@@ -3,7 +3,7 @@
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { EditorProps } from '../../schemas';
-import { NumberConfig } from '@repo/fintivio/schemas';
+import { NumberConfig } from '@repo/lintelia/schemas';
 
 export function NumberEditor({ id, config, isSelected, onSelect }: EditorProps<NumberConfig>) {
   return (

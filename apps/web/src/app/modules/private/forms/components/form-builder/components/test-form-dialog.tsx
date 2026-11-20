@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { JsonEditor } from '@/components/ui/json-editor';
 import { toast } from 'sonner';
-import { FormConfig } from '@repo/fintivio/schemas';
+import { FormConfig } from '@repo/lintelia/schemas';
 import { useFormCreateTestFormInstance } from '@/lib/services/form.hooks';
 
 interface TestFormDialogProps {

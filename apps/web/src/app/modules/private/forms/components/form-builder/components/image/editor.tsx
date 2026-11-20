@@ -3,7 +3,7 @@
 import { Image } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { ImageConfig } from '@repo/fintivio/schemas';
+import { ImageConfig } from '@repo/lintelia/schemas';
 import { EditorProps } from '../../schemas';
 
 export function ImageEditor({

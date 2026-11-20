@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import tippy from 'tippy.js';
 import { EditorProps } from '../../schemas';
 import { useEffect, useState, useMemo } from 'react';
-import { FormComponentConfig, RichtextConfig } from '@repo/fintivio/schemas';
+import { FormComponentConfig, RichtextConfig } from '@repo/lintelia/schemas';
 import { useTheme } from '@/lib/providers/ThemeProvider';
 
 const systemVars = [

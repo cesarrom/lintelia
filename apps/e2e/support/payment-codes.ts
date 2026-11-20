@@ -23,7 +23,7 @@ const CURRENCY: Record<string, string> = { GBP: '826', EUR: '978', USD: '840', B
 
 export function emvPayload(input: { payee: string; city: string; account: string; amount?: number; currency?: string; country?: string; reference?: string; scheme?: string }) {
   let payload = tlv('00', '01') + tlv('01', input.amount ? '12' : '11')
-    + tlv('26', tlv('00', input.scheme ?? 'uk.fintivio.demo') + tlv('01', input.account))
+    + tlv('26', tlv('00', input.scheme ?? 'uk.lintelia.example') + tlv('01', input.account))
     + tlv('52', '5812') + tlv('53', CURRENCY[input.currency ?? 'GBP'])
     + (input.amount ? tlv('54', input.amount.toFixed(2)) : '')
     + tlv('58', input.country ?? 'GB') + tlv('59', input.payee) + tlv('60', input.city)

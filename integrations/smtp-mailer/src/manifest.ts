@@ -5,7 +5,7 @@ export const manifest: ManifestInput = {
   version: '1.0.0',
   name: 'SMTP mailer',
   description: "Send workflow e-mails from your institution's own mail server and addresses.",
-  publisher: { name: 'Fintivio', url: 'https://fintivio.dev', support: 'support@lintelia.example' },
+  publisher: { name: 'Lintelia', url: 'https://lintelia.example', support: 'support@lintelia.example' },
   categories: ['communication'],
   icon: 'Mail',
   audiences: ['tenant'],

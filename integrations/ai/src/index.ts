@@ -57,7 +57,7 @@ const fileIdOf = (value: unknown): string | null => {
 const connector = createConnector({
   manifest: {
     id: 'ai', version: '1.0.0', name: 'AI assistant', description: 'Extract data from documents and write texts with a language model (OpenAI-compatible API).',
-    publisher: { name: 'Fintivio' }, categories: ['ai'], icon: 'Sparkles', audiences: ['tenant'], scopes: ['installation:write', 'records:write', 'files:read'],
+    publisher: { name: 'Lintelia' }, categories: ['ai'], icon: 'Sparkles', audiences: ['tenant'], scopes: ['installation:write', 'records:write', 'files:read'],
     components: [
       {
         key: 'document.extract', version: 1, kind: 'action', title: 'Extract data from a document (AI)',

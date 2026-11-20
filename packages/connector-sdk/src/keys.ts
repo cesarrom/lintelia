@@ -27,8 +27,8 @@ export async function loadConnectorKeys(dataDir: string, production: boolean): P
   return { kid, privateKey: (await importJWK({ ...jwk, alg: 'EdDSA' }, 'EdDSA')) as CryptoKey, publicJwk: { ...publicJwk, kid, alg: 'EdDSA', use: 'sig' } };
 }
 
-export const TOKEN_ENDPOINT_AUDIENCE = 'fintivio-core';
-export const CORE_ISSUER = 'fintivio-core';
+export const TOKEN_ENDPOINT_AUDIENCE = 'lintelia-core';
+export const CORE_ISSUER = 'lintelia-core';
 
 export async function clientAssertion(keys: ConnectorKeys, connectorId: string) {
   return new SignJWT({}).setProtectedHeader({ alg: 'EdDSA', kid: keys.kid }).setIssuer(connectorId).setSubject(connectorId)

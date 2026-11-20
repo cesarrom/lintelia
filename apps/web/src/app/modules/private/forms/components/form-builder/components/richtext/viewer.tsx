@@ -6,7 +6,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { useEffect, useMemo } from 'react';
 import { useVariables } from '../../context/variables';
-import { RichtextConfig } from '@repo/fintivio/schemas';
+import { RichtextConfig } from '@repo/lintelia/schemas';
 
 export function RichtextViewer({
   id,

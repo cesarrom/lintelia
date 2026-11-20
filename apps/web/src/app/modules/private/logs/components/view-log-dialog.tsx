@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { User } from 'lucide-react';
-import { Log } from '@repo/fintivio/schemas';
+import { Log } from '@repo/lintelia/schemas';
 
 interface ViewLogDialogProps {
   log: Log | null;

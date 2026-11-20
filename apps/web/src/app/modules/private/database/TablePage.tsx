@@ -4,7 +4,7 @@ import SchemaView from "./components/SchemaView";
 import DataView from "./components/DataView";
 import { useDatabaseExecuteQuery, useDatabaseGetTableSchema } from "@/lib/services/database.hooks";
 import { useCallback } from "react";
-import { GetTablesResponse } from "@repo/fintivio/schemas";
+import { GetTablesResponse } from "@repo/lintelia/schemas";
 
 export default function TablePage() {
   const { tableName } = useParams<{ tableName: string }>();

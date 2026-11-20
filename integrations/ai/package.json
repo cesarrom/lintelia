@@ -3,14 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Fintivio connector: AI steps (document data extraction, text generation) on an OpenAI-compatible model.",
+  "description": "Lintelia connector: AI steps (document data extraction, text generation) on an OpenAI-compatible model.",
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
     "check-types": "tsc --noEmit -p .",
     "test": "bun test"
   },
-  "fintivio": {
+  "lintelia": {
     "connector": "ai"
   },
   "dependencies": {

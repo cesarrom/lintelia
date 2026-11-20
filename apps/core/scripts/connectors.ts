@@ -23,14 +23,14 @@ const snake = (id: string) => id.replace(/[^a-z0-9]+/gi, '_').toLowerCase();
 const ident = (value: string) => `"${value.replaceAll('"', '""')}"`;
 const literal = (value: string) => `'${value.replaceAll("'", "''")}'`;
 
-/** Connectors of this repository: integrations/<dir>/package.json with `fintivio.connector`. */
+/** Connectors of this repository: integrations/<dir>/package.json with `lintelia.connector`. */
 export function localConnectors() {
   const dir = join(repo, 'integrations');
   if (!existsSync(dir)) return [];
   return readdirSync(dir).flatMap((name) => {
     const file = join(dir, name, 'package.json');
     if (!existsSync(file)) return [];
-    const id = JSON.parse(readFileSync(file, 'utf8')).fintivio?.connector as string | undefined;
+    const id = JSON.parse(readFileSync(file, 'utf8')).lintelia?.connector as string | undefined;
     if (!id) return [];
     const service = ports[`connector-${id}`];
     return [{ id, dir: join(dir, name), url: service?.url ?? `http://localhost:${service?.port}` }];
@@ -126,7 +126,7 @@ async function register() {
   let failed = 0;
   try {
     for (const connector of localConnectors()) {
-      const manifestUrl = `${connector.url}/.well-known/fintivio-connector.json`;
+      const manifestUrl = `${connector.url}/.well-known/lintelia-connector.json`;
       if (!(await waitFor(manifestUrl, 60_000))) {
         console.error(`${connector.id}: not reachable at ${manifestUrl}`);
         failed += 1;

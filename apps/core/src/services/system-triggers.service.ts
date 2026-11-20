@@ -4,7 +4,7 @@ import { AbstractService } from './service';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { CasesService } from './cases.service';
 import { WebService } from './web.service';
-import { Log, SystemTrigger, type Tenant } from '@repo/fintivio/schemas';
+import { Log, SystemTrigger, type Tenant } from '@repo/lintelia/schemas';
 import { TENANT_CONNECTION } from '../injector/tokens/tenant-connection.token';
 import { type TenantDatabase } from '../clients/database.client';
 import { TENANT } from '../injector/tokens/tenant.token';

@@ -121,7 +121,7 @@ export function MemberAccessDialog({ memberId, open, onOpenChange }: { memberId:
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Access of {access?.member.email ?? '…'}</DialogTitle>
-          <DialogDescription>{access?.managedByIdp ? (access.idpPending ? 'Roles will come from your identity provider’s groups at their next sign-in through it.' : 'Roles come from your identity provider’s groups.') : 'Roles assigned in Fintivio.'} {access?.groups.length ? `Groups: ${access.groups.join(', ')}.` : ''}</DialogDescription>
+          <DialogDescription>{access?.managedByIdp ? (access.idpPending ? 'Roles will come from your identity provider’s groups at their next sign-in through it.' : 'Roles come from your identity provider’s groups.') : 'Roles assigned in Lintelia.'} {access?.groups.length ? `Groups: ${access.groups.join(', ')}.` : ''}</DialogDescription>
         </DialogHeader>
         {access && (
           <div className="grid gap-5 md:grid-cols-2" data-testid="member-access">

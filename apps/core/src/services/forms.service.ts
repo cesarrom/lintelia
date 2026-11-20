@@ -4,7 +4,7 @@ import { LogsService } from './logs.service';
 import { AbstractService } from "./service";
 import { desc, eq, ilike, or } from "drizzle-orm";
 import { WebService } from "./web.service";
-import type { Form, FormAnswer, FormInstance, CreateFormInput, CreateFormAnswersInput, UpdateFormInput, CreateFormInstanceInput, UpdateFormInstanceInput } from "@repo/fintivio/schemas";
+import type { Form, FormAnswer, FormInstance, CreateFormInput, CreateFormAnswersInput, UpdateFormInput, CreateFormInstanceInput, UpdateFormInstanceInput } from "@repo/lintelia/schemas";
 import { TENANT_CONNECTION } from "../injector/tokens/tenant-connection.token";
 import { type TenantDatabase } from "../clients/database.client";
 import { Injectable, Inject, Scope } from "@nestjs/common";

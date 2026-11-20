@@ -164,7 +164,7 @@ async function freePorts() {
 // --- deciding ------------------------------------------------------------------------------------------------------------
 
 const started = Date.now();
-console.log(bold('Fintivio end-to-end suite'));
+console.log(bold('Lintelia end-to-end suite'));
 
 let weStartedTheStack = false;
 async function startStack(reason: string) {

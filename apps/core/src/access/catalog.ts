@@ -2,7 +2,7 @@ import { and, asc, eq, gt, isNull, or } from 'drizzle-orm';
 import {
   TENANT_PERMISSION_CATALOG, TENANT_PERMISSION_IDS, isCustomPermission, resolvePermissions,
   type CustomPermissionDefinition, type PermissionDefinition,
-} from '@repo/fintivio/schemas';
+} from '@repo/lintelia/schemas';
 import { customPermissions, roles, userRoles, users } from '../entities';
 import type { TenantDatabase } from '../clients/database.client';
 

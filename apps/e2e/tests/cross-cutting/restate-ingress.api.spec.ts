@@ -29,7 +29,7 @@ test.describe('X-06 The Restate ingress is not a way around authorization', { ta
       // The legacy API objects and workflow nodes are gone from the Restate endpoint (404); before, they were private (400).
       expect([400, 404], `${path} should not be reachable`).toContain(res.status);
     }
-    // The case engine only accepts calls signed by the API (x-fintivio-signature). (No token is sent here: anything
+    // The case engine only accepts calls signed by the API (x-lintelia-signature). (No token is sent here: anything
     // sent to the ingress lands in the journal, see X-05.)
     for (const path of [`/caseRun/${crypto.randomUUID()}/run`, `/caseRun/${crypto.randomUUID()}/signal`]) {
       const res = await fetch(new URL(path, env.restateIngressUrl), {

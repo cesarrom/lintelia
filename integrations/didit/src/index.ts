@@ -39,7 +39,7 @@ const OUTCOMES: Record<string, 'approved' | 'declined' | 'in_review' | 'expired'
 const connector = createConnector({
   manifest,
   settings: {
-    intro: "Use the API key and webhook secret from your Didit console. Identity documents and selfies stay at Didit; Fintivio keeps the decision.",
+    intro: "Use the API key and webhook secret from your Didit console. Identity documents and selfies stay at Didit; Lintelia keeps the decision.",
     fields: [
       { name: 'apiKey', label: 'API key', secret: true, required: true },
       { name: 'webhookSecret', label: 'Webhook secret', secret: true, required: true },
@@ -71,7 +71,7 @@ connector.action('kyc.verify', async ({ installation, config, input, callback, c
   const reference = randomUUID();
   const session = await didit(settings, await installation.secrets.get('apiKey'), '/v2/session/', {
     method: 'POST',
-    // vendor_data is an opaque reference: no case ids or names leave Fintivio unless the Didit workflow needs them.
+    // vendor_data is an opaque reference: no case ids or names leave Lintelia unless the Didit workflow needs them.
     body: JSON.stringify({ workflow_id: config.workflowId || settings.workflowId, vendor_data: reference, ...(email ? { contact_details: { email } } : {}) }),
   }) as { session_id: string; url: string };
   await installation.store.put(`session:${session.session_id}`, { callbackToken: callback.token, caseId: kase.id, reference });

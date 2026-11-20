@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useParams } from 'react-router';
-import type { FormConfig } from '@repo/fintivio/schemas';
+import type { FormConfig } from '@repo/lintelia/schemas';
 import { FormViewer } from '@/app/modules/private/forms/components/form-builder';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -35,7 +35,7 @@ const embeddingOrigin = (): string | null => {
 };
 
 const post = (message: Record<string, unknown>) => {
-  if (window.parent !== window) window.parent.postMessage({ source: 'fintivio', ...message }, '*');
+  if (window.parent !== window) window.parent.postMessage({ source: 'lintelia', ...message }, '*');
 };
 
 async function call<T>(path: string, init: RequestInit = {}, origin: string | null): Promise<T> {

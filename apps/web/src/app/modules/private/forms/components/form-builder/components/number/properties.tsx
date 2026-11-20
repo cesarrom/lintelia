@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { PropertiesProps } from '../../schemas';
 import { NumberComponentSchema } from './schema';
-import { NumberConfig } from '@repo/fintivio/schemas';
+import { NumberConfig } from '@repo/lintelia/schemas';
 
 
 export function NumberProperties({ config, onChange }: PropertiesProps<NumberConfig>) {

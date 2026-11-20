@@ -1,7 +1,7 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
 import { and, desc, eq } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
-import type { Tenant, User } from '@repo/fintivio/schemas';
+import type { Tenant, User } from '@repo/lintelia/schemas';
 import { eventOutbox, webhookDeliveries, webhookSubscriptions } from '../entities';
 import type { Databases } from '../clients/database.client';
 import { DATABASES } from '../injector/tokens/databases.token';
@@ -135,7 +135,7 @@ export class WebhooksService {
     const eventId = newEventId();
     await this.db.insert(eventOutbox).values({
       id: eventId, type: 'webhook.test',
-      payload: { id: eventId, type: 'webhook.test', time: new Date().toISOString(), tenant: this.tenant.domain, data: { message: 'Hello from Fintivio', subscriptionId: row.id } },
+      payload: { id: eventId, type: 'webhook.test', time: new Date().toISOString(), tenant: this.tenant.domain, data: { message: 'Hello from Lintelia', subscriptionId: row.id } },
     });
     await this.store.dispatch(this.tenant.id, eventId, row.id);
     return { eventId };

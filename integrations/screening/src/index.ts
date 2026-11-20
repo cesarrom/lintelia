@@ -19,7 +19,7 @@ async function search(settings: Settings, apiKey: string | null, body: Record<st
 const connector = createConnector({
   manifest: {
     id: 'screening', version: '1.0.0', name: 'AML screening', description: 'Screen people against sanctions, PEP and adverse media lists.',
-    publisher: { name: 'Fintivio' }, categories: ['compliance'], icon: 'ShieldAlert', audiences: ['tenant'], scopes: ['installation:write', 'records:write'],
+    publisher: { name: 'Lintelia' }, categories: ['compliance'], icon: 'ShieldAlert', audiences: ['tenant'], scopes: ['installation:write', 'records:write'],
     components: [{
       key: 'screening.check', version: 1, kind: 'action', title: 'Screen a person (AML)', description: 'Sanctions, PEP and adverse media screening; potential matches go to compliance.',
       icon: 'ShieldAlert', category: 'data',

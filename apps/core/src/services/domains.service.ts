@@ -1,5 +1,5 @@
 import { Injectable, Inject, Scope } from "@nestjs/common";
-import type { CNAMERecordResponse, TenantDomainSetupRequest } from '@repo/fintivio/schemas';
+import type { CNAMERecordResponse, TenantDomainSetupRequest } from '@repo/lintelia/schemas';
 import { AbstractService } from './service';
 import { ENV } from '../injector/tokens/env.token';
 import { type AppEnvironment } from '../constants';

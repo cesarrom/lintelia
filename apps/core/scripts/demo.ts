@@ -13,7 +13,7 @@ export {};
 
 const API = process.env.API_URL ?? 'http://localhost:8000';
 const TENANT = process.env.DEMO_TENANT ?? 'demo-bank';
-const PASSWORD = process.env.SEED_PASSWORD || 'fintivio-dev-password';
+const PASSWORD = process.env.SEED_PASSWORD || 'lintelia-dev-password';
 
 async function api<T = any>(token: string | null, method: string, path: string, body?: unknown): Promise<T> {
   const response = await fetch(`${API}${path}`, {
@@ -409,12 +409,12 @@ async function writeFiles() {
   };
   // Payment QR codes (docs/plans/14) for the banking app's "Pay with a QR code": use them with "Use a photo", show
   // them on screen to a phone's camera, or paste the text with "Type the code instead".
-  const { buildEmvPayload } = await import('@repo/fintivio/utilities');
+  const { buildEmvPayload } = await import('@repo/lintelia/utilities');
   const { default: qrcode } = await import('qrcode-generator');
   const codes: Record<string, string> = {
-    'pay-corner-cafe': buildEmvPayload({ gui: 'uk.fintivio.demo', account: 'SHOP-42', name: 'Corner Cafe', city: 'London', country: 'GB', currency: 'GBP', amount: 12.5, reference: 'T-881', mcc: '5812' }),
-    'pay-market-stall': buildEmvPayload({ gui: 'uk.fintivio.demo', account: 'STALL-7', name: 'Market Stall', city: 'Bristol', country: 'GB', currency: 'GBP' }),
-    'pay-nyc-deli-usd': buildEmvPayload({ gui: 'us.fintivio.demo', account: 'DELI-1', name: 'NYC Deli', city: 'New York', country: 'US', currency: 'USD', amount: 8 }),
+    'pay-corner-cafe': buildEmvPayload({ gui: 'uk.lintelia.example', account: 'SHOP-42', name: 'Corner Cafe', city: 'London', country: 'GB', currency: 'GBP', amount: 12.5, reference: 'T-881', mcc: '5812' }),
+    'pay-market-stall': buildEmvPayload({ gui: 'uk.lintelia.example', account: 'STALL-7', name: 'Market Stall', city: 'Bristol', country: 'GB', currency: 'GBP' }),
+    'pay-nyc-deli-usd': buildEmvPayload({ gui: 'us.lintelia.example', account: 'DELI-1', name: 'NYC Deli', city: 'New York', country: 'US', currency: 'USD', amount: 8 }),
   };
   for (const [name, payload] of Object.entries(codes)) {
     const qr = qrcode(0, 'M');

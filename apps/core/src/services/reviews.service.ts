@@ -4,7 +4,7 @@ import { v4 as uuid } from 'uuid';
 import { AbstractService } from "./service";
 import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { WebService } from "./web.service";
-import { CreateReviewInput, GetReviewsRequest, Review, ReviewsFilter, UpdateReviewInput } from "@repo/fintivio/schemas";
+import { CreateReviewInput, GetReviewsRequest, Review, ReviewsFilter, UpdateReviewInput } from "@repo/lintelia/schemas";
 import { TENANT_CONNECTION } from "../injector/tokens/tenant-connection.token";
 import { type TenantDatabase } from "../clients/database.client";
 import { Injectable, Inject, Scope } from "@nestjs/common";

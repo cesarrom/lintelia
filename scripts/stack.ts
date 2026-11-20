@@ -151,7 +151,7 @@ async function doctor(quiet = false) {
   for (const [name, { port }] of Object.entries(ports)) if (await tcpOpen(port)) busy.push(`${name}:${port}`);
   if (busy.length) notes.push(`ports in use (reused if they are our services): ${busy.join(', ')}`);
   if (!quiet) {
-    console.log(bold('Fintivio stack doctor'));
+    console.log(bold('Lintelia stack doctor'));
     for (const p of problems) console.log(red(`  ✗ ${p}`));
     for (const n of notes) console.log(dim(`  · ${n}`));
     if (!problems.length) console.log(green('  ✓ ready to run `bun run stack`'));
@@ -174,7 +174,7 @@ interface Running {
 
 const running = new Map<string, Running>();
 let shuttingDown = false;
-const foreground = !process.env.FINTIVIO_STACK_DETACHED;
+const foreground = !process.env.LINTELIA_STACK_DETACHED;
 
 function logLine(entry: StackEntry, index: number, line: string) {
   appendFileSync(join(LOG_DIR, `${entry.name}.log`), `${line}\n`);
@@ -317,10 +317,10 @@ function summary(selected: StackEntry[], seconds: number) {
   const services = selected.filter((e) => e.kind === 'service');
   const lines = [
     '',
-    bold(`Fintivio local stack — ${services.length} services healthy (${seconds.toFixed(0)} s)`),
+    bold(`Lintelia local stack — ${services.length} services healthy (${seconds.toFixed(0)} s)`),
     '',
-    `  Back office (Demo Bank)   http://demo-bank.localhost:3001      analyst@demo-bank.test / fintivio-dev-password (any seeded account)`,
-    `  Platform console          http://localhost:3001               staff@fintivio.local / fintivio-dev-password + code from \`bun run totp\``,
+    `  Back office (Demo Bank)   http://demo-bank.localhost:3001      analyst@demo-bank.test / lintelia-dev-password (any seeded account)`,
+    `  Platform console          http://localhost:3001               staff@lintelia.local / lintelia-dev-password + code from \`bun run totp\``,
     `  Client portal             http://demo-bank.localhost:3001/portal   client@demo-bank.test, or "Email me a code"`,
     ...services.filter((e) => e.url && !['web', 'api'].includes(e.name)).map((e) => `  ${(e.label ?? e.name).padEnd(26)}${e.url}`),
     `  API                       http://localhost:8000 · Restate admin http://localhost:9070`,
@@ -416,7 +416,7 @@ async function detach() {
   const hasSetsid = spawnSync('which', ['setsid']).status === 0;
   const forwarded = args.filter((a) => a !== '--detach');
   const cmd = [...(hasSetsid ? ['setsid'] : []), 'bun', join(ROOT, 'scripts/stack.ts'), 'up', ...forwarded];
-  const child = Bun.spawn(cmd, { cwd: ROOT, env: { ...process.env, FINTIVIO_STACK_DETACHED: '1' }, stdout: out, stderr: out, stdin: 'ignore' });
+  const child = Bun.spawn(cmd, { cwd: ROOT, env: { ...process.env, LINTELIA_STACK_DETACHED: '1' }, stdout: out, stderr: out, stdin: 'ignore' });
   child.unref();
   closeSync(out);
   console.log(`Starting the stack in the background (supervisor pid ${child.pid}); waiting until it is healthy…`);

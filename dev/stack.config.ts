@@ -34,14 +34,14 @@ export interface StackEntry {
 
 const p = ports.services as Record<string, { port: number; url?: string }>;
 
-/** Connectors of this repository (integrations/<dir>/package.json with `fintivio.connector`). */
+/** Connectors of this repository (integrations/<dir>/package.json with `lintelia.connector`). */
 function connectors() {
   const dir = join(import.meta.dir, '../integrations');
   if (!existsSync(dir)) return [];
   return readdirSync(dir).flatMap((name) => {
     const file = join(dir, name, 'package.json');
     if (!existsSync(file)) return [];
-    const id = JSON.parse(readFileSync(file, 'utf8')).fintivio?.connector as string | undefined;
+    const id = JSON.parse(readFileSync(file, 'utf8')).lintelia?.connector as string | undefined;
     const service = id ? p[`connector-${id}`] : undefined;
     return id && service ? [{ id, cwd: `integrations/${name}`, port: service.port, url: service.url ?? `http://localhost:${service.port}` }] : [];
   });
@@ -144,8 +144,8 @@ export const stack: StackEntry[] = [
     cwd: 'apps/core', command: ['bun', './scripts/db.ts', 'seed'], dependsOn: ['migrate'], profiles: all,
   },
   {
-    name: 'package', kind: 'service', description: 'shared package @repo/fintivio (build + watch)',
-    cwd: 'packages/fintivio', command: ['bun', 'run', 'dev'],
+    name: 'package', kind: 'service', description: 'shared package @repo/lintelia (build + watch)',
+    cwd: 'packages/lintelia', command: ['bun', 'run', 'dev'],
     check: { type: 'log', pattern: /Build success/ }, profiles: all, timeout: 300,
   },
   {

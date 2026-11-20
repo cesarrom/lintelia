@@ -12,7 +12,7 @@ import {
 import { Switch } from './switch';
 import { Trash2, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ColumnDefinition, DatabaseColumnTypes, databaseColumnTypes } from '@repo/fintivio/schemas';
+import { ColumnDefinition, DatabaseColumnTypes, databaseColumnTypes } from '@repo/lintelia/schemas';
 
 interface TableEditorProps {
   columns: ColumnDefinition[];

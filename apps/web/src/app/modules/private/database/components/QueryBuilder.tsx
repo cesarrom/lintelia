@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VariableInput } from '@/components/ui/variable-input';
-import { ColumnDefinition, QueryCondition, SortConfig } from '@repo/fintivio/schemas';
+import { ColumnDefinition, QueryCondition, SortConfig } from '@repo/lintelia/schemas';
 import { X } from 'lucide-react';
 
 interface QueryBuilderProps {

@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { ViewerProps } from '../../schemas';
 import { cn } from '@/lib/utils';
 import { useController } from 'react-hook-form';
-import { DateConfig } from '@repo/fintivio/schemas';
+import { DateConfig } from '@repo/lintelia/schemas';
 
 export function DateViewer({
   id,

@@ -1,5 +1,5 @@
 import { createContext, useContext, type CSSProperties, type ReactNode } from 'react';
-import { CLIENT_WIDGETS, pageSources, type ClientPage, type ClientWidget } from '@repo/fintivio/schemas';
+import { CLIENT_WIDGETS, pageSources, type ClientPage, type ClientWidget } from '@repo/lintelia/schemas';
 import { accentStyle, brandProps, hexToHsl } from '@/lib/brand';
 import { setFormatDefaults } from './format';
 import { cn } from '@/lib/utils';

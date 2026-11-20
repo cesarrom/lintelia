@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from 'react';
-import type { ClientWidget } from '@repo/fintivio/schemas';
+import type { ClientWidget } from '@repo/lintelia/schemas';
 import { cn } from '@/lib/utils';
 import { resolveItemValue, type Scope } from '../expressions';
 import { useRuntime } from '../runtime';

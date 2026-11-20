@@ -32,7 +32,7 @@ function frameAncestors(apiBaseUrl: string): Plugin {
     }
   };
   return {
-    name: "fintivio-frame-ancestors",
+    name: "lintelia-frame-ancestors",
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
         const accept = req.headers.accept ?? "";
@@ -46,8 +46,8 @@ function frameAncestors(apiBaseUrl: string): Plugin {
 }
 
 /**
- * The client SDK for script tags (`<script src="https://<institution host>/fintivio-client.js">`, then
- * `FintivioClient.mount(...)`): built from packages/client-sdk, served in development and emitted with the build.
+ * The client SDK for script tags (`<script src="https://<institution host>/lintelia-client.js">`, then
+ * `LinteliaClient.mount(...)`): built from packages/client-sdk, served in development and emitted with the build.
  */
 function clientSdk(): Plugin {
   const entry = fileURLToPath(new URL("../../packages/client-sdk/src/browser.ts", import.meta.url));
@@ -56,10 +56,10 @@ function clientSdk(): Plugin {
     return result.outputFiles[0].text;
   };
   return {
-    name: "fintivio-client-sdk",
+    name: "lintelia-client-sdk",
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
-        if (req.url?.split("?")[0] !== "/fintivio-client.js") return next();
+        if (req.url?.split("?")[0] !== "/lintelia-client.js") return next();
         try {
           res.setHeader("Content-Type", "text/javascript; charset=utf-8");
           res.setHeader("Access-Control-Allow-Origin", "*");
@@ -71,7 +71,7 @@ function clientSdk(): Plugin {
       });
     },
     async generateBundle() {
-      this.emitFile({ type: "asset", fileName: "fintivio-client.js", source: await bundle() });
+      this.emitFile({ type: "asset", fileName: "lintelia-client.js", source: await bundle() });
     },
   };
 }

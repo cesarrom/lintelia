@@ -3,7 +3,7 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 import {
   TENANT_PERMISSION_IDS, isCustomPermission, normalizeWorkflowAccess, resolvePermissions, satisfiesAccessRule,
   type AccessRule, type Tenant, type WorkflowAccess,
-} from '@repo/fintivio/schemas';
+} from '@repo/lintelia/schemas';
 import { apiClients, roles, sysWorkflows, userRoles, users, workflowVersions } from '../entities';
 import type { TenantDatabase } from '../clients/database.client';
 import { TENANT } from '../injector/tokens/tenant.token';

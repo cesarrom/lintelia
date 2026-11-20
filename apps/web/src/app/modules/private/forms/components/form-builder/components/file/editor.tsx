@@ -4,7 +4,7 @@ import { FileText } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { EditorProps } from '../../schemas';
-import { FileConfig } from '@repo/fintivio/schemas';
+import { FileConfig } from '@repo/lintelia/schemas';
 
 export function FileEditor({
   id,

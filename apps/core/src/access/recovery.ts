@@ -52,9 +52,9 @@ export class AccessRecovery {
       to: [...new Set([...administrators, email.toLowerCase()])],
       subject: 'Platform support restored an administrator',
       lines: [
-        `Fintivio support (${staff.email}) invited ${email} as an administrator of ${tenant.name}, after verifying the request in ticket ${ticket}.`,
+        `Lintelia support (${staff.email}) invited ${email} as an administrator of ${tenant.name}, after verifying the request in ticket ${ticket}.`,
         `Reason: ${reason}`,
-        'If you did not ask for this, contact Fintivio support at once.',
+        'If you did not ask for this, contact Lintelia support at once.',
       ],
       link: '/app/users',
     });

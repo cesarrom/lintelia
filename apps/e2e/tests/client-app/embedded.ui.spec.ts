@@ -6,7 +6,7 @@ import { FakeWebsite } from '../../support/website';
 import { bankingCustomer, installBankingApp, systemApi } from '../../support/client-app';
 
 /**
- * APP-09 The bank shows the app inside its own online banking (another site) with @fintivio/client-sdk: the site's
+ * APP-09 The bank shows the app inside its own online banking (another site) with @lintelia/client-sdk: the site's
  * backend opens a client session for its signed-in customer, the SDK hands the single-use secret to the app; the site
  * drives navigation and hears about journeys. Sites the bank did not allow cannot frame the app.
  */
@@ -40,11 +40,11 @@ function bankingPage(site: FakeWebsite, secrets: string[], options = '') {
   site.page('Online banking', `
     <div id="banking" style="max-width:1200px"></div>
     <pre id="events"></pre>
-    <script src="${appUrl}/fintivio-client.js"></script>
+    <script src="${appUrl}/lintelia-client.js"></script>
     <script>
       const secrets = ${JSON.stringify(secrets)};
       window.sdkEvents = [];
-      window.app = FintivioClient.mount('#banking', {
+      window.app = LinteliaClient.mount('#banking', {
         appUrl: ${JSON.stringify(appUrl)}, title: 'Online banking', height: 760, ${options}
         // The site's backend would call POST /client-sessions here; the test did it beforehand.
         fetchClientSecret: async () => secrets.shift(),
@@ -78,7 +78,7 @@ test.describe('APP-09 Embed the app in the bank\'s own site', { tag: ['@client',
     await expect(app.getByTestId('payment-card')).toHaveAttribute('data-status', 'frozen', { timeout: 20_000 });
     await expect.poll(() => page.evaluate(() => (window as any).sdkEvents)).toEqual(expect.arrayContaining(['journey.started:card_freeze', 'journey.completed:card_freeze']));
     // The embedded session never mixes with a session of the full site (own storage, tab only).
-    const stored = await page.frames().find((f) => f.url().includes('/embed/app'))!.evaluate(() => ({ local: localStorage.getItem('fintivio.session'), tab: !!sessionStorage.getItem('fintivio.embedded-session') }));
+    const stored = await page.frames().find((f) => f.url().includes('/embed/app'))!.evaluate(() => ({ local: localStorage.getItem('lintelia.session'), tab: !!sessionStorage.getItem('lintelia.embedded-session') }));
     expect(stored).toEqual({ local: null, tab: true });
   });
 

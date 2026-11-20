@@ -12,7 +12,7 @@ import { ViewerProps } from '../../schemas';
 import { useVariables } from '../../context/variables';
 import { get } from 'lodash';
 import { useController, ControllerFieldState, ControllerRenderProps } from 'react-hook-form';
-import { MultiselectConfig } from '@repo/fintivio/schemas';
+import { MultiselectConfig } from '@repo/lintelia/schemas';
 
 // Define option type
 interface SelectOption {

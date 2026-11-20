@@ -4,7 +4,7 @@ import { Calendar } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
 import { cn } from '@/lib/utils';
 import { ToolbarProps } from '../../schemas';
-import { datetimeConfigSchema } from '@repo/fintivio/schemas';
+import { datetimeConfigSchema } from '@repo/lintelia/schemas';
 
 export function DatetimeToolbar({ disabled }: ToolbarProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({

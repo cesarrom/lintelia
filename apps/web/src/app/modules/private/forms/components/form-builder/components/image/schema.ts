@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { BaseComponentSchema } from '../base-schema';
-import { ImageConfig } from '@repo/fintivio/schemas';
+import { ImageConfig } from '@repo/lintelia/schemas';
 
 // Value validation schema generator
 export class ImageComponentSchema extends BaseComponentSchema<z.ZodString, ImageConfig> {

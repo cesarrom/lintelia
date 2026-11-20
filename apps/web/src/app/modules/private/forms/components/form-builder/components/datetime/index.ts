@@ -5,7 +5,7 @@ import { DatetimeEditor } from './editor';
 import { DatetimeViewer } from './viewer';
 import { DatetimeProperties } from './properties';
 import { DatetimeToolbar } from './toolbar';
-import { DatetimeConfig, datetimeConfigSchema } from '@repo/fintivio/schemas';
+import { DatetimeConfig, datetimeConfigSchema } from '@repo/lintelia/schemas';
 
 /**
  * Datetime Input Component

@@ -54,7 +54,7 @@ export async function attemptDelivery(input: { url: string; eventId: string; bod
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'User-Agent': 'Fintivio-Webhooks/1.0',
+        'User-Agent': 'Lintelia-Webhooks/1.0',
         'webhook-id': input.eventId,
         'webhook-timestamp': String(timestamp),
         // During a secret rotation both signatures are sent (space-separated), as Standard Webhooks specifies.

@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
-import type { JsonSchema } from '@repo/fintivio/schemas';
+import type { JsonSchema } from '@repo/lintelia/schemas';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';

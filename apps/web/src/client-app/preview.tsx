@@ -1,7 +1,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { toast } from 'sonner';
-import type { ClientWidget } from '@repo/fintivio/schemas';
+import type { ClientWidget } from '@repo/lintelia/schemas';
 import { FullScreenLoader } from '@/components/app/loading';
 import { cn } from '@/lib/utils';
 import { AppShell } from './AppShell';
@@ -19,18 +19,18 @@ import type { AppData, AppDefinition, Institution } from './types';
 export const PREVIEW_BASE = '/app/experience/preview';
 
 export type StudioMessage =
-  | { type: 'fintivio-studio:state'; definition: AppDefinition; institution: Institution; data: AppData; selected: string | null }
-  | { type: 'fintivio-studio:navigate'; page: string; params?: Record<string, string> };
+  | { type: 'lintelia-studio:state'; definition: AppDefinition; institution: Institution; data: AppData; selected: string | null }
+  | { type: 'lintelia-studio:navigate'; page: string; params?: Record<string, string> };
 
 export type PreviewMessage =
-  | { type: 'fintivio-preview:ready' }
-  | { type: 'fintivio-preview:select'; widgetId: string }
-  | { type: 'fintivio-preview:location'; page: string; params: Record<string, string> };
+  | { type: 'lintelia-preview:ready' }
+  | { type: 'lintelia-preview:select'; widgetId: string }
+  | { type: 'lintelia-preview:location'; page: string; params: Record<string, string> };
 
 const post = (message: PreviewMessage) => window.parent?.postMessage(message, window.location.origin);
 
 export default function PreviewFrame() {
-  const [state, setState] = useState<Extract<StudioMessage, { type: 'fintivio-studio:state' }> | null>(null);
+  const [state, setState] = useState<Extract<StudioMessage, { type: 'lintelia-studio:state' }> | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -39,18 +39,18 @@ export default function PreviewFrame() {
   useEffect(() => {
     const onMessage = (event: MessageEvent<StudioMessage>) => {
       if (event.origin !== window.location.origin || event.source !== window.parent || !event.data?.type) return;
-      if (event.data.type === 'fintivio-studio:state') {
+      if (event.data.type === 'lintelia-studio:state') {
         home.current = event.data.definition.home;
         setState(event.data);
       }
-      if (event.data.type === 'fintivio-studio:navigate') {
+      if (event.data.type === 'lintelia-studio:navigate') {
         const { page, params = {} } = event.data;
         const query = new URLSearchParams(params).toString();
         navigate(page === home.current && !query ? PREVIEW_BASE : `${PREVIEW_BASE}/p/${page}${query ? `?${query}` : ''}`);
       }
     };
     window.addEventListener('message', onMessage);
-    post({ type: 'fintivio-preview:ready' });
+    post({ type: 'lintelia-preview:ready' });
     return () => window.removeEventListener('message', onMessage);
   }, [navigate]);
 
@@ -58,7 +58,7 @@ export default function PreviewFrame() {
   useEffect(() => {
     if (!state) return;
     const match = location.pathname.match(/\/p\/([^/]+)/);
-    post({ type: 'fintivio-preview:location', page: match?.[1] ?? state.definition.home, params: Object.fromEntries(new URLSearchParams(location.search)) });
+    post({ type: 'lintelia-preview:location', page: match?.[1] ?? state.definition.home, params: Object.fromEntries(new URLSearchParams(location.search)) });
   }, [location.pathname, location.search, state?.definition.home]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!state) return <FullScreenLoader label="Loading the preview…" />;
@@ -103,7 +103,7 @@ function Selectable({ widget, selected, children }: { widget: ClientWidget; sele
   return (
     <div
       data-select-id={widget.id}
-      onClickCapture={(e) => { e.preventDefault(); e.stopPropagation(); post({ type: 'fintivio-preview:select', widgetId: widget.id }); }}
+      onClickCapture={(e) => { e.preventDefault(); e.stopPropagation(); post({ type: 'lintelia-preview:select', widgetId: widget.id }); }}
       className={cn('group/select relative cursor-pointer rounded-2xl outline-offset-4 transition-[outline-color]', selected ? 'outline outline-2 outline-[#6d58f0]' : 'outline outline-2 outline-transparent hover:outline-[#6d58f0]/40')}
     >
       {children}

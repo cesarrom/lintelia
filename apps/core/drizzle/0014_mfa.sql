@@ -41,12 +41,12 @@ ALTER TABLE "tenant_security_policies" ADD CONSTRAINT "tenant_security_policies_
 CREATE UNIQUE INDEX "platform_mfa_factors_staff_type_idx" ON "platform_mfa_factors" USING btree ("staff_id","type");--> statement-breakpoint
 CREATE UNIQUE INDEX "mfa_factors_user_type_idx" ON "mfa_factors" USING btree ("tenant_id","user_id","type");--> statement-breakpoint
 CREATE UNIQUE INDEX "tenant_security_policies_tenant_idx" ON "tenant_security_policies" USING btree ("tenant_id");--> statement-breakpoint
-CREATE POLICY "platform_mfa_factors_platform_all" ON "platform_mfa_factors" AS PERMISSIVE FOR ALL TO "fintivio_platform" USING (true) WITH CHECK (true);--> statement-breakpoint
-CREATE POLICY "mfa_factors_tenant_isolation" ON "mfa_factors" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-CREATE POLICY "tenant_security_policies_tenant_isolation" ON "tenant_security_policies" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON "mfa_factors", "tenant_security_policies" TO fintivio_app;
+CREATE POLICY "platform_mfa_factors_platform_all" ON "platform_mfa_factors" AS PERMISSIVE FOR ALL TO "lintelia_platform" USING (true) WITH CHECK (true);--> statement-breakpoint
+CREATE POLICY "mfa_factors_tenant_isolation" ON "mfa_factors" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+CREATE POLICY "tenant_security_policies_tenant_isolation" ON "tenant_security_policies" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+GRANT SELECT, INSERT, UPDATE, DELETE ON "mfa_factors", "tenant_security_policies" TO lintelia_app;
 --> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON "platform_mfa_factors" TO fintivio_platform;
+GRANT SELECT, INSERT, UPDATE, DELETE ON "platform_mfa_factors" TO lintelia_platform;
 --> statement-breakpoint
 ALTER TABLE "mfa_factors" FORCE ROW LEVEL SECURITY;
 --> statement-breakpoint

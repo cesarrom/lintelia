@@ -39,7 +39,7 @@ export const memberRoutes: AppRoute[] = [
   { name: 'Settings', href: '/app/settings', icon: Settings, permissions: ['workspace:read'], section: 'Administration' },
 ];
 
-/** Navigation of platform staff (the operator of Fintivio). */
+/** Navigation of platform staff (the operator of Lintelia). */
 export const staffRoutes: AppRoute[] = [
   { name: 'Institutions', href: '/app/platform/institutions', icon: Building2, permissions: ['platform.tenants:read'], section: 'Platform' },
   { name: 'Support access', href: '/app/platform/support-access', icon: LifeBuoy, permissions: ['platform.support_access:request'], section: 'Platform' },

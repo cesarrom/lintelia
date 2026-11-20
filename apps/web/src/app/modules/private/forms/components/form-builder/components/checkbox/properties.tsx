@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { PropertiesProps } from '../../schemas';
-import { CheckboxConfig } from '@repo/fintivio/schemas';
+import { CheckboxConfig } from '@repo/lintelia/schemas';
 
 export function CheckboxProperties({
   config,

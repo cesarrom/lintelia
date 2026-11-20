@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { PropertiesProps } from '../../schemas';
 import { DateComponentSchema } from './schema';
-import { DateConfig } from '@repo/fintivio/schemas';
+import { DateConfig } from '@repo/lintelia/schemas';
 
 export function DateProperties({ config, onChange }: PropertiesProps<DateConfig>) {
   const schemaRef = useRef(new DateComponentSchema(config.propertyName));

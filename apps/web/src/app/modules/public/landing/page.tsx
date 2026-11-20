@@ -61,7 +61,7 @@ export default function LandingPage() {
     <div className="min-h-[100dvh] bg-background">
       <header className="sticky top-0 z-40 border-b border-transparent bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <Link to="/" aria-label="Fintivio home"><Logo /></Link>
+          <Link to="/" aria-label="Lintelia home"><Logo /></Link>
           <nav className="hidden items-center gap-8 text-[14px] text-muted-foreground md:flex">
             <a href="#product" className="transition-colors hover:text-foreground">Product</a>
             <a href="#connectors" className="transition-colors hover:text-foreground">Connectors</a>
@@ -89,7 +89,7 @@ export default function LandingPage() {
               Onboard, verify and <span className="text-gradient">decide</span> — with every step on record.
             </h1>
             <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-muted-foreground">
-              Fintivio is the workflow platform for financial institutions: account opening, KYC and KYB, lending and
+              Lintelia is the workflow platform for financial institutions: account opening, KYC and KYB, lending and
               investigations, built from components and run by your teams with a full audit trail.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">

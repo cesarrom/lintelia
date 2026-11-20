@@ -1,5 +1,5 @@
 /**
- * Build-and-watch for @repo/fintivio without ever leaving `dist/` empty (what `bunchee --watch` does: it wipes dist
+ * Build-and-watch for @repo/lintelia without ever leaving `dist/` empty (what `bunchee --watch` does: it wipes dist
  * and rebuilds for ~50 s, breaking the API, web and connectors that import it meanwhile).
  *
  * Builds in `.build/` (a copy of the sources) and then replaces the files of `dist/` one by one (rename), so

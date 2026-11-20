@@ -5,7 +5,7 @@ import { EmptyState, PageContainer, PageHeader, StatusBadge, formatDate } from '
 import { apiErrorMessage, useApiMutation, useApiQuery } from '@/lib/services/api';
 import type { SupportGrant } from '../platform/SupportAccessRequestsPage';
 
-/** Requests from Fintivio support to look at this workspace (read-only, time-bound): approve, deny, revoke. */
+/** Requests from Lintelia support to look at this workspace (read-only, time-bound): approve, deny, revoke. */
 export default function SupportAccessPage() {
   const { data: grants = [], isLoading } = useApiQuery<SupportGrant[]>(['support-access'], '/support-access', { refetchInterval: 5000 });
   const act = useApiMutation<{ id: string; action: 'approve' | 'deny' | 'revoke' }>(({ axios, url }, { id, action }) => axios.post(url(`/support-access/${id}/${action}`)), [['support-access']]);
@@ -21,7 +21,7 @@ export default function SupportAccessPage() {
 
   return (
     <PageContainer>
-      <PageHeader title="Support access" description="Fintivio staff can only look at your workspace with your approval, read-only and for a limited time. Every page they open is in your audit log." />
+      <PageHeader title="Support access" description="Lintelia staff can only look at your workspace with your approval, read-only and for a limited time. Every page they open is in your audit log." />
       {!isLoading && grants.length === 0 ? <EmptyState art="shield">No requests.</EmptyState> : (
         <div className="overflow-hidden rounded-xl border bg-card shadow-card">
           <Table>

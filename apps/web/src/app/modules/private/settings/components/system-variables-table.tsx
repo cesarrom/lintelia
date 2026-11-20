@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, Plus } from 'lucide-react';
 import EditSystemVariableDialog from './edit-system-variable-dialog';
 import CreateSystemVariableDialog from './create-system-variable-dialog';
-import { SystemVariable } from '@repo/fintivio/schemas';
+import { SystemVariable } from '@repo/lintelia/schemas';
 import { useSystemDeleteSystemVariable } from '@/lib/services/system.hooks';
 
 interface SystemVariablesTableProps {

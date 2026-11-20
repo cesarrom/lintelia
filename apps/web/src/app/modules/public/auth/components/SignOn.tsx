@@ -135,7 +135,7 @@ export function SignOn() {
     }
   };
 
-  const title = domain ? (tenant?.name ?? domain) : 'Fintivio platform';
+  const title = domain ? (tenant?.name ?? domain) : 'Lintelia platform';
   const description = domain
     ? 'Sign in to continue'
     : 'Platform staff sign-in. Institutions use their own address (e.g. demo-bank.localhost:3001).';

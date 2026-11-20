@@ -4,7 +4,7 @@ import { ListChecks } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDraggable } from '@dnd-kit/core';
 import { ToolbarProps } from '../../schemas';
-import { multiselectConfigSchema } from '@repo/fintivio/schemas';
+import { multiselectConfigSchema } from '@repo/lintelia/schemas';
 
 export function MultiselectToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
   const { attributes, listeners, setNodeRef } = useDraggable({

@@ -1,7 +1,7 @@
 import { Hono, type Context } from 'hono';
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import type { Sql } from 'postgres';
-import { connectorManifestSchema, type ConnectorManifest } from '@repo/fintivio/schemas';
+import { connectorManifestSchema, type ConnectorManifest } from '@repo/lintelia/schemas';
 import { connectorEnv, type ConnectorEnv } from './env';
 import { openDatabase, KeyValueStore, type InstallationRow } from './db';
 import { SecretStore, redact } from './secrets';
@@ -98,7 +98,7 @@ class HttpError extends Error {
 }
 
 /**
- * A Fintivio connector service (docs/plans/03 §SDK): serves its manifest and JWKS, verifies the core's signed
+ * A Lintelia connector service (docs/plans/03 §SDK): serves its manifest and JWKS, verifies the core's signed
  * requests, runs actions idempotently, handles lifecycle events, and renders the connect/settings pages from a field
  * list — secrets go to the SecretStore, everything else to the installation's config.
  */
@@ -231,12 +231,12 @@ export class Connector {
 
   private readSession(token: string | undefined): PageSession {
     const [payload, mac] = String(token ?? '').split('.');
-    if (!payload || !mac) throw new HttpError(400, 'This page expired: open it again from Fintivio');
+    if (!payload || !mac) throw new HttpError(400, 'This page expired: open it again from Lintelia');
     const expected = createHmac('sha256', this.pageKey).update(payload).digest();
     const given = Buffer.from(mac, 'base64url');
     if (given.length !== expected.length || !timingSafeEqual(given, expected)) throw new HttpError(400, 'Invalid page session');
     const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as PageSession & { exp: number };
-    if (data.exp < Date.now()) throw new HttpError(400, 'This page expired: open it again from Fintivio');
+    if (data.exp < Date.now()) throw new HttpError(400, 'This page expired: open it again from Lintelia');
     return data;
   }
 
@@ -264,7 +264,7 @@ ${error ? `<div class="error" role="alert">${escapeHtml(error)}</div>` : ''}
     <a class="secondary" href="${escapeHtml(session.returnUrl)}" target="_top">Cancel</a>
     <button type="submit">${session.purpose === 'connect' ? 'Test and connect' : 'Test and save'}</button>
   </div>
-  <p class="muted">Secrets are stored encrypted by this connector and are never shown again or shared with Fintivio.</p>
+  <p class="muted">Secrets are stored encrypted by this connector and are never shown again or shared with Lintelia.</p>
 </form>`;
     this.frameHeaders(c, session.returnUrl);
     return c.html(layout({ title, connectorName: manifest.name, tenantName: session.tenantName, accent: session.accent, body }), error ? 422 : 200);
@@ -272,13 +272,13 @@ ${error ? `<div class="error" role="alert">${escapeHtml(error)}</div>` : ''}
 
   private async openPage(c: Context) {
     const code = c.req.query('code');
-    if (!code) throw new HttpError(400, 'Open this page from Fintivio (Integrations)');
+    if (!code) throw new HttpError(400, 'Open this page from Lintelia (Integrations)');
     let redeemed;
     try {
       redeemed = await CoreClient.redeemCode(this.env.coreUrl, this.id, this.keys, code);
     } catch (error) {
       this.log.error('code redemption failed', { error: (error as Error).message });
-      throw new HttpError(400, 'This link expired or was already used: open it again from Fintivio');
+      throw new HttpError(400, 'This link expired or was already used: open it again from Lintelia');
     }
     const context: HandOffContext = redeemed.context;
     const row = await this.upsertInstallation(redeemed.installation.id, {
@@ -344,7 +344,7 @@ ${error ? `<div class="error" role="alert">${escapeHtml(error)}</div>` : ''}
       await next();
     });
     app.get('/health', (c) => c.json({ ok: true, connector: this.id }));
-    app.get('/.well-known/fintivio-connector.json', (c) => c.json(this.manifest()));
+    app.get('/.well-known/lintelia-connector.json', (c) => c.json(this.manifest()));
     app.get('/.well-known/jwks.json', (c) => c.json({ keys: [this.keys.publicJwk] }));
 
     const page = (handler: (c: Context) => Promise<Response>) => async (c: Context) => {

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ViewerProps } from '../../schemas';
-import { ImageConfig } from '@repo/fintivio/schemas';
+import { ImageConfig } from '@repo/lintelia/schemas';
 import { useController, ControllerFieldState, ControllerRenderProps } from 'react-hook-form';
 import { v4 as uuid } from 'uuid';
 import { PhotoField } from './imported-viewer';

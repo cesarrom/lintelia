@@ -1,6 +1,6 @@
 import { and, desc, eq, ne, sql } from 'drizzle-orm';
 import jsonata from 'jsonata';
-import { appSources, clientAppDefinitionSchema, isRecordSource, ordered, recordCollectionOf, type ClientAppDefinition } from '@repo/fintivio/schemas';
+import { appSources, clientAppDefinitionSchema, isRecordSource, ordered, recordCollectionOf, type ClientAppDefinition } from '@repo/lintelia/schemas';
 import { cases, clientApps, clientAppVersions, clientNotifications, tasks } from '../entities';
 import type { TenantDatabase } from '../clients/database.client';
 import { isFinalStatus } from '../engine/case-repository';

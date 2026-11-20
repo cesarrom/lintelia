@@ -1,6 +1,6 @@
 import { Injectable, Inject, Scope } from "@nestjs/common";
 import { eq, sql } from 'drizzle-orm';
-import type { Invitation, Tenant } from '@repo/fintivio/schemas';
+import type { Invitation, Tenant } from '@repo/lintelia/schemas';
 import { sysInvitations } from '../entities/tenants';
 import { AbstractService } from './service';
 import { tenantWebUrl } from '../constants';

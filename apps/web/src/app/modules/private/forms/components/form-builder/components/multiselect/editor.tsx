@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { EditorProps } from '../../schemas';
 import { Badge } from '@/components/ui/badge';
-import { MultiselectConfig } from '@repo/fintivio/schemas';
+import { MultiselectConfig } from '@repo/lintelia/schemas';
 
 export function MultiselectEditor({
   id,

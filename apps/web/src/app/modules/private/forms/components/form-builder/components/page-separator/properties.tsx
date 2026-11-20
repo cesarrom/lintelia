@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { PropertiesProps } from '../../schemas';
-import { PageSeparatorConfig } from '@repo/fintivio/schemas';
+import { PageSeparatorConfig } from '@repo/lintelia/schemas';
 
 export function PageSeparatorProperties({ config, onChange }: PropertiesProps<PageSeparatorConfig>) {
   const handleTitleChange = useCallback((value: string) => {

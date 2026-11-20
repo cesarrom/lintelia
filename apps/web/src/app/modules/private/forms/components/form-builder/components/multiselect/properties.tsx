@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { PropertiesProps } from '../../schemas';
-import { MultiselectConfig } from '@repo/fintivio/schemas';
+import { MultiselectConfig } from '@repo/lintelia/schemas';
 
 interface SortableOptionProps {
   id: string;

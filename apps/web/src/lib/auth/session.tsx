@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { User } from '@repo/fintivio/schemas';
+import type { User } from '@repo/lintelia/schemas';
 
 /**
  * Sessions (docs/architecture/identity.md).
@@ -16,7 +16,7 @@ export const API_BASE_URL = import.meta.env.VITE_FILES_API_BASE_URL as string;
  * with a session of the full site in the same browser, and ends with the host page.
  */
 export const EMBEDDED_APP = typeof window !== 'undefined' && /^\/embed\/app(\/|$)/.test(window.location.pathname);
-const STORAGE_KEY = EMBEDDED_APP ? 'fintivio.embedded-session' : 'fintivio.session';
+const STORAGE_KEY = EMBEDDED_APP ? 'lintelia.embedded-session' : 'lintelia.session';
 const storage = (): Storage => (EMBEDDED_APP ? window.sessionStorage : window.localStorage);
 const REFRESH_MARGIN_MS = 60_000;
 

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { and, eq, max } from 'drizzle-orm';
-import { BLANK_CLIENT_APP, clientAppDefinitionSchema, withKeyOrder, type ClientAppDefinition } from '@repo/fintivio/schemas';
+import { BLANK_CLIENT_APP, clientAppDefinitionSchema, withKeyOrder, type ClientAppDefinition } from '@repo/lintelia/schemas';
 import { clientApps, clientAppVersions, sysWorkflows, workflowVersions } from '../../entities';
 import type { TenantDatabase } from '../../clients/database.client';
 import { parseDefinition } from '../../engine/definition';
@@ -102,7 +102,7 @@ export function bankingApp(workflows: Record<string, string>, institution = 'the
           { id: 'acc-actions', type: 'quick-actions', props: { actions: [{ label: 'Move money', icon: 'arrow-left-right', journey: 'transfer' }, { label: 'Pay with QR', icon: 'qr-code', journey: 'pay_qr' }, { label: 'Open a savings account', icon: 'piggy-bank', journey: 'open_savings' }] } },
           {
             id: 'acc-receive', type: 'qr-code', visibleIf: "$count(records.accounts[type = 'current']) > 0", props: {
-              title: 'Get paid', kind: 'emv', name: '= me.name', account: "= me.customerNumber & '/' & records.accounts[type = 'current'][0].key", accountScheme: 'uk.fintivio.demo',
+              title: 'Get paid', kind: 'emv', name: '= me.name', account: "= me.customerNumber & '/' & records.accounts[type = 'current'][0].key", accountScheme: 'uk.lintelia.example',
               city: 'London', country: 'GB', reference: '= me.customerNumber', size: 180,
               text: 'Show this code to be paid into your current account (any amount).',
             },

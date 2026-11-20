@@ -80,7 +80,7 @@ test.describe('STAFF-03 Suspend and reactivate an institution', { tag: ['@staff'
 
 test.describe('STAFF-06 Manage platform staff (console)', { tag: ['@staff', '@STAFF-06'] }, () => {
   test('a platform admin invites a support engineer, who only gets the support areas of the console', async ({ page, browser }) => {
-    const email = uniqueEmail('support-engineer', 'fintivio.local');
+    const email = uniqueEmail('support-engineer', 'lintelia.local');
     await openPlatformAsStaff(page);
     await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Staff', exact: true }).click();
     await page.getByRole('button', { name: 'Invite staff' }).click();
@@ -133,7 +133,7 @@ test.describe('STAFF-05 / FIA-11 Support access (console)', { tag: ['@staff', '@
       expect((await Api.as(staff, bank.key).get('/forms')).status).toBe(403);
 
       // The institution's administrator is told, and approves.
-      await waitForEmail({ tenant: bank.key, to: bank.adminEmail, subject: 'Fintivio support asks for read-only access' });
+      await waitForEmail({ tenant: bank.key, to: bank.adminEmail, subject: 'Lintelia support asks for read-only access' });
       const admin = await (await browser.newContext()).newPage();
       await openAsTenantUser(admin, bank.key, bank.admin, '/app/support-access');
       const request = admin.getByTestId('support-request-row').filter({ hasText: env.staff.email });

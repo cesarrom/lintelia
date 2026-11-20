@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Textarea } from '@/components/ui/textarea';
 import { useState } from 'react';
 import { Download, Upload } from 'lucide-react';
-import { validateWorkflowYaml, yamlToWorkflow } from '@repo/fintivio/utilities';
+import { validateWorkflowYaml, yamlToWorkflow } from '@repo/lintelia/utilities';
 
 export function YamlActions() {
   const { loadWorkflow, yaml } = useWorkflow();

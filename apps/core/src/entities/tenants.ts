@@ -1,1 +1,1 @@
-export * from '@repo/fintivio/entities/tenant';
+export * from '@repo/lintelia/entities/tenant';

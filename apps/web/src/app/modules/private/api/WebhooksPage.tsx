@@ -36,10 +36,10 @@ function SubscriptionDialog({ open, onOpenChange, events, onCreated }: { open: b
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>New webhook</DialogTitle>
-          <DialogDescription>Fintivio will POST signed events (Standard Webhooks) to this URL and retry for up to a day if it fails.</DialogDescription>
+          <DialogDescription>Lintelia will POST signed events (Standard Webhooks) to this URL and retry for up to a day if it fails.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
-          <div className="space-y-2"><Label htmlFor="webhook-url">Endpoint URL</Label><Input id="webhook-url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://bank.example/fintivio/webhooks" /></div>
+          <div className="space-y-2"><Label htmlFor="webhook-url">Endpoint URL</Label><Input id="webhook-url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://bank.example/lintelia/webhooks" /></div>
           <div className="space-y-2"><Label htmlFor="webhook-description">Description</Label><Input id="webhook-description" value={description} onChange={(e) => setDescription(e.target.value)} /></div>
           <fieldset className="space-y-2">
             <legend className="text-sm font-medium mb-2">Events</legend>

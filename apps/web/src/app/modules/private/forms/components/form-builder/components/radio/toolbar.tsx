@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Radio } from 'lucide-react';
 import { ToolbarProps } from '../../schemas';
 import { v4 as uuid } from 'uuid';
-import { radioConfigSchema } from '@repo/fintivio/schemas';
+import { radioConfigSchema } from '@repo/lintelia/schemas';
 
 export function RadioToolbar({ disabled }: ToolbarProps) {
   const id = `radio-${uuid()}`;

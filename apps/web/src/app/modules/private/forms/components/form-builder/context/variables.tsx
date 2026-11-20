@@ -1,6 +1,6 @@
 'use client';
 
-import { FormVariable } from '@repo/fintivio/schemas';
+import { FormVariable } from '@repo/lintelia/schemas';
 import { createContext, useContext } from 'react';
 
 interface VariablesContextValue {

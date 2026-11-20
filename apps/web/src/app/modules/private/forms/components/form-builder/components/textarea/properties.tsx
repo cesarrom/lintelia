@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { PropertiesProps } from '../../schemas';
 import { TextareaComponentSchema } from './schema';
-import { TextareaConfig } from '@repo/fintivio/schemas';
+import { TextareaConfig } from '@repo/lintelia/schemas';
 
 export function TextareaProperties({ config, onChange }: PropertiesProps<TextareaConfig>) {
   const schemaRef = useRef(new TextareaComponentSchema(config.propertyName));

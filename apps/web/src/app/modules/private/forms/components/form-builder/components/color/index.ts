@@ -5,7 +5,7 @@ import { ColorEditor } from './editor';
 import { ColorViewer } from './viewer';
 import { ColorProperties } from './properties';
 import { ColorToolbar } from './toolbar';
-import { ColorConfig, colorConfigSchema } from '@repo/fintivio/schemas';
+import { ColorConfig, colorConfigSchema } from '@repo/lintelia/schemas';
 
 /**
  * Color Input Component

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { BaseComponentSchema } from '../base-schema';
-import { MultiselectConfig } from '@repo/fintivio/schemas';
+import { MultiselectConfig } from '@repo/lintelia/schemas';
 
 
 // Value validation schema generator

@@ -11,7 +11,7 @@ import { env } from '../constants';
  * environments the private JWK comes from `CORE_SIGNING_JWK` (secret manager / KMS later); locally it is generated
  * once into `.data/keys/core-signing.json`.
  */
-export const CORE_ISSUER = 'fintivio-core';
+export const CORE_ISSUER = 'lintelia-core';
 
 interface KeyMaterial {
   kid: string;

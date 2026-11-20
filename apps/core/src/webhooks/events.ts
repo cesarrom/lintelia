@@ -26,7 +26,7 @@ export const WEBHOOK_EVENT_TYPES: WebhookEventType[] = [
   { type: 'data_request.completed', description: "A client's data request was completed", schemaVersion: 1, example: { dataRequestId: '7e6f…', kind: 'export' } },
   { type: 'record.updated', description: 'A connected system wrote a result on a case (verification, signature, message)', schemaVersion: 1, example: { recordId: '5d4c…', caseId: '8b0c…', type: 'verification', status: 'approved' } },
   { type: 'case.message', description: 'A workflow sent a message to this subscription (Send a live message → webhook)', schemaVersion: 1, example: { caseId: '8b0c…', reference: 'C-2026-7QK2M9', step: 'notify_core', message: { status: 'funded' } } },
-  { type: 'webhook.test', description: 'Sent by "Send test event"', schemaVersion: 1, example: { message: 'Hello from Fintivio' } },
+  { type: 'webhook.test', description: 'Sent by "Send test event"', schemaVersion: 1, example: { message: 'Hello from Lintelia' } },
 ];
 
 export const WEBHOOK_EVENT_NAMES = new Set(WEBHOOK_EVENT_TYPES.map((e) => e.type));

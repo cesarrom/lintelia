@@ -17,7 +17,7 @@ import { PropertiesProps } from '../../schemas';
 import { RadioComponentSchema } from './schema';
 import { Plus, Trash2 } from 'lucide-react';
 import { v4 as uuid } from 'uuid';
-import { RadioConfig, RadioOption } from '@repo/fintivio/schemas';
+import { RadioConfig, RadioOption } from '@repo/lintelia/schemas';
 
 export function RadioProperties({ config, onChange }: PropertiesProps<RadioConfig>) {
   const schemaRef = useRef(new RadioComponentSchema(config.propertyName));

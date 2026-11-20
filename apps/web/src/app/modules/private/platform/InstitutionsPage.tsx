@@ -2,7 +2,7 @@ import { Monogram } from '@/components/brand/Monogram';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
-import type { Tenant } from '@repo/fintivio/schemas';
+import type { Tenant } from '@repo/lintelia/schemas';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -122,7 +122,7 @@ function RecoverAccessDialog({ tenant, onOpenChange }: { tenant: Tenant; onOpenC
   );
 }
 
-/** Platform console: the institutions (tenants) operated on Fintivio. Staff never see tenant data from here. */
+/** Platform console: the institutions (tenants) operated on Lintelia. Staff never see tenant data from here. */
 export default function InstitutionsPage() {
   const { hasPermission } = useAuth();
   const { data: tenants = [], isLoading } = useApiQuery<Tenant[]>(['platform', 'tenants'], '/tenants/all');

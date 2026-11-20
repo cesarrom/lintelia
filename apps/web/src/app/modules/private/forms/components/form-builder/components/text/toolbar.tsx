@@ -4,7 +4,7 @@ import { Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDraggable } from '@dnd-kit/core';
 import { ToolbarProps } from '../../schemas';
-import { textConfigSchema } from '@repo/fintivio/schemas';
+import { textConfigSchema } from '@repo/lintelia/schemas';
 
 export function TextToolbar({ onDragStart, onDragEnd }: ToolbarProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({

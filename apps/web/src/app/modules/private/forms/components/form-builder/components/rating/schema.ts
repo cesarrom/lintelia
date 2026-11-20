@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { BaseComponentSchema } from '../base-schema';
-import { RatingConfig } from '@repo/fintivio/schemas';
+import { RatingConfig } from '@repo/lintelia/schemas';
 
 // Value validation schema generator
 export class RatingComponentSchema extends BaseComponentSchema<z.ZodNumber, RatingConfig> {

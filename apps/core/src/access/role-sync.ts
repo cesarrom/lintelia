@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, inArray } from 'drizzle-orm';
-import { ACCESS_ADMINISTRATION_PERMISSIONS, type Tenant } from '@repo/fintivio/schemas';
+import { ACCESS_ADMINISTRATION_PERMISSIONS, type Tenant } from '@repo/lintelia/schemas';
 import { roleMappings, roles, tenantSsoSettings, userRoles, users } from '../entities';
 import type { Databases, TenantDatabase } from '../clients/database.client';
 import { DATABASES } from '../injector/tokens/databases.token';
@@ -214,7 +214,7 @@ export class RoleSync {
         why === 'last_admin'
           ? `Your identity provider's groups no longer give ${user.email} the administrator role, but they are the last active administrator.`
           : `No group of your identity provider is mapped to the Administrator role yet, so ${user.email} keeps it for now.`,
-        'Fintivio kept the role so the institution is not locked out. Map a group of your identity provider to the Administrator role (Settings → Security), and keep an emergency administrator account outside your SSO domains.',
+        'Lintelia kept the role so the institution is not locked out. Map a group of your identity provider to the Administrator role (Settings → Security), and keep an emergency administrator account outside your SSO domains.',
       ],
     });
   }

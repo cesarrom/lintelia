@@ -1,6 +1,6 @@
 import { Injectable, Inject, Scope } from "@nestjs/common";
 import { and, asc, eq, sql } from "drizzle-orm";
-import { InviteUserInput, UserResponse as User, type Tenant } from "@repo/fintivio/schemas";
+import { InviteUserInput, UserResponse as User, type Tenant } from "@repo/lintelia/schemas";
 import { LogsService } from "./logs.service";
 import { AbstractService } from "./service";
 import { RolesService } from "./roles.service";
@@ -11,7 +11,7 @@ import type { TenantDatabase } from "../clients/database.client";
 import { roles, userRoles, users } from "../entities";
 import { IdentityService } from "../auth/identity.service";
 import { USER } from "../injector/tokens/user.token";
-import type { User as Principal } from "@repo/fintivio/schemas";
+import type { User as Principal } from "@repo/lintelia/schemas";
 import { AuditWriter } from "./audit.writer";
 import { NotFoundError } from "../http/errors";
 import { activeAssignment } from "../access/catalog";

@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { ViewerProps } from '../../schemas';
 import { cn } from '@/lib/utils';
 import { useController } from 'react-hook-form';
-import { ColorConfig } from '@repo/fintivio/schemas';
+import { ColorConfig } from '@repo/lintelia/schemas';
 
 export function ColorViewer({
   id,

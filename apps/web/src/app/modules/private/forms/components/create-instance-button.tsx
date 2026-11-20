@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { TestFormDialog } from './form-builder/components/test-form-dialog';
-import type { Form, FormConfig } from '@repo/fintivio/schemas';
+import type { Form, FormConfig } from '@repo/lintelia/schemas';
 
 interface CreateInstanceButtonProps {
   form: Form;

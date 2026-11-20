@@ -5,7 +5,7 @@ import { TextEditor } from './editor';
 import { TextViewer } from './viewer';
 import { TextProperties } from './properties';
 import { TextToolbar } from './toolbar';
-import { TextConfig, textConfigSchema } from '@repo/fintivio/schemas';
+import { TextConfig, textConfigSchema } from '@repo/lintelia/schemas';
 
 /**
  * Text Input Component

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ToolbarProps } from '../../schemas';
 import { v4 as uuid } from 'uuid';
-import { richtextConfigSchema } from '@repo/fintivio/schemas';
+import { richtextConfigSchema } from '@repo/lintelia/schemas';
 
 export function RichtextToolbar({ disabled }: ToolbarProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({

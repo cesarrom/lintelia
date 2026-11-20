@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { componentEvents, type ComponentDefinition, type NodeData } from '@repo/fintivio/schemas';
+import { componentEvents, type ComponentDefinition, type NodeData } from '@repo/lintelia/schemas';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

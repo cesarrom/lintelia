@@ -3,7 +3,7 @@
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { ViewerProps } from '../../schemas';
-import { RangeConfig } from '@repo/fintivio/schemas';
+import { RangeConfig } from '@repo/lintelia/schemas';
 import { useController } from 'react-hook-form';
 
 export function RangeViewer({

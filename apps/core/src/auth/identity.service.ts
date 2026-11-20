@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, gt, inArray, sql } from 'drizzle-orm';
 import { createHash, randomBytes, randomInt } from 'node:crypto';
-import { isCustomPermission, resolvePlatformPermissions, type Tenant, type User } from '@repo/fintivio/schemas';
+import { isCustomPermission, resolvePlatformPermissions, type Tenant, type User } from '@repo/lintelia/schemas';
 import { activeCustomKeys, memberAccess } from '../access/catalog';
 import { apiClientIndex, apiClients, mfaFactors, platformMfaFactors, platformSettings, platformUsers, roles, supportGrants, sysInvitations, tenantSecurityPolicies, tenantSsoSettings, userRoles, users } from '../entities';
 import { encryptSecret, decryptSecret } from './data-encryption';
@@ -49,7 +49,7 @@ interface MfaSubject {
 const MFA_CHALLENGE_TTL_SECONDS = 5 * 60;
 const MFA_ENROLLMENT_TTL_SECONDS = 15 * 60;
 const MFA_MAX_ATTEMPTS = 5;
-const MFA_ISSUER = 'Fintivio';
+const MFA_ISSUER = 'Lintelia';
 
 type UserRow = typeof users.$inferSelect;
 
@@ -631,9 +631,9 @@ export class IdentityService {
     await this.email.send({
       tenant: undefined,
       to: email,
-      subject: 'You are invited to the Fintivio platform console',
-      text: `You were invited to operate the Fintivio platform (${input.roles.join(', ')}). Choose a password: ${link} (valid for 7 days).`,
-      html: `<p>You were invited to operate the Fintivio platform (${input.roles.join(', ')}).</p><p><a href="${link}">Choose a password</a> (valid for 7 days).</p>`,
+      subject: 'You are invited to the Lintelia platform console',
+      text: `You were invited to operate the Lintelia platform (${input.roles.join(', ')}). Choose a password: ${link} (valid for 7 days).`,
+      html: `<p>You were invited to operate the Lintelia platform (${input.roles.join(', ')}).</p><p><a href="${link}">Choose a password</a> (valid for 7 days).</p>`,
     });
     return row;
   }

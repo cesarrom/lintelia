@@ -63,7 +63,7 @@ export function bindNamed(query: string, params: Record<string, unknown>) {
 const connector = createConnector({
   manifest,
   settings: {
-    intro: 'Fintivio workflows will read from this database with these credentials. Use a login that can only read what workflows need.',
+    intro: 'Lintelia workflows will read from this database with these credentials. Use a login that can only read what workflows need.',
     fields: [
       { name: 'host', label: 'Host', required: true, placeholder: 'db.yourbank.internal' },
       { name: 'port', label: 'Port', type: 'number', required: true, default: 5432 },

@@ -31,9 +31,9 @@ ALTER TABLE "sso_identities" ADD CONSTRAINT "sso_identities_user_fk" FOREIGN KEY
 ALTER TABLE "tenant_sso_settings" ADD CONSTRAINT "tenant_sso_settings_tenant_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "sso_identities_profile_idx" ON "sso_identities" USING btree ("tenant_id","provider","profile_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "tenant_sso_settings_tenant_idx" ON "tenant_sso_settings" USING btree ("tenant_id");--> statement-breakpoint
-CREATE POLICY "sso_identities_tenant_isolation" ON "sso_identities" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-CREATE POLICY "tenant_sso_settings_tenant_isolation" ON "tenant_sso_settings" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON "tenant_sso_settings", "sso_identities" TO fintivio_app;
+CREATE POLICY "sso_identities_tenant_isolation" ON "sso_identities" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+CREATE POLICY "tenant_sso_settings_tenant_isolation" ON "tenant_sso_settings" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+GRANT SELECT, INSERT, UPDATE, DELETE ON "tenant_sso_settings", "sso_identities" TO lintelia_app;
 --> statement-breakpoint
 ALTER TABLE "tenant_sso_settings" FORCE ROW LEVEL SECURITY;
 --> statement-breakpoint

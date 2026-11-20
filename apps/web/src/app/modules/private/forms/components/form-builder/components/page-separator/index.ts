@@ -5,7 +5,7 @@ import { PageSeparatorEditor } from './editor';
 import { PageSeparatorViewer } from './viewer';
 import { PageSeparatorProperties } from './properties';
 import { PageSeparatorToolbar } from './toolbar';
-import { pageSeparatorConfigSchema } from '@repo/fintivio/schemas';
+import { pageSeparatorConfigSchema } from '@repo/lintelia/schemas';
 
 /**
  * Page Separator Component

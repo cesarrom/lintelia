@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import { PropertiesProps } from '../../schemas';
 import { ColorComponentSchema } from './schema';
-import { ColorConfig } from '@repo/fintivio/schemas';
+import { ColorConfig } from '@repo/lintelia/schemas';
 
 
 export function ColorProperties({ config, onChange }: PropertiesProps<ColorConfig>) {

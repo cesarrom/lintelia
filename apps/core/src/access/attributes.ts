@@ -1,7 +1,7 @@
 import { Inject, Injectable, Scope } from '@nestjs/common';
 import jsonata from 'jsonata';
 import { asc, eq } from 'drizzle-orm';
-import type { Tenant, User } from '@repo/fintivio/schemas';
+import type { Tenant, User } from '@repo/lintelia/schemas';
 import { memberAttributeDefinitions, users } from '../entities';
 import type { Databases, TenantDatabase } from '../clients/database.client';
 import { DATABASES } from '../injector/tokens/databases.token';

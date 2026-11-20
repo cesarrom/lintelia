@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import { useNavigate } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Hourglass, Loader2, PlayCircle, XCircle } from 'lucide-react';
-import { BUILTIN_PAGES, type BackOfficeDefinition, type BackOfficeWidget } from '@repo/fintivio/schemas';
+import { BUILTIN_PAGES, type BackOfficeDefinition, type BackOfficeWidget } from '@repo/lintelia/schemas';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';

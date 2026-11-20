@@ -6,7 +6,7 @@ import { addMember } from '../../support/factories';
 
 /**
  * FIA-06: institutions bring their workforce IdP through the SSO broker (WorkOS; locally its emulator) and the fake
- * OIDC IdP. FIA-07: the IdP provisions members by SCIM into the broker's directory; Fintivio applies the broker's
+ * OIDC IdP. FIA-07: the IdP provisions members by SCIM into the broker's directory; Lintelia applies the broker's
  * directory events (create, update, deactivate with sessions revoked).
  */
 let bank: TenantHandle;
@@ -28,7 +28,7 @@ test.describe('FIA-06 Configure SSO with enforcement and just-in-time provisioni
     expect(status.body).toMatchObject({ configured: true, ready: false, domains: [expect.objectContaining({ domain: ssoDomain, state: 'pending' })] });
   });
 
-  test('the IT team connects the IdP and verifies the domain in the Admin Portal; secrets never reach Fintivio', async () => {
+  test('the IT team connects the IdP and verifies the domain in the Admin Portal; secrets never reach Lintelia', async () => {
     const { client } = await setUpSso(bank, { domain: ssoDomain });
     const status = await bank.adminApi.get('/sso');
     expectStatus(status, 200);

@@ -54,7 +54,7 @@ const refused = (auth: string) => !/^Bearer\s+\S+/.test(auth) || /invalid$/.test
 const invalidKey = { error: { message: 'Incorrect API key provided.', type: 'invalid_request_error', code: 'invalid_api_key' } };
 
 app.get('/v1/models', (c) => (refused(c.req.header('authorization') ?? '') ? c.json(invalidKey, 401)
-  : c.json({ object: 'list', data: [{ id: 'fake-gpt', object: 'model', owned_by: 'fintivio-local' }] })));
+  : c.json({ object: 'list', data: [{ id: 'fake-gpt', object: 'model', owned_by: 'lintelia-local' }] })));
 
 app.post('/v1/chat/completions', async (c) => {
   const auth = c.req.header('authorization') ?? '';

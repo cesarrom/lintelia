@@ -8,8 +8,8 @@ import { WorkflowsService } from './workflows.service';
 import { AbstractService } from './service';
 import { WebService } from './web.service';
 import assert from 'assert';
-import { ForceNextNodeArgs, NextNodeOrExecutionArgs, NodeData, ResumableArgs, ResumeWorkflowRequest, StandardNodeArgs } from '@repo/fintivio/schemas';
-import { fromTriggerDefinition, TriggerBuilder, yamlToWorkflow } from '@repo/fintivio/utilities';
+import { ForceNextNodeArgs, NextNodeOrExecutionArgs, NodeData, ResumableArgs, ResumeWorkflowRequest, StandardNodeArgs } from '@repo/lintelia/schemas';
+import { fromTriggerDefinition, TriggerBuilder, yamlToWorkflow } from '@repo/lintelia/utilities';
 import { ExecutableNode, ExecuteNodeFunctionProps } from '../utils/restate-utils';
 import { Injectable, Inject, Scope } from "@nestjs/common";
 

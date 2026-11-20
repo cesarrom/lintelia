@@ -1,5 +1,5 @@
 import { Access, Require } from "../auth/access";
-import type { CreateSystemVariableInput } from "@repo/fintivio/schemas";
+import type { CreateSystemVariableInput } from "@repo/lintelia/schemas";
 import { Scope, Inject, Controller, Get, Put, Delete, Res, type RawBodyRequest, Param } from "@nestjs/common"; 
 import type { Context } from "hono"; 
 import { SystemVariablesService } from "../services/system-variables.service";

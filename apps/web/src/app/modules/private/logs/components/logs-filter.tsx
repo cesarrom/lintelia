@@ -19,7 +19,7 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { Form, FormControl, FormField, FormItem } from '@/components/ui/form';
 import { useNavigate, useSearchParams } from 'react-router';
-import { LogCategory, LogLevel } from '@repo/fintivio/schemas';
+import { LogCategory, LogLevel } from '@repo/lintelia/schemas';
 
 interface LogsFilterForm {
   search: string;

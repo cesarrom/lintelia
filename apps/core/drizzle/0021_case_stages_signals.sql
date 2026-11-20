@@ -17,7 +17,7 @@ ALTER TABLE "cases" ADD COLUMN "stage" varchar(64);--> statement-breakpoint
 ALTER TABLE "case_signals" ADD CONSTRAINT "case_signals_tenant_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "case_signals" ADD CONSTRAINT "case_signals_case_fk" FOREIGN KEY ("tenant_id","case_id") REFERENCES "public"."cases"("tenant_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "case_signals_case_idx" ON "case_signals" USING btree ("tenant_id","case_id","name","status");--> statement-breakpoint
-CREATE POLICY "case_signals_tenant_isolation" ON "case_signals" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON "case_signals" TO fintivio_app;
+CREATE POLICY "case_signals_tenant_isolation" ON "case_signals" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+GRANT SELECT, INSERT, UPDATE, DELETE ON "case_signals" TO lintelia_app;
 --> statement-breakpoint
 ALTER TABLE "case_signals" FORCE ROW LEVEL SECURITY;

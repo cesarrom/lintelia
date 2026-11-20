@@ -2,7 +2,7 @@ import * as restate from '@restatedev/restate-sdk/fetch';
 import {
   connectorComponentType, parseConnectorComponentType,
   type ComponentDefinition, type ConnectorComponentManifest, type ConnectorManifest, type JsonSchema,
-} from '@repo/fintivio/schemas';
+} from '@repo/lintelia/schemas';
 import type { EngineComponent, TaskSignal } from '../engine/components/types';
 import { WORKFLOW_ACTOR } from '../engine/components/types';
 import { durationMs } from '../engine/durations';

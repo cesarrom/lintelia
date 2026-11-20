@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { PermissionDefinition } from '@repo/fintivio/schemas';
+import type { PermissionDefinition } from '@repo/lintelia/schemas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -71,7 +71,7 @@ export function RoleDialog({ role, catalog, open, onOpenChange }: { role: RoleVi
           <DialogTitle>{extend ? `Extend ${role!.name}` : role ? `Edit ${role.name}` : 'New custom role'}</DialogTitle>
           <DialogDescription>
             {extend
-              ? "Add your institution's own permissions to this system role. Its platform permissions stay as they are and keep evolving with Fintivio."
+              ? "Add your institution's own permissions to this system role. Its platform permissions stay as they are and keep evolving with Lintelia."
               : 'You can only grant permissions you hold yourself.'}
           </DialogDescription>
         </DialogHeader>

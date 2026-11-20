@@ -1,5 +1,5 @@
 import { Home, Trash2 } from 'lucide-react';
-import { clientWidgetDefinition, type ClientWidget } from '@repo/fintivio/schemas';
+import { clientWidgetDefinition, type ClientWidget } from '@repo/lintelia/schemas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

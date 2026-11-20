@@ -5,7 +5,7 @@ import { RadioEditor } from './editor';
 import { RadioViewer } from './viewer';
 import { RadioProperties } from './properties';
 import { RadioToolbar } from './toolbar';
-import { radioConfigSchema, RadioConfig } from '@repo/fintivio/schemas';
+import { radioConfigSchema, RadioConfig } from '@repo/lintelia/schemas';
 
 /**
  * Radio Input Component

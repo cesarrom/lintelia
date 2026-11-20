@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DatabaseNodeConfig, GetTablesResponse } from '@repo/fintivio/schemas';
+import { DatabaseNodeConfig, GetTablesResponse } from '@repo/lintelia/schemas';
 import { useAxios } from './axios';
 
 const API_BASE_URL = import.meta.env.VITE_FILES_API_BASE_URL;

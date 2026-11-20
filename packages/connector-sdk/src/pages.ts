@@ -80,10 +80,10 @@ export function donePage(shell: Omit<PageShell, 'body'>, returnUrl: string, mess
   const origin = new URL(returnUrl).origin;
   return layout({
     ...shell,
-    body: `<div class="ok">${escapeHtml(message)}</div><p><a class="secondary" href="${escapeHtml(returnUrl)}" target="_top">Back to Fintivio</a></p>
+    body: `<div class="ok">${escapeHtml(message)}</div><p><a class="secondary" href="${escapeHtml(returnUrl)}" target="_top">Back to Lintelia</a></p>
 <script>
   (function(){
-    var data = ${JSON.stringify({ type: 'fintivio:connector-saved', message })};
+    var data = ${JSON.stringify({ type: 'lintelia:connector-saved', message })};
     if (window.parent !== window) { window.parent.postMessage(data, ${JSON.stringify(origin)}); }
     else { setTimeout(function(){ window.location.href = ${JSON.stringify(returnUrl)}; }, 600); }
   })();

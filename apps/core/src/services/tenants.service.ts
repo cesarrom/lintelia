@@ -1,6 +1,6 @@
 import { Injectable, Inject, Scope } from "@nestjs/common";
 import { asc, eq, notInArray } from "drizzle-orm";
-import type { CNAMERecordResponse, CreateTenant, Tenant } from "@repo/fintivio/schemas";
+import type { CNAMERecordResponse, CreateTenant, Tenant } from "@repo/lintelia/schemas";
 import { AbstractService } from "./service";
 import { tenants } from "../entities/globals";
 import { cases, FINAL_CASE_STATUSES } from "../entities";

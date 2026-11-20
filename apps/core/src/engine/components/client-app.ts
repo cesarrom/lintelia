@@ -14,7 +14,7 @@ import { ensureProfile, listRecords, loadMe, notify, updateProfile, writeRecord 
  */
 
 export const SCREEN_FIELD_TYPES = ['text', 'email', 'phone', 'number', 'money', 'date', 'select', 'choice', 'checkbox', 'textarea', 'file', 'scan', 'signature', 'otp', 'slider', 'display'] as const;
-/** Formats a scanned code is read as (packages/fintivio payment-codes): details in `input.<key>Details`. */
+/** Formats a scanned code is read as (packages/lintelia payment-codes): details in `input.<key>Details`. */
 export const SCAN_PARSERS = ['raw', 'auto', 'emv', 'epc', 'url', 'json'] as const;
 
 /** Field types each option applies to (the editor shows an option only for them: `x-show-if`). */

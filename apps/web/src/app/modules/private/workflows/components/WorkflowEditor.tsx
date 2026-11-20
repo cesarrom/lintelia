@@ -35,7 +35,7 @@ import { RunWorkflowDialog } from './RunWorkflowDialog';
 import { YamlActions } from './yaml/YamlActions';
 import { WorkflowSettingsDialog } from './WorkflowSettingsDialog';
 import { useTheme } from '@/lib/providers/ThemeProvider';
-import { NodeData } from '@repo/fintivio/schemas';
+import { NodeData } from '@repo/lintelia/schemas';
 
 
 function WorkflowEditorContent({ workflowId }: { workflowId?: string }) {

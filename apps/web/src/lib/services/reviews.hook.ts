@@ -7,7 +7,7 @@ import type {
   RejectReviewRequest,
   RequestAdditionalDataRequest,
   CreateReviewRequest,
-} from '@repo/fintivio/schemas';
+} from '@repo/lintelia/schemas';
 import { useAxios } from './axios';
 
 const API_BASE_URL = import.meta.env.VITE_FILES_API_BASE_URL;

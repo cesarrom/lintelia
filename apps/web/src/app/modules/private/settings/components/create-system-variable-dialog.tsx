@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ValueType } from '@repo/fintivio/schemas';
+import { ValueType } from '@repo/lintelia/schemas';
 import { useSystemSetSystemVariable } from '@/lib/services/system.hooks';
 
 interface CreateSystemVariableDialogProps {

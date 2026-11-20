@@ -1,4 +1,4 @@
-import type { ClientAppDefinition, ClientWidget } from '@repo/fintivio/schemas';
+import type { ClientAppDefinition, ClientWidget } from '@repo/lintelia/schemas';
 
 /** The published app as clients get it (`GET /me/app`; identity settings stay on the server). */
 export type AppDefinition = Omit<ClientAppDefinition, 'identity'> & { identity?: ClientAppDefinition['identity'] };

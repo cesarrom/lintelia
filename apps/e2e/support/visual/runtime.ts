@@ -20,7 +20,7 @@ import { installOverlay, VISUAL_BINDING } from './overlay';
 
 export const visual: VisualSettings = resolveVisual();
 
-const SESSION_KEY = 'fintivio.session';
+const SESSION_KEY = 'lintelia.session';
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Run `fn` as an internal Playwright call (not reported as a test step), when the client supports it. */
@@ -64,7 +64,7 @@ class Stage {
 
   /** Each UI worker claims a lane (its share of the tiles) with a lock file for the duration of the run. */
   private claimLane() {
-    const dir = join(tmpdir(), 'fintivio-e2e-visual', this.settings.runId);
+    const dir = join(tmpdir(), 'lintelia-e2e-visual', this.settings.runId);
     mkdirSync(dir, { recursive: true });
     const alive = (pid: number) => { try { process.kill(pid, 0); return true; } catch { return false; } };
     for (let attempt = 0; attempt < 2; attempt++) {

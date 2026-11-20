@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import jsQR from 'jsqr';
 import { Camera, CheckCircle2, ImageUp, Keyboard, Loader2, ScanLine, TriangleAlert, X } from 'lucide-react';
-import { parsePaymentCode } from '@repo/fintivio/utilities';
+import { parsePaymentCode } from '@repo/lintelia/utilities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';

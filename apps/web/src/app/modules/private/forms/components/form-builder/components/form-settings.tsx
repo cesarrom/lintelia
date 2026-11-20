@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { FormConfig, FormVariable } from '@repo/fintivio/schemas';
+import type { FormConfig, FormVariable } from '@repo/lintelia/schemas';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';

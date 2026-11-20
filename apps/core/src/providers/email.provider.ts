@@ -66,7 +66,7 @@ export class SmtpEmailProvider implements EmailProvider {
       text: message.text,
       html: message.html,
       // Lets the local mailbox (fake-services/mailbox) and mail logs group messages by institution.
-      headers: message.tenant ? { 'X-Fintivio-Tenant': message.tenant } : undefined,
+      headers: message.tenant ? { 'X-Lintelia-Tenant': message.tenant } : undefined,
     });
     console.log(`\x1b[35m[smtp]\x1b[0m "${message.subject}" -> ${[message.to].flat().join(', ')}`);
     return { id: info.messageId };

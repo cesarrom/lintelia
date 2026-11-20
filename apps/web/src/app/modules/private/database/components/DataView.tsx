@@ -3,7 +3,7 @@ import { QueryResult, TableRow } from '../types';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow as UiTableRow } from '@/components/ui/table';
 import { PlayIcon } from 'lucide-react';
-import type { GetTablesResponse } from '@repo/fintivio/schemas';
+import type { GetTablesResponse } from '@repo/lintelia/schemas';
 import { QueryBuilderShadcn } from "react-querybuilder-shadcn";
 import {
   type Field,

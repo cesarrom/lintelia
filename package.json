@@ -1,5 +1,5 @@
 {
-  "name": "fintivio",
+  "name": "lintelia",
   "private": true,
   "scripts": {
     "build": "turbo run build",

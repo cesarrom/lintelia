@@ -2,7 +2,7 @@ import { Inject, Injectable, Scope } from '@nestjs/common';
 import { and, eq, ne, sql } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
 import { resolveTxt } from 'node:dns/promises';
-import type { Tenant, User } from '@repo/fintivio/schemas';
+import type { Tenant, User } from '@repo/lintelia/schemas';
 import { customDomains, tenants } from '../entities';
 import type { Databases } from '../clients/database.client';
 import { DATABASES } from '../injector/tokens/databases.token';
@@ -14,7 +14,7 @@ import { TenantDirectory } from './tenant-directory.service';
 import { BadRequestError, ConflictError, NotFoundError, UnprocessableError } from '../http/errors';
 
 const HOSTNAME = /^(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
-const challengeName = (hostname: string) => `_fintivio-challenge.${hostname}`;
+const challengeName = (hostname: string) => `_lintelia-challenge.${hostname}`;
 
 /** DNS TXT lookup: real DNS in production, a DNS-over-HTTPS JSON endpoint otherwise (fake-services/dns locally). */
 export async function lookupTxt(name: string): Promise<string[]> {
@@ -70,7 +70,7 @@ export class CustomDomainsService {
     if ((taken && taken.tenantId !== this.tenant.id) || (owner && owner.id !== this.tenant.id)) throw new ConflictError('This host name belongs to another institution');
     if (taken) throw new ConflictError('This host name is already added');
     const [row] = await this.databases.platform.insert(customDomains).values({
-      tenantId: this.tenant.id, hostname, verificationToken: `fintivio-verify=${randomBytes(16).toString('hex')}`, createdByEmail: this.user.email,
+      tenantId: this.tenant.id, hostname, verificationToken: `lintelia-verify=${randomBytes(16).toString('hex')}`, createdByEmail: this.user.email,
     }).returning();
     await this.audit.record(this.tenant.id, this.actor, 'domain.added', { type: 'domain', id: row.id, hostname });
     return this.present(row);

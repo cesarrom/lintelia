@@ -16,7 +16,7 @@ let version = '1.0.0';
 
 const manifest = () => ({
   id, version, name: `E2E connector ${id}`, description: 'registered by the e2e suite',
-  publisher: { name: 'E2E' }, audiences: ['tenant'], baseUrl: manifestUrl.replace('/.well-known/fintivio-connector.json', ''),
+  publisher: { name: 'E2E' }, audiences: ['tenant'], baseUrl: manifestUrl.replace('/.well-known/lintelia-connector.json', ''),
   auth: { jwksUrl: '/.well-known/jwks.json' }, scopes: ['installation:write'],
   ui: { connect: { url: '/connect', mode: 'redirect' } },
   components: [{ key: 'ping', kind: 'action', title: 'Ping', events: ['done'], invoke: { url: '/actions/ping', mode: 'sync' } }],
@@ -24,7 +24,7 @@ const manifest = () => ({
 
 test.beforeAll(async () => {
   server = createServer((req, res) => {
-    if (req.url === '/.well-known/fintivio-connector.json') {
+    if (req.url === '/.well-known/lintelia-connector.json') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(manifest()));
     } else {
@@ -33,7 +33,7 @@ test.beforeAll(async () => {
     }
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-  manifestUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}/.well-known/fintivio-connector.json`;
+  manifestUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}/.well-known/lintelia-connector.json`;
   bank = await createTenant();
 });
 test.afterAll(async () => {

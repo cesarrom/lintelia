@@ -120,7 +120,7 @@ async function send(installation: Installation, method: string, path: unknown, o
 const connector = createConnector({
   manifest: {
     id: 'http', version: '1.0.0', name: 'HTTP API', description: 'Call any HTTP API with stored credentials, and receive its webhooks to start workflows.',
-    publisher: { name: 'Fintivio' }, categories: ['developer'], icon: 'Globe', audiences: ['tenant'], scopes: ['installation:write', 'events:publish'],
+    publisher: { name: 'Lintelia' }, categories: ['developer'], icon: 'Globe', audiences: ['tenant'], scopes: ['installation:write', 'events:publish'],
     components: [{
       key: 'request', version: 1, kind: 'action', title: 'Call an API (HTTP)', description: 'An HTTP request to the connection\'s API; the response becomes the step\'s result. Non-2xx answers follow the "failed" event.',
       icon: 'Globe', category: 'data',

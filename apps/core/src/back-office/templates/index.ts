@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { eq } from 'drizzle-orm';
-import { backOfficeDefinitionSchema, type BackOfficeDefinition } from '@repo/fintivio/schemas';
+import { backOfficeDefinitionSchema, type BackOfficeDefinition } from '@repo/lintelia/schemas';
 import { customPermissions, memberAttributeDefinitions, sysWorkflows } from '../../entities';
 import type { TenantDatabase } from '../../clients/database.client';
 import { parseDefinition } from '../../engine/definition';

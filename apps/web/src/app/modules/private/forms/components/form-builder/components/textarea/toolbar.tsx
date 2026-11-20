@@ -5,7 +5,7 @@ import { AlignLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ToolbarProps } from '../../schemas';
 import { v4 as uuid } from 'uuid';
-import { textareaConfigSchema } from '@repo/fintivio/schemas';
+import { textareaConfigSchema } from '@repo/lintelia/schemas';
 
 export function TextareaToolbar({ disabled }: ToolbarProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({

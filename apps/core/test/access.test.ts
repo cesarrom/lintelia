@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   SYSTEM_ROLES, TENANT_PERMISSION_IDS, accessRuleErrors, customPermissionKey, normalizeWorkflowAccess, resolvePermissions,
   sameAccess, satisfiesAccessRule,
-} from '@repo/fintivio/schemas';
+} from '@repo/lintelia/schemas';
 import { desiredAssignments, mappedRoles, planMember } from '../src/access/role-sync';
 import { coerce } from '../src/access/attributes';
 import { stepRoleKeys } from '../src/access/queries.service';

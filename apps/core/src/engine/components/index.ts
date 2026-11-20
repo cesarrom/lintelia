@@ -1,5 +1,5 @@
 import Ajv, { type ValidateFunction } from 'ajv';
-import type { ComponentDefinition } from '@repo/fintivio/schemas';
+import type { ComponentDefinition } from '@repo/lintelia/schemas';
 import { BUILTIN_COMPONENTS } from './builtin';
 import type { EngineComponent } from './types';
 import { functionComponent } from './parties';

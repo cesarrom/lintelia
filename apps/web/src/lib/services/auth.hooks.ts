@@ -1,5 +1,5 @@
 import { useQuery, useMutation, UseQueryOptions, UseMutationOptions, QueryKey } from '@tanstack/react-query';
-import type { AfterLoginRequest, AfterLoginResponse } from '@repo/fintivio/schemas';
+import type { AfterLoginRequest, AfterLoginResponse } from '@repo/lintelia/schemas';
 import { useAxios } from './axios';
 
 const API_BASE_URL = import.meta.env.VITE_FILES_API_BASE_URL;

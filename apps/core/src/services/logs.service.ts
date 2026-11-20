@@ -3,7 +3,7 @@ import { SystemTriggersService } from "./system-triggers.service";
 import { AbstractService } from "./service";
 import { desc, eq, lt, sql } from "drizzle-orm";
 import { WebService } from "./web.service";
-import { CreateLogRequest, Log, LogCategory, LogLevel, LogsAnalyticsResponse, LogsFilterRequest, LogTrendsResponse, TopSourceLogsResponse, TopUserLogsResponse } from "@repo/fintivio/schemas";
+import { CreateLogRequest, Log, LogCategory, LogLevel, LogsAnalyticsResponse, LogsFilterRequest, LogTrendsResponse, TopSourceLogsResponse, TopUserLogsResponse } from "@repo/lintelia/schemas";
 import { TENANT_CONNECTION } from "../injector/tokens/tenant-connection.token";
 import { type TenantDatabase } from "../clients/database.client";
 import { Injectable, Inject, Scope } from "@nestjs/common";

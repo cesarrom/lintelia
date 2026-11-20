@@ -1,6 +1,6 @@
 /**
  * Minimal types of the React Native peers, so the package type-checks without them installed (apps that use
- * `@fintivio/client-sdk/react-native` have the real ones).
+ * `@lintelia/client-sdk/react-native` have the real ones).
  */
 declare module 'react-native' {
   export type StyleProp<T> = T | T[] | null | undefined | false;

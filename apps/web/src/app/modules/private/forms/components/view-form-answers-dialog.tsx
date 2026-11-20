@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ClipboardList } from 'lucide-react';
 import CreateReviewDialog from './create-review-dialog';
 import { FormViewer } from './form-builder';
-import type { FormInstance } from '@repo/fintivio/schemas';
+import type { FormInstance } from '@repo/lintelia/schemas';
 import { useFormGetFormById } from '@/lib/services/form.hooks';
 
 interface ViewFormAnswersDialogProps {

@@ -98,7 +98,7 @@ test.describe('SCN-10 Loan pre-approval from a form embedded on the bank website
     await designer.getByRole('option', { name: /Personal loan pre-approval \(v1\)/ }).click();
     await dialog.getByLabel(/Websites allowed to embed it/).fill(website.origin);
     await dialog.getByRole('button', { name: 'Publish' }).click();
-    await expect(dialog.getByTestId('embed-script')).toContainText('data-fintivio-form=');
+    await expect(dialog.getByTestId('embed-script')).toContainText('data-lintelia-form=');
     embedSnippet = (await dialog.getByTestId('embed-script').textContent())!;
     await designer.keyboard.press('Escape');
     await expect(row.getByText('Published', { exact: true })).toBeVisible();

@@ -5,7 +5,7 @@ import { PhoneEditor } from './editor';
 import { PhoneViewer } from './viewer';
 import { PhoneProperties } from './properties';
 import { PhoneToolbar } from './toolbar';
-import { PhoneConfig, phoneConfigSchema } from '@repo/fintivio/schemas';
+import { PhoneConfig, phoneConfigSchema } from '@repo/lintelia/schemas';
 
 /**
  * Phone Input Component

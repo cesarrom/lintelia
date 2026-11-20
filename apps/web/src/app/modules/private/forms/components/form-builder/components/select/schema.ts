@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { BaseComponentSchema } from '../base-schema';
-import { SelectConfig, SelectOption } from '@repo/fintivio/schemas';
+import { SelectConfig, SelectOption } from '@repo/lintelia/schemas';
 
 // Value validation schema generator
 export class SelectComponentSchema extends BaseComponentSchema<z.ZodString, SelectConfig> {

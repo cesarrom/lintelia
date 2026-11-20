@@ -1,7 +1,7 @@
 import { caseLive } from '../live/topics';
 import { Controller, Get, Inject, Param, Post, Res, Scope } from '@nestjs/common';
 import type { Context } from 'hono';
-import type { Tenant, User } from '@repo/fintivio/schemas';
+import type { Tenant, User } from '@repo/lintelia/schemas';
 import { Access, Public, Require } from '../auth/access';
 import { IdentityService } from '../auth/identity.service';
 import { CasesService } from '../services/cases.service';

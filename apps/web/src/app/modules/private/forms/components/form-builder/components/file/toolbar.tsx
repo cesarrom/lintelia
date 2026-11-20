@@ -3,7 +3,7 @@
 import { FileUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDraggable } from '@dnd-kit/core';
-import { fileConfigSchema } from '@repo/fintivio/schemas';
+import { fileConfigSchema } from '@repo/lintelia/schemas';
 import { ToolbarProps } from '../../schemas';
 
 export function FileToolbar({ onDragStart, onDragEnd }: ToolbarProps) {

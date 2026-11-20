@@ -26,7 +26,7 @@ async function sanitizePdf(bytes: Buffer) {
   const rebuilt = await PDFDocument.create();
   const pages = await rebuilt.copyPages(source, source.getPageIndices());
   for (const page of pages) rebuilt.addPage(page);
-  rebuilt.setProducer('Fintivio sanitiser');
+  rebuilt.setProducer('Lintelia sanitiser');
   actions.push(`rebuilt ${pages.length} page(s)`);
   return { content: Buffer.from(await rebuilt.save()), actions };
 }

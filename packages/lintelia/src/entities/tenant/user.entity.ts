@@ -43,7 +43,7 @@ export const roles = pgTable('roles', {
   name: varchar('name', { length: 255 }).notNull(),
   description: varchar('description', { length: 1024 }).default('').notNull(),
   permissions: text('permissions').array().default(sql`'{}'::text[]`).notNull(),
-  /** System roles come from the catalogue (packages/fintivio authorization.schema.ts) and cannot be edited. */
+  /** System roles come from the catalogue (packages/lintelia authorization.schema.ts) and cannot be edited. */
   isSystem: boolean('is_system').default(false).notNull(),
   createdAt: timestamp('created_at', { mode: 'date', withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date', withTimezone: true }).defaultNow().notNull().$onUpdate(() => new Date()),

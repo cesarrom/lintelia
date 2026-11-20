@@ -1,7 +1,7 @@
 import * as restate from '@restatedev/restate-sdk/fetch';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
-import { parseConnectorComponentType } from '@repo/fintivio/schemas';
+import { parseConnectorComponentType } from '@repo/lintelia/schemas';
 import { cases, connectorInstallations } from '../entities';
 import type { Databases } from '../clients/database.client';
 import { DATABASES } from '../injector/tokens/databases.token';

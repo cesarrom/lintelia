@@ -24,7 +24,7 @@ test.describe('FIA-06 Members sign in through their IdP', { tag: ['@fi-admin', '
     await page.getByRole('button', { name: /sign-?in/i }).click();
 
     await expect(page).toHaveURL(/\/app\/dashboard$/);
-    const session = JSON.parse((await page.evaluate(() => localStorage.getItem('fintivio.session'))) ?? '{}');
+    const session = JSON.parse((await page.evaluate(() => localStorage.getItem('lintelia.session'))) ?? '{}');
     expect(session.user.email).toBe(email);
     expect(session.user.userTenants[0].roleNames).toEqual(['reviewer']);
   });

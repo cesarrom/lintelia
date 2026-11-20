@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react';
 import * as icons from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { ComponentDefinition } from '@repo/fintivio/schemas';
+import type { ComponentDefinition } from '@repo/lintelia/schemas';
 import { useApiQuery } from '@/lib/services/api';
 
 /** The component catalogue (GET /workflow-components): built-ins + the institution's connector components. */

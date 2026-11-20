@@ -9,7 +9,7 @@ export default function NotFoundPage() {
   const notFound = !error || (isRouteErrorResponse(error) && error.status === 404);
   return (
     <div className="flex min-h-screen flex-col bg-canvas">
-      <header className="px-6 py-5"><Link to="/" aria-label="Fintivio home"><Logo size="sm" /></Link></header>
+      <header className="px-6 py-5"><Link to="/" aria-label="Lintelia home"><Logo size="sm" /></Link></header>
       <main className="flex flex-1 items-center justify-center px-6 pb-20">
         <div className="max-w-md text-center">
           <SearchArt className="mx-auto w-56" />

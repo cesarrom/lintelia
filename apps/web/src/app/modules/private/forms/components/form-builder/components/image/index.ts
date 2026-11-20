@@ -1,7 +1,7 @@
 import { Image } from 'lucide-react';
 import { IFormComponent } from '../../schemas';
 import { ImageComponentSchema } from './schema';
-import { ImageConfig, imageConfigSchema } from '@repo/fintivio/schemas';
+import { ImageConfig, imageConfigSchema } from '@repo/lintelia/schemas';
 import { ImageEditor } from './editor';
 import { ImageViewer } from './viewer';
 import { ImageProperties } from './properties';

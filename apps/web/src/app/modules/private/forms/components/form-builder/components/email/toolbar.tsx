@@ -3,7 +3,7 @@
 import { useDraggable } from '@dnd-kit/core';
 import { Mail } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { emailConfigSchema } from '@repo/fintivio/schemas';
+import { emailConfigSchema } from '@repo/lintelia/schemas';
 
 export function EmailToolbar() {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({

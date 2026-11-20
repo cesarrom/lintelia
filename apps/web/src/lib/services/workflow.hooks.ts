@@ -5,7 +5,7 @@ import type {
   ResumeWorkflowRequest, // From dto.schema.ts
   SaveWorkflowRequest, // From dto.schema.ts
   SetWorkflowStatusRequest, // From dto.schema.ts
-} from '@repo/fintivio/schemas';
+} from '@repo/lintelia/schemas';
 import { useAxios, useRestateClient } from './axios'; // Import useAxios
 
 const API_BASE_URL = import.meta.env.VITE_FILES_API_BASE_URL; // Add for standard API calls

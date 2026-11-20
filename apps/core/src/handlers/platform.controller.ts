@@ -6,7 +6,7 @@ import { SupportAccessService } from '../services/support-access.service';
 import { PlatformAuditWriter } from '../services/platform-audit.writer';
 import { ConnectorRegistry } from '../integrations/registry';
 import { USER } from '../injector/tokens/user.token';
-import type { User } from '@repo/fintivio/schemas';
+import type { User } from '@repo/lintelia/schemas';
 import { BadRequestError } from '../http/errors';
 import { type AppRequest, REQUEST_PROXY } from '../injector/tokens/request-proxy.token';
 import { handle } from '../http/respond';

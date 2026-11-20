@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { Loader2 } from 'lucide-react';
-import { BUILTIN_PAGES, type BackOfficePage } from '@repo/fintivio/schemas';
+import { BUILTIN_PAGES, type BackOfficePage } from '@repo/lintelia/schemas';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EmptyState, PageContainer, PageHeader } from '@/components/app/page';
@@ -88,8 +88,8 @@ export function useHomeRedirect() {
   const navigate = useNavigate();
   useEffect(() => {
     const home = definition?.homes[0];
-    if (!home || sessionStorage.getItem('fintivio.home-applied')) return;
-    sessionStorage.setItem('fintivio.home-applied', '1');
+    if (!home || sessionStorage.getItem('lintelia.home-applied')) return;
+    sessionStorage.setItem('lintelia.home-applied', '1');
     if (home.page) navigate(`/app/x/${home.page}`, { replace: true });
     else if (home.builtin && home.builtin !== 'dashboard') navigate(BUILTIN_PAGES[home.builtin].path, { replace: true });
   }, [definition, navigate]);

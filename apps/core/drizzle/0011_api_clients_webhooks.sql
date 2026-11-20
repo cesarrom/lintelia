@@ -82,16 +82,16 @@ CREATE UNIQUE INDEX "api_clients_client_id_idx" ON "api_clients" USING btree ("c
 CREATE INDEX "event_outbox_pending_idx" ON "event_outbox" USING btree ("tenant_id","dispatched_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "webhook_deliveries_event_idx" ON "webhook_deliveries" USING btree ("tenant_id","subscription_id","event_id");--> statement-breakpoint
 CREATE INDEX "webhook_deliveries_subscription_idx" ON "webhook_deliveries" USING btree ("tenant_id","subscription_id","created_at");--> statement-breakpoint
-CREATE POLICY "api_client_index_platform_all" ON "api_client_index" AS PERMISSIVE FOR ALL TO "fintivio_platform" USING (true) WITH CHECK (true);--> statement-breakpoint
-CREATE POLICY "api_clients_tenant_isolation" ON "api_clients" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-CREATE POLICY "event_outbox_tenant_isolation" ON "event_outbox" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-CREATE POLICY "webhook_deliveries_tenant_isolation" ON "webhook_deliveries" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-CREATE POLICY "webhook_subscriptions_tenant_isolation" ON "webhook_subscriptions" AS PERMISSIVE FOR ALL TO "fintivio_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON "api_clients", "webhook_subscriptions", "webhook_deliveries" TO fintivio_app;
+CREATE POLICY "api_client_index_platform_all" ON "api_client_index" AS PERMISSIVE FOR ALL TO "lintelia_platform" USING (true) WITH CHECK (true);--> statement-breakpoint
+CREATE POLICY "api_clients_tenant_isolation" ON "api_clients" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+CREATE POLICY "event_outbox_tenant_isolation" ON "event_outbox" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+CREATE POLICY "webhook_deliveries_tenant_isolation" ON "webhook_deliveries" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+CREATE POLICY "webhook_subscriptions_tenant_isolation" ON "webhook_subscriptions" AS PERMISSIVE FOR ALL TO "lintelia_app" USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid) WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);--> statement-breakpoint
+GRANT SELECT, INSERT, UPDATE, DELETE ON "api_clients", "webhook_subscriptions", "webhook_deliveries" TO lintelia_app;
 --> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE ON "event_outbox" TO fintivio_app;
+GRANT SELECT, INSERT, UPDATE ON "event_outbox" TO lintelia_app;
 --> statement-breakpoint
-GRANT SELECT, INSERT, UPDATE, DELETE ON "api_client_index" TO fintivio_platform;
+GRANT SELECT, INSERT, UPDATE, DELETE ON "api_client_index" TO lintelia_platform;
 --> statement-breakpoint
 ALTER TABLE "api_clients" FORCE ROW LEVEL SECURITY;
 --> statement-breakpoint

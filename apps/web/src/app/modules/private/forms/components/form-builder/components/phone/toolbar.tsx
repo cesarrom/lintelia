@@ -5,7 +5,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { Button } from '@/components/ui/button';
 import { ToolbarProps } from '../../schemas';
 import { v4 as uuid } from 'uuid';
-import { phoneConfigSchema } from '@repo/fintivio/schemas';
+import { phoneConfigSchema } from '@repo/lintelia/schemas';
 
 export function PhoneToolbar({ disabled }: ToolbarProps) {
   const { attributes, listeners, setNodeRef } = useDraggable({

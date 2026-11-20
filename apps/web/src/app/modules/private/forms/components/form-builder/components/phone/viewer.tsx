@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { ViewerProps } from '../../schemas';
 import { cn } from '@/lib/utils';
 import { useController } from 'react-hook-form';
-import { PhoneConfig } from '@repo/fintivio/schemas';
+import { PhoneConfig } from '@repo/lintelia/schemas';
 
 // Helper function to format phone number
 function formatPhoneNumber(value: string, format: 'international' | 'national'): string {

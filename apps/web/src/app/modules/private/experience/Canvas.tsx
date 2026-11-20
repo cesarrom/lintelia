@@ -45,9 +45,9 @@ export function Canvas({ definition, institution, data, page, params, selected, 
   useEffect(() => {
     const onMessage = (event: MessageEvent<PreviewMessage>) => {
       if (event.origin !== window.location.origin || event.source !== frame.current?.contentWindow) return;
-      if (event.data?.type === 'fintivio-preview:ready') setReady(true);
-      if (event.data?.type === 'fintivio-preview:select') onSelect(event.data.widgetId);
-      if (event.data?.type === 'fintivio-preview:location') {
+      if (event.data?.type === 'lintelia-preview:ready') setReady(true);
+      if (event.data?.type === 'lintelia-preview:select') onSelect(event.data.widgetId);
+      if (event.data?.type === 'lintelia-preview:location') {
         if (pending.current) {
           if (event.data.page === pending.current) pending.current = null;
           return;
@@ -64,14 +64,14 @@ export function Canvas({ definition, institution, data, page, params, selected, 
   const send = (message: StudioMessage) => frame.current?.contentWindow?.postMessage(message, window.location.origin);
 
   useEffect(() => {
-    if (ready && data) send({ type: 'fintivio-studio:state', definition, institution, data, selected });
+    if (ready && data) send({ type: 'lintelia-studio:state', definition, institution, data, selected });
   }, [ready, definition, institution, data, selected]);
 
   useEffect(() => {
     if (ready && data && (page !== shownPage.current || params)) {
       shownPage.current = page;
       pending.current = page;
-      send({ type: 'fintivio-studio:navigate', page, params });
+      send({ type: 'lintelia-studio:navigate', page, params });
     }
   }, [ready, page, params, data]); // eslint-disable-line react-hooks/exhaustive-deps
 

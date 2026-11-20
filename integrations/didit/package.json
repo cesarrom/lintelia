@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Fintivio connector: identity verification (document + liveness) with Didit.",
+  "description": "Lintelia connector: identity verification (document + liveness) with Didit.",
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
     "check-types": "tsc --noEmit -p ."
   },
-  "fintivio": {
+  "lintelia": {
     "connector": "didit"
   },
   "dependencies": {

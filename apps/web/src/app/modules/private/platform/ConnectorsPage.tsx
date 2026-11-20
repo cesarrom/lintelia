@@ -40,7 +40,7 @@ export default function ConnectorsPage() {
       <form className="flex items-end gap-2 mb-6" onSubmit={(e) => { e.preventDefault(); void run(() => register.mutateAsync(), 'Version registered (draft)').then(() => setManifestUrl('')); }}>
         <div className="space-y-1 flex-1 max-w-xl">
           <Label htmlFor="manifest-url">Manifest URL</Label>
-          <Input id="manifest-url" placeholder="https://connector.example/.well-known/fintivio-connector.json" value={manifestUrl} onChange={(e) => setManifestUrl(e.target.value)} />
+          <Input id="manifest-url" placeholder="https://connector.example/.well-known/lintelia-connector.json" value={manifestUrl} onChange={(e) => setManifestUrl(e.target.value)} />
         </div>
         <Button type="submit" disabled={!manifestUrl || register.isPending}>Register</Button>
       </form>

@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { ViewerProps } from '../../schemas';
 import { useController, ControllerFieldState, ControllerRenderProps } from 'react-hook-form';
-import { UrlConfig } from '@repo/fintivio/schemas';
+import { UrlConfig } from '@repo/lintelia/schemas';
 
 export function UrlViewer({
   id,

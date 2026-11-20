@@ -1,6 +1,6 @@
 import { Controller, Inject, Post, Res, Scope } from '@nestjs/common';
 import type { Context } from 'hono';
-import type { Tenant, User } from '@repo/fintivio/schemas';
+import type { Tenant, User } from '@repo/lintelia/schemas';
 import { Require } from '../auth/access';
 import { IdentityService } from '../auth/identity.service';
 import { EventRouter } from '../services/event-router';

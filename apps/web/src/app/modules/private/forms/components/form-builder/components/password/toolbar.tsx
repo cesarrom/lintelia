@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { KeyRound } from 'lucide-react';
 import { ToolbarProps } from '../../schemas';
 import { v4 as uuid } from 'uuid';
-import { passwordConfigSchema } from '@repo/fintivio/schemas';
+import { passwordConfigSchema } from '@repo/lintelia/schemas';
 
 export function PasswordToolbar({ disabled }: ToolbarProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({

@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { PropertiesProps } from '../../schemas';
 import { TimeComponentSchema } from './schema';
-import { TimeConfig } from '@repo/fintivio/schemas';
+import { TimeConfig } from '@repo/lintelia/schemas';
 
 export function TimeProperties({ config, onChange }: PropertiesProps<TimeConfig>) {
   const schemaRef = useRef(new TimeComponentSchema(config.propertyName));

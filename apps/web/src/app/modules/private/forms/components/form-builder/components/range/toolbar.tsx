@@ -5,7 +5,7 @@ import { SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ToolbarProps } from '../../schemas';
 import { v4 as uuid } from 'uuid';
-import { rangeConfigSchema } from '@repo/fintivio/schemas';
+import { rangeConfigSchema } from '@repo/lintelia/schemas';
 
 export function RangeToolbar({ disabled }: ToolbarProps) {
   const id = `range-${uuid()}`;

@@ -1,6 +1,6 @@
 import ELK from 'elkjs/lib/elk.bundled.js';
 import type { Edge, Node } from 'reactflow';
-import { ordered, walkWidgets, type ClientWidget } from '@repo/fintivio/schemas';
+import { ordered, walkWidgets, type ClientWidget } from '@repo/lintelia/schemas';
 import type { AppDefinition } from '@/client-app/types';
 import type { MapData, MapEnd, MapForm, MapTouchpoint, MapViaStep, MapWorkflow } from './types';
 

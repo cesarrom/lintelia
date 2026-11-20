@@ -1,4 +1,4 @@
-import type { UploadPurpose } from '@repo/fintivio/entities/tenant';
+import type { UploadPurpose } from '@repo/lintelia/entities/tenant';
 
 /**
  * Upload limits (docs/plans/07 §Decisions). Types are checked three times: declared at intent, sniffed from the bytes

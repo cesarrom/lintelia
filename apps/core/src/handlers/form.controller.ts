@@ -1,5 +1,5 @@
 import { FormsService } from "../services/forms.service";
-import { type User, type UpdateFormRequest, type SubmitFormAnswersRequest, type GenerateFormAIRequest, type CreateFormRequest, type CreateTestFormInstanceRequest, type Tenant } from "@repo/fintivio/schemas";
+import { type User, type UpdateFormRequest, type SubmitFormAnswersRequest, type GenerateFormAIRequest, type CreateFormRequest, type CreateTestFormInstanceRequest, type Tenant } from "@repo/lintelia/schemas";
 import { openaiClient } from '../clients/vendors';
 import { LogsService } from "../services/logs.service";
 import { prompts } from "../prompts/prompt";

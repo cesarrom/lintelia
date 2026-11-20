@@ -1,19 +1,19 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { mount, type EmbeddedApp, type MountOptions } from './embed';
-import { createClient, type ClientOptions, type FintivioClient } from './client';
+import { createClient, type ClientOptions, type LinteliaClient } from './client';
 
 /**
- * React bindings: `<FintivioApp>` embeds the hosted app; `<FintivioProvider>` + hooks drive the API for your own screens.
+ * React bindings: `<LinteliaApp>` embeds the hosted app; `<LinteliaProvider>` + hooks drive the API for your own screens.
  */
 
-export interface FintivioAppProps extends MountOptions {
+export interface LinteliaAppProps extends MountOptions {
   className?: string;
   style?: CSSProperties;
   /** Receives the controller (navigate, startJourney…). */
   onMount?: (app: EmbeddedApp) => void;
 }
 
-export function FintivioApp({ className, style, onMount, ...options }: FintivioAppProps) {
+export function LinteliaApp({ className, style, onMount, ...options }: LinteliaAppProps) {
   const container = useRef<HTMLDivElement>(null);
   // Callbacks may change on every render; the frame must not be recreated for that.
   const latest = useRef(options);
@@ -34,19 +34,19 @@ export function FintivioApp({ className, style, onMount, ...options }: FintivioA
     // Recreate only when what the frame shows changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.appUrl, options.chrome, options.page, JSON.stringify(options.params ?? {})]);
-  return <div ref={container} className={className} style={style} data-fintivio-host="" />;
+  return <div ref={container} className={className} style={style} data-lintelia-host="" />;
 }
 
-const ClientContext = createContext<FintivioClient | null>(null);
+const ClientContext = createContext<LinteliaClient | null>(null);
 
-export function FintivioProvider({ children, client, ...options }: { children: React.ReactNode; client?: FintivioClient } & Partial<ClientOptions>) {
+export function LinteliaProvider({ children, client, ...options }: { children: React.ReactNode; client?: LinteliaClient } & Partial<ClientOptions>) {
   const value = useMemo(() => client ?? createClient(options as ClientOptions), [client]); // eslint-disable-line react-hooks/exhaustive-deps
   return <ClientContext.Provider value={value}>{children}</ClientContext.Provider>;
 }
 
-export function useFintivio(): FintivioClient {
+export function useLintelia(): LinteliaClient {
   const client = useContext(ClientContext);
-  if (!client) throw new Error('FintivioProvider is missing');
+  if (!client) throw new Error('LinteliaProvider is missing');
   return client;
 }
 
@@ -57,8 +57,8 @@ interface Resource<T> {
   refresh: () => Promise<void>;
 }
 
-function useResource<T>(load: (client: FintivioClient) => Promise<T>, deps: unknown[]): Resource<T> {
-  const client = useFintivio();
+function useResource<T>(load: (client: LinteliaClient) => Promise<T>, deps: unknown[]): Resource<T> {
+  const client = useLintelia();
   const [state, setState] = useState<{ data?: T; error?: Error; loading: boolean }>({ loading: true });
   const refresh = useCallback(async () => {
     setState((s) => ({ ...s, loading: true }));
