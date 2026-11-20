@@ -1,13 +1,13 @@
 # Personas
 
-Who uses Fintivio and what they are trying to get done. Flows for each persona are in [flows.md](flows.md);
+Who uses Lintelia and what they are trying to get done. Flows for each persona are in [flows.md](flows.md);
 the permissions behind the roles are in [../architecture/authorization.md](../architecture/authorization.md).
 
 The platform has three audiences, each with its own identity realm:
 
 | Realm | Who | Signs in at | Identity source |
 | --- | --- | --- | --- |
-| **Platform** | Fintivio staff ("us") | platform console (`app.<base domain>`, locally `localhost:3001`) | Fintivio accounts; later the company IdP (SSO) |
+| **Platform** | Lintelia staff ("us") | platform console (`app.<base domain>`, locally `localhost:3001`) | Lintelia accounts; later the company IdP (SSO) |
 | **Institution (FI)** | employees of a financial institution | the FI's workspace (`<fi>.<base domain>` or a custom domain) | FI accounts or the FI's own IdP (OIDC/SAML SSO, SCIM) |
 | **Client** | the FI's customers and related parties | the FI's branded portal / embedded forms | passwordless e-mail, password, passkeys; never the FI's IdP |
 
@@ -17,7 +17,7 @@ that FI has two separate identities. This mirrors how B2B2C platforms separate w
 
 ---
 
-## Platform staff (Fintivio)
+## Platform staff (Lintelia)
 
 Operate the platform; they are a service provider to regulated institutions, so by default they **must not see FI
 customer data**. Reference: SaaS operator models in regulated industries (Microsoft Customer Lockbox, Google Access
@@ -32,7 +32,7 @@ Approval, Salesforce "grant login access").
 
 ## Financial institution (tenant)
 
-A bank, credit union, lender, broker, wealth manager or fintech that uses Fintivio to onboard and serve clients.
+A bank, credit union, lender, broker, wealth manager or fintech that uses Lintelia to onboard and serve clients.
 Roles are modelled on the job functions in KYC/onboarding operations at regulated institutions and on case-management
 products used there (e.g. Fenergo, Pega KYC, Alloy, ComplyAdvantage): first-line operations, second-line compliance,
 builders, and read-only oversight. Institutions can also define **custom roles** from the permission catalogue.
@@ -54,7 +54,7 @@ enforces **segregation of duties** on the actions that matter (nobody approves t
 
 ## Clients (the institution's customers), as broad as it gets
 
-Clients never see Fintivio; they see the institution's brand. A client identity belongs to one institution.
+Clients never see Lintelia; they see the institution's brand. A client identity belongs to one institution.
 
 | Client persona | Situation | Wants to |
 | --- | --- | --- |

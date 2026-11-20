@@ -2,7 +2,7 @@
 
 Design, decisions and what is left: [../plans/15-access-and-roles.md](../plans/15-access-and-roles.md) (decisions in §13,
 change control and recovery in §14). Architecture: [../architecture/authorization.md](../architecture/authorization.md#who-sees-what-docsplans15).
-Also in this batch: the repository now lives at the root of the workspace (the `fintivio/` folder is gone; history kept
+Also in this batch: the repository now lives at the root of the workspace (the `lintelia/` folder is gone; history kept
 as renames).
 
 ## For administrators of an institution
@@ -10,7 +10,7 @@ as renames).
 - **Custom permissions** (*Roles → New permission*, *Custom permissions* tab): name your own capabilities (“Waive
   fees”). Nobody holds a new one until you put it in a role; archiving revokes it everywhere at once.
 - **Extend system roles** (*Extend* on a system role): add your own permissions to Reviewer, Relationship manager…
-  without cloning them; their platform permissions stay and keep evolving with Fintivio.
+  without cloning them; their platform permissions stay and keep evolving with Lintelia.
 - **See who sees what**: the roles × permissions **matrix**; each role's page with its **members** (and how each got the
   role: by hand, from the identity provider's groups, by default, restored by support), **what it opens** (task queues,
   escalations, workflows its holders may start); **who holds a permission** (roles, members, API clients, workflows
@@ -20,7 +20,7 @@ as renames).
   domain), roles of people of that domain come from your IdP's groups — no switch. Map groups to roles (before linking,
   too) and preview what every member holds. From their first sign-in through the IdP (and as SCIM groups change) they
   get exactly the roles of their groups and cannot be given roles by hand; local accounts (emergency administrators,
-  consultants) still can. Without single sign-on, roles are managed in Fintivio. Fintivio keeps the Administrator role
+  consultants) still can. Without single sign-on, roles are managed in Lintelia. Lintelia keeps the Administrator role
   while no group maps to it and never removes your last administrator, and tells you when it had to keep one.
 - **Member attributes** (*Team → Member attributes*): branch, region, licences… set by hand or read from your IdP (a
   claim of the SSO sign-in or a directory attribute); conditions use them (`member.attributes.region = 'EU'`).
@@ -49,8 +49,8 @@ as renames).
 
 | Where | What |
 | --- | --- |
-| `packages/fintivio/src/schemas/authorization.schema.ts` | custom permission keys, `resolvePermissions` with custom keys and system-role extensions (`allCustomPermissions` for admin), access rules (`AccessRule`, `WorkflowAccess`, static check, errors), `platform.tenants:recover` |
-| `packages/fintivio/src/entities` | `custom_permissions`, `role_mappings`, `member_attribute_definitions`, `access_changes`; `users.idp_groups`, `users.attributes`; `user_roles.source/groups/expires_at/granted_by_email`; `workflow_versions.access`; `tenant_security_policies.access_approval/access_notify`; (migrations `0022_access_control.sql`, `0023_sso_linked_roles.sql`; RLS forced) |
+| `packages/lintelia/src/schemas/authorization.schema.ts` | custom permission keys, `resolvePermissions` with custom keys and system-role extensions (`allCustomPermissions` for admin), access rules (`AccessRule`, `WorkflowAccess`, static check, errors), `platform.tenants:recover` |
+| `packages/lintelia/src/entities` | `custom_permissions`, `role_mappings`, `member_attribute_definitions`, `access_changes`; `users.idp_groups`, `users.attributes`; `user_roles.source/groups/expires_at/granted_by_email`; `workflow_versions.access`; `tenant_security_policies.access_approval/access_notify`; (migrations `0022_access_control.sql`, `0023_sso_linked_roles.sql`; RLS forced) |
 | `apps/core/src/access/catalog.ts` | the institution's catalogue, per-request member access (active assignments, custom keys), members holding a permission |
 | `apps/core/src/access/rules.ts` | access rules with JSONata conditions, workflows hidden from a member, start rules, publication checks |
 | `apps/core/src/access/changes.ts`, `change-kinds.ts` | change control engine (submit / approve / reject / cancel, scheduling, expiry, time-bound roles, notifications) and its kinds: roles, member roles and invitations, IdP mappings, workflow publication, the approval policy |

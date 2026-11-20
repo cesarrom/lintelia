@@ -94,7 +94,7 @@ counsel if we ever self-host.
      the step (`signed | declined | expired`).
 - **Template management** (what DocuSeal was meant for: creating templates dynamically) lives in the connector's setup
   UI or is done in Documenso itself; the core only references template ids.
-- **DocuSeal removal**: `handlers/docuseal.controller.ts`, constants, DTOs in `packages/fintivio`, `web/.../docuseal.hooks.ts`,
+- **DocuSeal removal**: `handlers/docuseal.controller.ts`, constants, DTOs in `packages/lintelia`, `web/.../docuseal.hooks.ts`,
   `CreateTemplateDialog.tsx`, document template UI and env variables.
 
 ### Fake `fake-services/documenso` (`:9402`)

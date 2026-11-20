@@ -79,7 +79,7 @@ packages/
   connector-sdk/            @repo/connector-sdk: manifest types + JSON Schema, server kit (verify core requests,
                             redeem exchange codes, installation tokens, typed core client, define actions/triggers,
                             async completion, events, webhooks helpers, idempotency), UI bridge (embedded pages),
-                            test kit (a fake core), CLI: `fintivio-connector validate|dev|register`
+                            test kit (a fake core), CLI: `lintelia-connector validate|dev|register`
 integrations/
   didit/                    server (Bun + Hono), web (Vite React, its own pages), db (Drizzle + migrations, own
   documenso/                database), manifest.json, docs/ (README, configuration, data handling), tests/
@@ -100,14 +100,14 @@ Connectors must not share databases with the core or with each other.
 
 ```jsonc
 {
-  "$schema": "https://fintivio.dev/schemas/connector-manifest/1.json",
+  "$schema": "https://lintelia.example/schemas/connector-manifest/1.json",
   "id": "didit",                                  // stable, globally unique
   "version": "1.2.0",                             // semver; the registry pins versions
   "name": "Didit identity verification",
-  "publisher": { "name": "Fintivio", "url": "https://fintivio.dev", "support": "support@lintelia.example" },
+  "publisher": { "name": "Lintelia", "url": "https://lintelia.example", "support": "support@lintelia.example" },
   "categories": ["identity_verification"],
   "audiences": ["tenant"],                        // platform | tenant | client
-  "baseUrl": "https://didit.connectors.fintivio.dev",
+  "baseUrl": "https://didit.connectors.lintelia.example",
   "auth": {                                       // how the connector authenticates to the core
     "clientId": "conn_didit",                     // issued at registration; key material in the registry
     "jwksUrl": "/.well-known/jwks.json"           // connector's public keys (private_key_jwt)
@@ -129,15 +129,15 @@ Connectors must not share databases with the core or with each other.
       "key": "kyc.verify", "version": 1,
       "title": "Verify identity (document + liveness)", "icon": "/icons/kyc.svg",
       "configSchema": { "type": "object", "properties": { "didit_workflow": { "type": "string", "x-options": "/options/workflows" } } },
-      "inputSchema":  { "type": "object", "required": ["person"], "properties": { "person": { "$ref": "fintivio:person" } } },
-      "outputSchema": { "$ref": "fintivio:verification" },
+      "inputSchema":  { "type": "object", "required": ["person"], "properties": { "person": { "$ref": "lintelia:person" } } },
+      "outputSchema": { "$ref": "lintelia:verification" },
       "events": ["approved", "declined", "in_review", "expired"],
       "invoke": { "url": "/actions/kyc.verify", "mode": "async", "timeout": "P7D" },
       "dataClasses": ["identity_document", "biometric"]
     }
   ],
   "triggers": [
-    { "key": "verification.expired", "title": "Verification expired", "payloadSchema": { "$ref": "fintivio:verification" } }
+    { "key": "verification.expired", "title": "Verification expired", "payloadSchema": { "$ref": "lintelia:verification" } }
   ],
   "webhooks": { "inbound": "/webhooks/didit" },   // vendor → connector (documented; the core never receives them)
   "egress": ["verification.didit.me", "apx.didit.me"],
@@ -145,19 +145,19 @@ Connectors must not share databases with the core or with each other.
 }
 ```
 
-- Schema: a JSON Schema for the manifest lives in the SDK; `fintivio-connector validate` runs it and lints (unique
+- Schema: a JSON Schema for the manifest lives in the SDK; `lintelia-connector validate` runs it and lints (unique
   keys, reachable URLs, schemas compile, events non-empty…).
-- `$ref: "fintivio:*"` references the **canonical entity schemas** published by the core (below).
+- `$ref: "lintelia:*"` references the **canonical entity schemas** published by the core (below).
 - `x-options` declares **dynamic options** (the Zapier "dynamic fields"/n8n "loadOptions" pattern): the editor asks the
   connector (through the core) for e.g. the list of Didit workflows or Documenso templates of that installation.
 
 ## Registry (core, platform-owned)
 
-- Tables (platform connection, `fintivio_platform`): `connectors(id, name, publisher, status)`,
+- Tables (platform connection, `lintelia_platform`): `connectors(id, name, publisher, status)`,
   `connector_versions(connector_id, version, manifest jsonb, manifest_hash, status: draft|approved|deprecated|revoked,
   approved_by, approved_at)`, `connector_credentials(connector_id, client_id, jwks_url | public_jwk, created_at)`.
 - Registration: `POST /platform/connectors { manifestUrl }` (`platform.connectors:manage`) fetches
-  `${baseUrl}/.well-known/fintivio-connector.json`, validates, stores a **draft** version; a platform admin approves it
+  `${baseUrl}/.well-known/lintelia-connector.json`, validates, stores a **draft** version; a platform admin approves it
   (first-party: part of the release; the review of scopes, egress and data classes becomes mandatory with third parties).
   Locally the stack registers and approves every connector in `integrations/*` automatically (08). Updates are new versions; installations move to a new version
   explicitly (minor/patch auto-upgrade optional; major requires re-consent when scopes grow).
@@ -257,7 +257,7 @@ data-request is only completed when all connectors confirm — ties into CMP-03)
 | `account`, `transaction` | core banking, open banking | affordability, monitoring, suspicious activity triggers |
 | `message` (e-mail/SMS sent, delivery status) | mailer/SMS connectors | timeline, client communications |
 
-- Schemas versioned in `packages/fintivio` (JSON Schema), exposed at `GET /connector-api/schemas/*`.
+- Schemas versioned in `packages/lintelia` (JSON Schema), exposed at `GET /connector-api/schemas/*`.
 - Entity API: `POST /connector-api/entities/{type}` (scoped: `verifications:write`, …), idempotent on
   `(installation, external_ref)`; updates append history; the core audits every write with actor
   `connector:<id>/<installation>`.

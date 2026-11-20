@@ -1,4 +1,4 @@
-# Fintivio design system
+# Lintelia design system
 
 The web app (`apps/web`) follows one visual language across the back office, the platform console, the client
 portal, the embedded forms and the public pages. This page is the reference; the code is the source of truth.
@@ -14,7 +14,7 @@ Lovelace" email=ada@customers.example amount=8000 annualIncome=92000`.
   risk and the next action.
 - **Show the work.** Numbers on the dashboard are real; empty states explain what will appear and why.
 - **Institutions own the client experience.** Sign-on, portal and embedded forms take the institution's brand colour;
-  the back office stays Fintivio.
+  the back office stays Lintelia.
 - **Nothing decorative gets in the way.** Illustrations are `aria-hidden`, contain no interactive words, and never
   repeat names that pages show (tests rely on that too: see "Constraints" below).
 
@@ -74,7 +74,7 @@ Lovelace" email=ada@customers.example amount=8000 annualIncome=92000`.
 | Connector marks (identity scan, signature, radar, database, envelope; plug fallback) | `components/brand/ConnectorLogo.tsx` | Integrations, Platform → Connectors |
 | Client app hero art: documents, wallet (cards and a coin), shield — white on the brand colour | `client-app/art.tsx` | the hero widget |
 
-Connector marks are Fintivio's drawings of what a connector does, not vendors' trademarks.
+Connector marks are Lintelia's drawings of what a connector does, not vendors' trademarks.
 
 ## Writing
 

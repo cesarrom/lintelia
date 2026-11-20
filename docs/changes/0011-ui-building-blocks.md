@@ -31,8 +31,8 @@ en-GB; the dealer portal USD / en-US.
 
 | Where | What |
 | --- | --- |
-| `packages/fintivio/src/utilities/payment-codes.ts` | EMV / EPC / URL / JSON reader, EMV and EPC writers, CRC-16, IBAN and Luhn checks — shared by the app and the API |
-| `packages/fintivio/src/schemas/client-app.schema.ts` | journey `presentation`, link `presentation`, theme (`accent`, `background`, `font`, `buttonShape`, `colorScheme`), `currency`, `locale`; widgets `button` (new props), `fab`, `qr-code`; hex colours validated |
+| `packages/lintelia/src/utilities/payment-codes.ts` | EMV / EPC / URL / JSON reader, EMV and EPC writers, CRC-16, IBAN and Luhn checks — shared by the app and the API |
+| `packages/lintelia/src/schemas/client-app.schema.ts` | journey `presentation`, link `presentation`, theme (`accent`, `background`, `font`, `buttonShape`, `colorScheme`), `currency`, `locale`; widgets `button` (new props), `fab`, `qr-code`; hex colours validated |
 | `apps/core/src/engine/components/client-app.ts` | new field types and options, `autoSubmit`, publication checks |
 | `apps/core/src/client-apps/runtime.service.ts` | the API applies `visibleIf`, reads scanned codes (`<key>Details`), checks OTPs, sliders, patterns and value checks |
 | `apps/core/src/experience-map/model.ts` | the map shows conditional fields, half-width fields and screens that continue by themselves |

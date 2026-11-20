@@ -1,8 +1,8 @@
 # 02 — SSO for staff and institutions (WorkOS), MFA, SCIM
 
-**Decision (2026-11-14)**: WorkOS is the **SSO broker**. In production, Fintivio connects its company IdP (for platform
+**Decision (2026-11-14)**: WorkOS is the **SSO broker**. In production, Lintelia connects its company IdP (for platform
 staff) and each bank connects its own IdP (for its staff) through WorkOS Admin Portal links. Sessions, permissions,
-MFA for password users and client authentication stay in Fintivio. Locally, `fake-services/workos` stands in for WorkOS.
+MFA for password users and client authentication stay in Lintelia. Locally, `fake-services/workos` stands in for WorkOS.
 
 ## Who signs in how
 
@@ -23,7 +23,7 @@ practice (and WorkOS's model) is to trust the IdP and make it a contractual requ
    refuses (or steps up, below) sign-ins without it. Availability through WorkOS is via the profile's raw attributes and
    varies per IdP — to be verified in the WorkOS sandbox; do not promise it until then.
 2. **Step-up for sensitive actions**, independent of SSO: re-authenticate with a passkey (WebAuthn) or TOTP enrolled in
-   Fintivio before filing a SAR, changing roles, approving support access, rotating API secrets (FFIEC/EBA-style
+   Lintelia before filing a SAR, changing roles, approving support access, rotating API secrets (FFIEC/EBA-style
    "strong authentication for critical operations"). Alternatively force a fresh IdP login (`prompt=login`/`max_age`),
    which WorkOS supports per request for OIDC connections only — so our own step-up factor is the portable option.
 3. **Password users** (institutions without SSO, break-glass staff): our own MFA (below), enforced by tenant policy
@@ -50,17 +50,17 @@ core: SsoBroker.profile(code) → link/JIT member → our Redis session + our pe
 - **WorkOS AuthKit (User Management) is not used** (decided): our sessions, lockout, permission model and client
   authentication stay ours; WorkOS is the broker for enterprise connections only.
 - **Going live with WorkOS**: create the production WorkOS environment, register redirect URIs
-  (`https://<platform host>/auth/sso/callback` and each tenant host / custom domain), create the "Fintivio staff"
+  (`https://<platform host>/auth/sso/callback` and each tenant host / custom domain), create the "Lintelia staff"
   organization and connect our IdP, configure the events webhook, set `SSO_BROKER=workos` with the API key and client
   id in the secret manager; staff password sign-in is then disabled except break-glass. Banks are onboarded by sending
   them an Admin Portal link from *Settings → Security → Single sign-on*.
 
 ### Mapping
 
-| Fintivio | WorkOS |
+| Lintelia | WorkOS |
 | --- | --- |
 | tenant (institution) | Organization (`tenants.workos_organization_id`, created when SSO is first enabled) |
-| the platform (staff) | one Organization "Fintivio staff" with our company IdP connection |
+| the platform (staff) | one Organization "Lintelia staff" with our company IdP connection |
 | institution e-mail domains allowed for SSO | Organization domains, **verified** through Admin Portal domain verification (DNS TXT) before SSO can be enforced for them (prevents claiming someone else's domain) |
 | SSO configuration by the bank's IT | Admin Portal link (`intent: sso`), opened from *Settings → Security → Single sign-on* (permission `security:manage`) |
 | SCIM / Google directory | Directory Sync (`intent: dsync`); events `dsync.user.created/updated/deleted`, `dsync.group.*` |

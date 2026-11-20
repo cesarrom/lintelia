@@ -11,7 +11,7 @@ published in the local stack.
 
 | What | Where |
 | --- | --- |
-| The banking app as an existing customer (accounts, cards, two months of transactions, budgets) | `http://demo-bank.localhost:3001/portal` as `client@demo-bank.test` / `fintivio-dev-password` |
+| The banking app as an existing customer (accounts, cards, two months of transactions, budgets) | `http://demo-bank.localhost:3001/portal` as `client@demo-bank.test` / `lintelia-dev-password` |
 | The studio | `http://demo-bank.localhost:3001/app/experience` as `designer@demo-bank.test` (or `admin@`) |
 | Embedded in the bank's own site with the SDK (switch between an existing and a new customer) | `http://localhost:4000/online-banking` (demo site) |
 | A new client | sign up on `http://demo-bank.localhost:3001/sign-on?client=1` → "Create account" (terms and privacy notice), then "Open your first account"; approve the KYC review as `analyst@demo-bank.test` |
@@ -20,7 +20,7 @@ published in the local stack.
 
 One **client app** per institution (`client_apps`), edited as a draft and published as immutable versions
 (`client_app_versions`; publish, roll back, load a version back into the draft). The definition
-(`packages/fintivio/src/schemas/client-app.schema.ts`, shared by API, runtime and studio):
+(`packages/lintelia/src/schemas/client-app.schema.ts`, shared by API, runtime and studio):
 
 - **pages** made of **widgets** (tree, sections hold children), each with props and an optional `visibleIf` rule;
   a **navigation** (label, icon, `visibleIf`) and a home page;
@@ -87,7 +87,7 @@ Clients who signed in without the sign-up form (code, the institution's systems,
 everybody after a new version of the terms — accept the app's required consents in the app before anything else.
 The records API (`/clients/:client/records…`, `:client` = id or `ext:<externalId>`) pushes data per client.
 
-## Embedding: `@fintivio/client-sdk`
+## Embedding: `@lintelia/client-sdk`
 
 `packages/client-sdk` (unit tests with jsdom: `bun test`):
 
@@ -95,11 +95,11 @@ The records API (`/clients/:client/records…`, `:client` = id or `ext:<external
   the app in an iframe at `<appUrl>/embed/app`; returns `navigate(page)`, `startJourney(key, input)`,
   `refreshSession()`, `destroy()`. Events: `journey.started`, `journey.completed`, `page.viewed`, `signed-out`.
   `chrome: 'none'` shows content only and sizes the frame to it.
-- `@fintivio/client-sdk/react`: `<FintivioApp>`, `<FintivioProvider>`, `useAppData`, `useJourney`.
-- `@fintivio/client-sdk/react-native`: `<FintivioAppView>` (WebView bridge).
+- `@lintelia/client-sdk/react`: `<LinteliaApp>`, `<LinteliaProvider>`, `useAppData`, `useJourney`.
+- `@lintelia/client-sdk/react-native`: `<LinteliaAppView>` (WebView bridge).
 - headless `createClient({ apiUrl, tenant, fetchClientSecret })` for teams that build their own screens (tokens in
   memory, refreshed; a revoked session signs in again).
-- script tag: `<script src="https://<institution host>/fintivio-client.js">` then `FintivioClient.mount(...)` (built
+- script tag: `<script src="https://<institution host>/lintelia-client.js">` then `LinteliaClient.mount(...)` (built
   from the package by the web app).
 
 Security: the app only talks to a host the institution allowed (the same list feeds `frame-ancestors` of
@@ -157,7 +157,7 @@ computer and a phone, the studio end to end, the SDK embed on another site, cont
 - `bun test` in `apps/core` (57, of which 16 new: the banking workflows are valid, the banking app validates, app validation,
   template formats) and in `packages/client-sdk` (11: embed protocol, headless client).
 - `tsc`: core and e2e clean; web at its previous baseline (203, all in legacy screens); `vite build` emits
-  `fintivio-client.js`.
+  `lintelia-client.js`.
 
 ## Not in this version
 

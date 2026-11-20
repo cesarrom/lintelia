@@ -11,7 +11,7 @@ and contributes workflow components. First-party only for now: platform staff re
 
 | Piece | Where |
 | --- | --- |
-| Manifest (zod schema, scopes, component type `connector:<id>/<key>`) | `packages/fintivio/src/schemas/connectors.schema.ts` |
+| Manifest (zod schema, scopes, component type `connector:<id>/<key>`) | `packages/lintelia/src/schemas/connectors.schema.ts` |
 | SDK (manifest serving, JWKS, signed core requests, core client, SecretStore, idempotency, settings pages) | `packages/connector-sdk` |
 | Registry (versions, approval, revocation; cache refreshed through Postgres `LISTEN/NOTIFY`) | `apps/core/src/integrations/registry.ts`, *Platform → Connectors* |
 | Installations ("connections"), connect/settings hand-off, uninstall + lifecycle | `apps/core/src/integrations/installations.service.ts`, *Integrations* page |
@@ -112,7 +112,7 @@ signed, retried and logged like the others.
 
 Server-Sent Events (docs/plans/17 §4): `GET /live?topics=…` — one stream per tab, the access token in the
 `Authorization` header (fetch), or a single-use ticket for `EventSource` (`POST /live/tickets`). Postgres triggers
-`NOTIFY fintivio_live` after commit with the topics that changed (records, notifications, profiles, cases, tasks, live
+`NOTIFY lintelia_live` after commit with the topics that changed (records, notifications, profiles, cases, tasks, live
 messages); each API instance forwards to its streams (`apps/core/src/live/hub.ts`). Thin changes (fetch again through
 the authorised endpoint), ordered and replayable messages (`since`, `Last-Event-ID`, `replay`), keep-alive comments
 (`LIVE_HEARTBEAT_MS`), streams ending with the access token (`expired`) or the session (`revoked`, checked every

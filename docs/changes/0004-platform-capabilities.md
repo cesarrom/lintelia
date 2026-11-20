@@ -10,7 +10,7 @@ see [../testing/flow-status.md](../testing/flow-status.md) (regenerated from the
   connectors. `--detach`, `stack:status|logs|restart <service>|stop|reset|doctor|test`. Declared in
   `dev/stack.config.ts`, ports in `dev/ports.json`, supervisor in `scripts/stack.ts` (process groups, restarts with a
   budget, reuse of services already running, logs in `.data/stack/logs`).
-- `packages/fintivio` builds with `scripts/watch.ts` (builds in `.build/` and swaps files into `dist/`): `bunchee
+- `packages/lintelia` builds with `scripts/watch.ts` (builds in `.build/` and swaps files into `dist/`): `bunchee
   --watch` emptied `dist/` for ~50 s at every start, breaking everything importing it.
 - Fake services (`fake-services/*`, on `packages/fake-kit`): **mailbox** (SMTP + web inbox + REST API, the missing
   verification e-mails), **webhook-receiver**, **scanner** (EICAR), **sanitizer** (PDF rebuild, image metadata),
@@ -20,7 +20,7 @@ see [../testing/flow-status.md](../testing/flow-status.md) (regenerated from the
 
 ## Workflow components and editor (plan 01)
 
-One **component catalogue** (`packages/fintivio/src/schemas/components.schema.ts`, `apps/core/src/engine/components`)
+One **component catalogue** (`packages/lintelia/src/schemas/components.schema.ts`, `apps/core/src/engine/components`)
 drives the editor (palette, generated configuration forms, event handles), validation at publish (including "this
 step has an event its component never emits") and the engine. `GET /workflow-components` includes the components of
 the institution's active connections. The editor renders every step, persists positions, tidies the layout (elk),
@@ -96,6 +96,6 @@ with second factors like people do (`support/factories.ts`) and shares one staff
 
 ## Known gaps
 
-Passkeys and step-up, legacy schemas still in `packages/fintivio` (node configs of the removed engine) and legacy
+Passkeys and step-up, legacy schemas still in `packages/lintelia` (node configs of the removed engine) and legacy
 screens (database tables, logs, reviews), object store adapters for clouds, edge/TLS for custom
 domains, connector SDK test kit. Web typecheck errors remain in legacy screens (database tables, logs, legacy nodes).

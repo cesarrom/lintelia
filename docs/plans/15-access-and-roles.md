@@ -11,14 +11,14 @@ screens) and [17](17-live-data-and-events.md) (live data and events, exploratory
 3. It must be ready for the institution's **own screens, buttons, widgets and menu items** ([16](16-back-office-app.md))
    and for **workflows gated to a set of roles**.
 
-Audience: the institution's team (the *members* realm). Fintivio staff and the institution's clients are out of scope:
+Audience: the institution's team (the *members* realm). Lintelia staff and the institution's clients are out of scope:
 staff have platform roles and support grants; clients have no roles (segments and eligibility rules, plan 11).
 
 ## 2. What exists (and what is missing)
 
 | Piece | Today | Gap |
 | --- | --- | --- |
-| Permission catalogue | 45 tenant permissions `resource:action` in `packages/fintivio/src/schemas/authorization.schema.ts`, shared by API and web app | fixed: an institution cannot name a capability of its own ("may waive fees", "may see the collections console") |
+| Permission catalogue | 45 tenant permissions `resource:action` in `packages/lintelia/src/schemas/authorization.schema.ts`, shared by API and web app | fixed: an institution cannot name a capability of its own ("may waive fees", "may see the collections console") |
 | Roles | 9 immutable system roles + custom roles composed from the catalogue; escalation prevention (grant only what you hold, only admins assign `admin`, nobody edits their own roles, last admin kept) | custom roles are the only way to change anything, so "give reviewers one more thing" means cloning `reviewer` |
 | Enforcement | every route declares `@Require` / `@RequireAny` / `@Access` / `@Public`; deny by default; permissions resolved per request (revocation is immediate) | nothing is gated per *item*: any member with `cases:create` may start **any** published workflow (`POST /workflows/:id/executions`, `GET /workflows/startable`) |
 | Web app | navigation (`apps/web/src/lib/routes/routes.ts`) and buttons follow permissions (`hasPermission`, `PermissionGate`) | the Roles page lists cards of permission badges: no matrix, no members per role, no "what does this role get", no "who can do X" |
@@ -65,7 +65,7 @@ Two consequences shape the design:
 | Deny by default, least privilege | NIST SP 800-53 AC-3, AC-6 | a new custom permission is held by nobody except `admin` until someone grants it |
 | **Builders and access administrators are different people** | SoD; Salesforce *custom permissions*, ServiceNow roles on UI pages, Power Apps security roles | designers *declare* what a screen or workflow requires; administrators *decide* which roles hold it, on the Roles page. One place answers "who sees what" |
 | Roles are the unit of assignment; permissions are the unit of checking | NIST RBAC (INCITS 359) | screens and workflows never name people; they name permissions (or, as a shorthand, roles) |
-| The identity provider is the source of truth for joiners, movers, leavers | SCIM 2.0 (RFC 7643/7644), ISO 27001 A.5.18 | IdP groups map to roles; those assignments are *managed* (read-only in Fintivio), manual ones stay possible |
+| The identity provider is the source of truth for joiners, movers, leavers | SCIM 2.0 (RFC 7643/7644), ISO 27001 A.5.18 | IdP groups map to roles; those assignments are *managed* (read-only in Lintelia), manual ones stay possible |
 | Attribute conditions narrow, never widen | NIST SP 800-162 (ABAC), AWS IAM conditions, Cedar | a condition can only remove access a role gave |
 | A screen is a lens, not a key | — | opening a screen never gives access to data the member could not read anyway; only **workflows** act with their own identity, so *who may start a workflow* is the real grant and is gated like a permission |
 | Periodic review of access | SOX, SOC 2 CC6.2/CC6.3, FFIEC | access reviews with evidence; exports of who holds what |
@@ -125,7 +125,7 @@ access:
 - `when` can only narrow. It is evaluated on the server with the member's attributes and the context (the client or
   case on screen). A failing or erroring condition denies.
 - One evaluator (`authorizeAccess(member, rule, context)`) in the API, one in the web app for presentation, both from
-  `packages/fintivio` so they cannot drift. This is the first piece of the `authorize()` decision function the
+  `packages/lintelia` so they cannot drift. This is the first piece of the `authorize()` decision function the
   authorization doc already plans (Cedar-shaped: principal, action, resource, context).
 
 ### 5.3 Gated workflows

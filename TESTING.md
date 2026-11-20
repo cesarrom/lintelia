@@ -1,4 +1,4 @@
-# Testing Fintivio locally
+# Testing Lintelia locally
 
 This guide covers testing the platform on your own machine:
 
@@ -104,11 +104,11 @@ Services that are already running and healthy (started another way) are reused, 
 | Demo Auto Finance (dealer finance) | http://demo-auto.localhost:3001 (`/app/...` back office, `/portal` dealer & borrower portal) | connected to the fakes and set up by the stack (`demo-auto-finance` task) |
 | API | http://localhost:8000 | `GET /health`; Restate endpoint at `/restate`; core JWKS at `/.well-known/jwks.json` |
 | Mailbox (every e-mail sent) | http://localhost:8025 | SMTP on `localhost:1025`; REST `GET /api/messages?to=` |
-| Demo Bank public website | http://localhost:4000 | the loan form embedded on a third-party site; `/online-banking`: the banking app embedded with `@fintivio/client-sdk` |
+| Demo Bank public website | http://localhost:4000 | the loan form embedded on a third-party site; `/online-banking`: the banking app embedded with `@lintelia/client-sdk` |
 | Restate | ingress http://localhost:8080, admin http://localhost:9070, UI http://localhost:9070/ui/ | durable executions (`caseRun`, `webhooks`, `fileIntake`) |
-| Postgres | `localhost:5433` (owner `postgres` / `postgres`) | databases `fintivio`, `fintivio_test`, `connector_*`, `fi_core_banking` |
+| Postgres | `localhost:5433` (owner `postgres` / `postgres`) | databases `lintelia`, `lintelia_test`, `connector_*`, `fi_core_banking` |
 | Redis | `localhost:6380` | sessions, one-time codes, rate limits |
-| Connectors | smtp-mailer :4101, didit :4102, documenso :4103, postgres-datasource :4104, screening :4105, http :4106, ai :4107, loanpro :4108 | each serves `/.well-known/fintivio-connector.json` and `/health` |
+| Connectors | smtp-mailer :4101, didit :4102, documenso :4103, postgres-datasource :4104, screening :4105, http :4106, ai :4107, loanpro :4108 | each serves `/.well-known/lintelia-connector.json` and `/health` |
 | Fakes | WorkOS :9300, OIDC IdP :9400, Didit :9401, Documenso :9402, webhook receiver :9404, screening :9407, DNS :9408, LLM :9409, LoanPro :9410, QuickBooks :9411, Google Sheets :9412, scanner :9501, sanitiser :9502 | each has `/__health` and `/__control/*`; LLM, LoanPro, QuickBooks and Sheets show what happened at `/` |
 
 Browsers resolve `*.localhost` to 127.0.0.1; server-side code always uses `localhost:<port>` because Bun does not.
@@ -144,11 +144,11 @@ Restate, local object store, signing and encryption keys). `bun run stack:reset`
 
 ### Seeded accounts
 
-Password for every seeded account: **`fintivio-dev-password`** (override with `SEED_PASSWORD`).
+Password for every seeded account: **`lintelia-dev-password`** (override with `SEED_PASSWORD`).
 
 | Where to sign in | Account | Role / what it is for |
 | --- | --- | --- |
-| http://localhost:3001/sign-on | `staff@fintivio.local` | platform staff (`platform_admin`). **Second factor required**: the code comes from `bun run totp`. Break-glass account: keeps password + TOTP even when staff SSO is enforced |
+| http://localhost:3001/sign-on | `staff@lintelia.local` | platform staff (`platform_admin`). **Second factor required**: the code comes from `bun run totp`. Break-glass account: keeps password + TOTP even when staff SSO is enforced |
 | http://demo-bank.localhost:3001/sign-on | `admin@demo-bank.test` (Dana Admin) | administrator: team, roles, security, domains, API clients, webhooks, audit |
 | | `compliance@demo-bank.test` (Morgan MLRO) | compliance officer / MLRO: screening hits, investigations, data requests |
 | | `lead@demo-bank.test` (Lee Lead), `senior@demo-bank.test` (Jordan Senior) | senior reviewers: high-authority approvals (four-eyes), escalations |
@@ -171,7 +171,7 @@ The seeded institutions **do not require** a second factor for members, for conv
 
 | Need | How |
 | --- | --- |
-| Code for `staff@fintivio.local` | `bun run totp` prints the current code and the next one. Development secret: `FINTIVIODEVSTAFFSECRETAAAAAAAAAA` (base32; add it to any authenticator app if you prefer) |
+| Code for `staff@lintelia.local` | `bun run totp` prints the current code and the next one. Development secret: `LINTELIADEVSTAFFSECRETAAAAAAAAAA` (base32; add it to any authenticator app if you prefer) |
 | Code for an account you enrolled | the enrolment screen shows the secret (`data-testid="totp-secret"`); `bun run totp <SECRET>` prints its code |
 | Lost device | one of the 10 recovery codes shown once after enrolment (each works once) |
 
@@ -204,8 +204,8 @@ fake, as an admin would do in the vendor's console. The settings page shows that
 
 | What | Value |
 | --- | --- |
-| Postgres owner | `postgres://postgres:postgres@localhost:5433/fintivio` (migrations, inspection; the API never uses it) |
-| API roles | `fintivio_app` / `fintivio_app_local` (tenant data, row level security), `fintivio_platform` / `fintivio_platform_local` |
+| Postgres owner | `postgres://postgres:postgres@localhost:5433/lintelia` (migrations, inspection; the API never uses it) |
+| API roles | `lintelia_app` / `lintelia_app_local` (tenant data, row level security), `lintelia_platform` / `lintelia_platform_local` |
 | Connector databases | role = database = password = `connector_<id>` (e.g. `connector_didit`) |
 | Sample system of record | `core_banking_reader` / `core-banking-reader-pw` on `fi_core_banking` |
 | WorkOS emulator API key | anything starting with `sk_` (the API uses `sk_test_local_emulator`) |
@@ -269,7 +269,7 @@ What `bun e2e` decides, and says so before the run (`e2e ›` lines, `e2e ⚠` w
 bun run --cwd apps/core test          # RLS isolation of every table, authentication, MFA, case engine definitions, client apps, automation (dealer finance)
 ```
 
-These need Postgres and Redis (the stack) and use the `fintivio_test` database.
+These need Postgres and Redis (the stack) and use the `lintelia_test` database.
 
 ### Type checks
 
@@ -284,8 +284,8 @@ bunx tsc --noEmit -p apps/web                         # ~205 errors remain, all 
 ### Database
 
 ```sh
-bun run db:migrate                                    # apply migrations to fintivio and fintivio_test (idempotent)
-bun run --cwd apps/core db:generate                   # after changing packages/fintivio/src/entities (then append GRANT/FORCE RLS lines)
+bun run db:migrate                                    # apply migrations to lintelia and lintelia_test (idempotent)
+bun run --cwd apps/core db:generate                   # after changing packages/lintelia/src/entities (then append GRANT/FORCE RLS lines)
 bun run db:reset                                      # drop + recreate the dev database, migrate, seed
 bun run db:seed                                       # (re)seed, idempotent
 bun run --cwd apps/core connectors:databases          # connector databases + the sample fi_core_banking database
@@ -298,7 +298,7 @@ bun run connectors:register                           # register + approve the l
 bun run stack:status                                            # every service "up"
 curl -s localhost:8000/health                                   # {"status":"ok"}
 curl -s localhost:8000/.well-known/jwks.json                    # the core's Ed25519 public key
-curl -s localhost:4102/.well-known/fintivio-connector.json      # a connector manifest (Didit)
+curl -s localhost:4102/.well-known/lintelia-connector.json      # a connector manifest (Didit)
 grep -h "registered and approved" .data/stack/logs/register-connectors.log   # 5 connectors
 grep Registered .data/stack/logs/api.log | tail -1              # "Registered … with Restate (3 services)"
 ```
@@ -389,8 +389,8 @@ curl -s localhost:9300/__control/organizations
 
 # DNS (custom domains)
 curl -X POST localhost:9408/__control/records -H 'content-type: application/json' \
-  -d '{"name":"_fintivio-challenge.onboarding.demo-bank.example","type":"TXT","value":"fintivio-verify=…"}'
-curl -s "localhost:9408/resolve?name=_fintivio-challenge.onboarding.demo-bank.example&type=TXT"
+  -d '{"name":"_lintelia-challenge.onboarding.demo-bank.example","type":"TXT","value":"lintelia-verify=…"}'
+curl -s "localhost:9408/resolve?name=_lintelia-challenge.onboarding.demo-bank.example&type=TXT"
 
 # LoanPro (servicing): the back office's own channels — a payment by phone, a missed payment, a payoff.
 # Each sends the signed webhook to the connector, which updates the borrower's app and starts servicing workflows.
@@ -430,7 +430,7 @@ bun run stack:logs api                     # or connector-didit, workos, mailbox
 bun run stack:restart api                  # after changing env variables (code changes reload by themselves)
 curl -s -X POST localhost:9070/query -H 'content-type: application/json' -H 'accept: application/json' \
   -d "{\"query\":\"select id, target_service_name, status from sys_invocation order by created_at desc limit 10\"}"
-psql postgres://postgres:postgres@localhost:5433/fintivio -c "select action, actor_email, at from audit_events order by at desc limit 20"
+psql postgres://postgres:postgres@localhost:5433/lintelia -c "select action, actor_email, at from audit_events order by at desc limit 20"
 ```
 
 ---
@@ -452,7 +452,7 @@ Conventions for every journey below:
 ### J1 — Staff console, onboarding an institution, first sign-in with a second factor
 *Staff, new institution admin. Tests: `staff/platform-console.ui`, `fi-admin/first-sign-in.ui`, `fi-admin/security-policy.api`, `staff/staff-management.api`.*
 
-1. Open http://localhost:3001/sign-on and sign in as `staff@fintivio.local` with the password.
+1. Open http://localhost:3001/sign-on and sign in as `staff@lintelia.local` with the password.
 2. At the code step, enter the output of `bun run totp`. You land on *Institutions*. The navigation shows
    Institutions, Support access, Connectors, Staff and Audit log.
 3. Click **Onboard institution**. Enter a name, a workspace key (e.g. `test-bank`) and an administrator e-mail
@@ -513,11 +513,11 @@ Conventions for every journey below:
 4. Click **Settings**. The connector page opens inside a dialog, and the password field shows "Unchanged". Change
    the from name and save: the dialog closes.
 5. Secrets never reach the core:
-   `psql …/fintivio -c "select count(*) from connector_installations where config_summary::text like '%your-password%'"`
+   `psql …/lintelia -c "select count(*) from connector_installations where config_summary::text like '%your-password%'"`
    returns 0. In the connector's database (`connector_smtp_mailer`), `sdk_secrets` holds ciphertext only.
 6. Removal: a connection used by a published workflow cannot be removed (409). After removal, its components disappear
    from the editor palette and the connector deletes its secrets (its `sdk_installations` row is gone).
-7. As `staff@fintivio.local`: *Platform → Connectors* lists the versions. **Revoke** a connector (e.g. screening):
+7. As `staff@lintelia.local`: *Platform → Connectors* lists the versions. **Revoke** a connector (e.g. screening):
    it disappears from every institution's catalogue. **Reinstate** it afterwards.
 
 ### J6 — Workflow editor
@@ -690,13 +690,13 @@ curl -s -X POST localhost:8000/events -H "Authorization: Bearer $AT" -H 'X-Tenan
 ### J16 — Staff sign in with the company IdP
 *Staff. Test: `staff/staff-sso.api`.*
 
-1. As `staff@fintivio.local`: *Platform → Staff → Company single sign-on*. Do the same as J15 steps 1–4 with a company
-   domain (e.g. `fintivio-corp.example`).
+1. As `staff@lintelia.local`: *Platform → Staff → Company single sign-on*. Do the same as J15 steps 1–4 with a company
+   domain (e.g. `lintelia-corp.example`).
 2. Invite a staff member with an address in that domain. Create them at the IdP.
 3. At http://localhost:3001/sign-on, type their e-mail with an empty password. You go to the IdP and back into the
    console. No second factor is asked: MFA is the IdP's job.
 4. People of the domain without a staff account are refused, because staff are never created just-in-time.
-5. With **Refuse staff passwords** on, passwords are refused for that domain. `staff@fintivio.local` (break-glass)
+5. With **Refuse staff passwords** on, passwords are refused for that domain. `staff@lintelia.local` (break-glass)
    still signs in with password + TOTP.
 6. Turn it off again if you share the machine.
 
@@ -824,7 +824,7 @@ Change log: [docs/changes/0012](docs/changes/0012-access-control.md); e2e: `bun 
    *Access changes* for the other administrator; e-mails arrive at http://localhost:8025. Removing a role never waits.
    *Edit roles* gives a role until a date; any change can take effect *from a date*.
 5. Roles from the identity provider: *Settings → Security → Roles from your identity provider*: map `KYC-Analysts` →
-   Reviewer and `Fintivio-Admins` → Administrator, preview. Set up single sign-on as in J15: as soon as the domain is
+   Reviewer and `Lintelia-Admins` → Administrator, preview. Set up single sign-on as in J15: as soon as the domain is
    verified, roles of its people come from the IdP (the administrators get an e-mail). Create an IdP user with groups
    (`POST http://localhost:9400/__control/users { email, password, groups: ["KYC-Analysts"] }`) and sign in with SSO:
    the member holds Reviewer, read-only in *Team*. Change the groups and sign in again.

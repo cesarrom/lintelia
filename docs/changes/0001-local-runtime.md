@@ -10,7 +10,7 @@ vendor APIs), on the target architecture where that was a prerequisite (single P
 - `bun run db:start`, `bun run restate:serve`, `bun run dev`: database created/migrated/seeded through the restricted
   roles, API boots and registers 23 Restate objects, web app serves.
 - `bun test` in `apps/core`: 27 tests (row level security through the restricted roles, authentication/tenant binding).
-- `tsc --noEmit`: `apps/core` 0 errors (was 33 once its tsconfig was fixed), `packages/fintivio` 0 errors (was 42).
+- `tsc --noEmit`: `apps/core` 0 errors (was 33 once its tsconfig was fixed), `packages/lintelia` 0 errors (was 42).
 - Manually over HTTP/Restate: sign-in for staff, members and clients; cross-tenant token rejected; staff onboarding a
   tenant with an invited admin; invitation accepted through the e-mail link; client self-registration; tenant-scoped
   file upload/download; a workflow (start -> e-mail node -> end) executed durably through the Restate ingress.
@@ -19,7 +19,7 @@ vendor APIs), on the target architecture where that was a prerequisite (single P
 - Clean-room run: a copy of the repository without `node_modules`, `.env`, `.data` or build output, following the
   readme (`bun install --frozen-lockfile`, env files, `db:start`, `restate:serve`, `dev`), then all of the above.
   It caught two first-run problems, now fixed: seeding needed the shared package's `dist/` (the API and scripts now
-  import `packages/fintivio` from source through `paths` in `apps/core/tsconfig.json`, so no build step is needed for
+  import `packages/lintelia` from source through `paths` in `apps/core/tsconfig.json`, so no build step is needed for
   them), and a failed first seed was never retried (`db:start` now seeds whenever the database is empty).
 
 ## Dependencies and tooling
@@ -38,11 +38,11 @@ vendor APIs), on the target architecture where that was a prerequisite (single P
   express-session, socket.io, face-api.js, onfido-sdk-ui, axios, form-data, handlebars, node-fetch, pg, dotenv-flow,
   dotenv-expand, jest/supertest/ts-node/tsup/@nestjs/cli and friends. From `apps/web`: `@descope/react-sdk`,
   `@nestjs/platform-express`, `@repo/ui`.
-- Removed `packages/ui` (an older copy of `packages/fintivio`, not imported anywhere) and TsED/Docker template
+- Removed `packages/ui` (an older copy of `packages/lintelia`, not imported anywhere) and TsED/Docker template
   leftovers in `apps/core` (`Dockerfile`, `docker-compose.yml`, `processes.config.cjs`, `src/config`, nest-cli files;
   they referenced files that do not exist, e.g. `bun.lockb`, `dist/index.js`).
 - `apps/core` tests use `bun test` (there were no tests before).
-- `apps/core` resolves `@repo/fintivio/*` to the package **source** (tsconfig `paths`, honoured by Bun at runtime and
+- `apps/core` resolves `@repo/lintelia/*` to the package **source** (tsconfig `paths`, honoured by Bun at runtime and
   by `tsc`); the web app keeps using the built `dist/` through the package exports.
 
 ## Database: one Postgres, row level security managed by Drizzle
@@ -52,8 +52,8 @@ vendor APIs), on the target architecture where that was a prerequisite (single P
   `0000_bootstrap` (roles, schema privileges, hand-written), `0001_schema` (generated from the entities: tables, enums,
   `ENABLE ROW LEVEL SECURITY`, policies), `0002_grants` (table grants + `FORCE ROW LEVEL SECURITY`, hand-written
   because drizzle-kit does not manage grants). One config: `apps/core/drizzle.config.ts`.
-- Schema source of truth stays in `packages/fintivio/src/entities`:
-  - `rls.ts`: roles (`fintivio_app`, `fintivio_platform`, declared `.existing()`), `tenant_id` column defaulting to
+- Schema source of truth stays in `packages/lintelia/src/entities`:
+  - `rls.ts`: roles (`lintelia_app`, `lintelia_platform`, declared `.existing()`), `tenant_id` column defaulting to
     `current_setting('app.tenant_id')`, the tenant isolation policy.
   - Platform tables: `tenants` (uuid ids; Neon `database_*` columns removed; `status`; `domain` remains the tenant
     key) and `platform_users` (staff). The `environments` table (CloudFront ARNs) was dropped with the AWS code.
@@ -65,7 +65,7 @@ vendor APIs), on the target architecture where that was a prerequisite (single P
   role; migrations run from `scripts/db.ts`.
 - Tenant provisioning (`src/tenancy/provisioning.ts`) replaces "create a Neon database": a `tenants` row plus default
   roles (`admin`, `user`) written through the new tenant's RLS context. Deleting a tenant cascades to its data.
-- Local Postgres: `embedded-postgres`, data in `apps/core/.data/postgres`, databases `fintivio` and `fintivio_test`.
+- Local Postgres: `embedded-postgres`, data in `apps/core/.data/postgres`, databases `lintelia` and `lintelia_test`.
 
 ## Authentication (Descope replaced by a local provider)
 
@@ -113,7 +113,7 @@ vendor APIs), on the target architecture where that was a prerequisite (single P
 - Undefined `req` in the proof-of-life and tenant update handlers; `webService.mockDomain` did not exist.
 - Web tenant hooks called `PUT/DELETE /tenants` while the API only had `/:domain` variants.
 - The image form field stored a different key than the one it uploaded.
-- `packages/fintivio` event types declared `tenantId` as `number` in the base type and `string` everywhere else.
+- `packages/lintelia` event types declared `tenantId` as `number` in the base type and `string` everywhere else.
 - The users service could mint a session for any user by e-mail (`loginByEmail`, unused) — removed.
 
 ## Deliberately disabled: tenant custom tables ("Database" section and `database` workflow node)

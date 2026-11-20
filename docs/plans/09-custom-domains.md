@@ -9,7 +9,7 @@ FIA-03 encodes the target and fails).
 ## Industry-standard flow (Shopify, Vercel, Zendesk, Intercom…)
 
 1. The institution adds `onboarding.bank.com` in *Settings → Domains* (`domains:manage`).
-2. We show the records to create: **ownership** (`TXT _fintivio-challenge.onboarding.bank.com = <token>`) and
+2. We show the records to create: **ownership** (`TXT _lintelia-challenge.onboarding.bank.com = <token>`) and
    **routing** (`CNAME onboarding.bank.com → <tenant-edge-target>`), plus the certificate validation record when the
    provider uses DNS validation.
 3. We poll (and offer "Verify now"); statuses: `pending_verification → verified → certificate_pending → active`

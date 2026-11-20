@@ -136,7 +136,7 @@ countdown with *Stop*. It fires once per set of answers; the API validates as fo
 Publishing refuses: a `display` field without expression, a broken `visibleIf` / `expression` / rule (JSONata), a
 broken `pattern`, an `autoSubmit` on a button the screen does not have or a rule that is empty.
 
-Shared code: `packages/fintivio/src/utilities/payment-codes.ts` (`parsePaymentCode`, `buildEmvPayload`,
+Shared code: `packages/lintelia/src/utilities/payment-codes.ts` (`parsePaymentCode`, `buildEmvPayload`,
 `buildEpcPayload`, `crc16`, `isIban`, `isLuhn`, `VALUE_CHECKS`) — the same reader in the browser and the API.
 
 ### Widgets

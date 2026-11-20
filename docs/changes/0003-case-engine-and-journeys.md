@@ -8,7 +8,7 @@
 - Migrations `0003`–`0008`: `workflow_versions`, `cases`, `tasks`, `audit_events` (append-only, hash-chained),
   `cases.client_visibility`, `cases.consents`, `data_requests`, `public_form_keys`, `platform_audit_events`,
   `support_grants`, `roles.is_system`, `platform_users.roles` and the `invited` staff status. Every tenant table has
-  forced RLS and explicit grants; platform tables are only reachable by `fintivio_platform`.
+  forced RLS and explicit grants; platform tables are only reachable by `lintelia_platform`.
 
 **Identity and authorization** ([identity.md](../architecture/identity.md), [authorization.md](../architecture/authorization.md))
 - 15-minute access tokens bound to Redis sessions, rotating refresh tokens with reuse detection, logout/deactivation/
@@ -45,7 +45,7 @@
 - Form builder: click-to-add fields (drag and drop still works), live changes, wider dialog; "Publish & embed" dialog
   (workflow, allowed sites, script/iframe snippets). Workflows: template gallery, publish with validation errors,
   version badges, "start a case".
-- Hosted/embeddable form `/embed/forms/:key` + `public/embed.js` (iframe, auto-height, `fintivio:*` DOM events),
+- Hosted/embeddable form `/embed/forms/:key` + `public/embed.js` (iframe, auto-height, `lintelia:*` DOM events),
   `frame-ancestors` CSP from the API (Vite plugin locally).
 - Client portal: my applications, confirm an assisted application with consent, requests (answer), privacy (data
   requests, export download).

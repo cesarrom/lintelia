@@ -7,7 +7,7 @@ since [0012](../changes/0012-access-control.md): the institution's **custom perm
 **member attributes** and conditions, **time-bound roles**, **change control** (notifications, a second approver,
 effective dates) and **staff recovery** — see [§ Who sees what](#who-sees-what-docsplans15). Still planned: teams,
 access-review campaigns (the export exists), the back-office screens of plans/16 using the same rules. The catalogue
-lives in `packages/fintivio/src/schemas/authorization.schema.ts` (shared by API and web app).
+lives in `packages/lintelia/src/schemas/authorization.schema.ts` (shared by API and web app).
 
 ## Principles (industry baseline)
 
@@ -164,7 +164,7 @@ Implemented in `apps/core/src/access/` ([0012](../changes/0012-access-control.md
 | Custom permissions | `custom:<key>` (never shadows a built-in id), created by `roles:manage` or `workflows:manage` holders, held by nobody but `admin` until a role holds it; archived (never deleted): archiving removes it from every role and API client at once |
 | System-role extensions | system roles keep the catalogue's permissions (immutable, evolve with releases) and may add custom permissions; the Administrator role holds every custom permission and cannot be extended |
 | Resolution | per request: active assignments (`expires_at` in the future or none) → roles → catalogue + extensions + active custom permissions; API clients lose archived custom permissions at once |
-| Access rules | `{ permissions (all of), roles (one of), when (JSONata over member and context) }`; a failing or erroring condition denies; one evaluator (`access/rules.ts`, static part shared in `packages/fintivio`) |
+| Access rules | `{ permissions (all of), roles (one of), when (JSONata over member and context) }`; a failing or erroring condition denies; one evaluator (`access/rules.ts`, static part shared in `packages/lintelia`) |
 | Workflow access | `access.start` replaces `cases:create` for that workflow (routes `@Access('member','api_client')` + the rule in the service: startable list, executions, assisted cases); `access.cases` narrows case scope (also for `cases:read_all`) and hides the cases' tasks; governed by the latest published version; publishing a change of it is an access change an administrator decides |
 | Roles from the IdP | as soon as single sign-on is linked (a verified domain), people of that domain hold exactly the roles their groups map to (`group name → role`, case-insensitive, SSO ID-token groups and SCIM directory groups; the just-in-time default roles when none maps), from the first time the IdP tells us about them; manual assignment and invitations with roles are refused for that domain; without single sign-on, roles are managed in the app; members outside the SSO domains (emergency administrators, consultants) keep manual roles; assignments record their `source` (`manual`, `idp`, `default`, `recovery`) and groups |
 | Member attributes | declared per institution (text, number, select, list), set by hand or read from the IdP (JSONata over SSO claims / SCIM attributes, read-only in the app); conditions read `member.attributes.*` |
@@ -260,9 +260,9 @@ implemented with ownership columns and checks for now, and is the main reason to
 
 | Layer | Enforces |
 | --- | --- |
-| Postgres RLS (`fintivio_app`) | tenant boundary (done) |
+| Postgres RLS (`lintelia_app`) | tenant boundary (done) |
 | API route guard `@Require(permission)` / `@RequirePlatform` / `@Access(kind)` / `@Public()` (`auth/access.ts`) | permission present; routes without a declaration are refused (deny by default) |
-| Restate ingress | every handler is `ingressPrivate` except the case engine (`caseRun`, which only accepts API calls signed with `x-fintivio-signature`) and the legacy `workflow.trigger/resume` |
+| Restate ingress | every handler is `ingressPrivate` except the case engine (`caseRun`, which only accepts API calls signed with `x-lintelia-signature`) and the legacy `workflow.trigger/resume` |
 | Services / queries | conditions (scope filters, SoD, four-eyes, escalation) |
 | Web app | navigation and actions follow the user's effective permissions (`user.permissions` from sign-in, `GET /auth/me`); never the only check |
 

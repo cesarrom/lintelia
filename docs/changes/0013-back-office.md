@@ -50,7 +50,7 @@ built-in or the institution's own —, roles, condition).
 
 | Where | What |
 | --- | --- |
-| `packages/fintivio/src/schemas/back-office.schema.ts` | the definition (navigation, pages with context, actions, slots, homes), its widgets (`BACK_OFFICE_WIDGETS`), sources and the permissions they need, validation; permissions `backoffice:read/manage/publish` (flow designers all three, auditors read) |
+| `packages/lintelia/src/schemas/back-office.schema.ts` | the definition (navigation, pages with context, actions, slots, homes), its widgets (`BACK_OFFICE_WIDGETS`), sources and the permissions they need, validation; permissions `backoffice:read/manage/publish` (flow designers all three, auditors read) |
 | `apps/core/src/back-office/store.ts` | stored as a second app of the institution (`client_apps` key `backoffice`, same versions), pruning per member (rules, workflows they may not start, references to pruned items) |
 | `apps/core/src/back-office/studio.service.ts` | draft, validation, publication, versions, templates, preview as roles, the access report |
 | `apps/core/src/back-office/runtime.service.ts` | the pruned app, page data under the member's rights (only what the page reads; read auditing), actions (the action's rule and the workflow's start rule), staff screens and where a case stands for the member, the member's pending screens |

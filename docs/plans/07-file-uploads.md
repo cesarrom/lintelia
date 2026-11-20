@@ -38,7 +38,7 @@ portal/back office ──6 GET /files/:id/download ──▶ API authorises ─�
   with object lock where regulation requires immutability of evidence.
 - **Downloads**: authorised per request (case scope, party ownership), signed URL ≤ 60 s with
   `response-content-disposition=attachment` and the sniffed content type, served from a **separate domain** (e.g.
-  `files.fintivio-usercontent.com`) so a malicious file can never run in the app's origin; inline preview only for
+  `files.lintelia-usercontent.example`) so a malicious file can never run in the app's origin; inline preview only for
   PDF/images through a sandboxed viewer.
 - **Audit**: uploaded, scanned, rejected, downloaded (who, when), deleted.
 - **Retention and data rights**: files follow the case retention; erasure deletes clean objects (and versions) unless

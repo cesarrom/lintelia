@@ -17,7 +17,7 @@ always names its realm (`kind`) and, for FI members and clients, its tenant; it 
 | Aspect | Implementation | Standard |
 | --- | --- | --- |
 | Access token | HS256 JWT, 15 min (`AUTH_ACCESS_TTL_SECONDS`), carries `sid` (session id) and a unique `jti`; every request checks that the session still exists | OWASP ASVS V3 |
-| Refresh | rotating refresh token (`POST /auth/refresh`, body or `HttpOnly; SameSite=Lax` cookie `fintivio_refresh`); reusing a rotated token revokes the session (theft detection); session lifetime `AUTH_SESSION_TTL_SECONDS` | OAuth 2.0 for Browser-Based Apps (BCP) |
+| Refresh | rotating refresh token (`POST /auth/refresh`, body or `HttpOnly; SameSite=Lax` cookie `lintelia_refresh`); reusing a rotated token revokes the session (theft detection); session lifetime `AUTH_SESSION_TTL_SECONDS` | OAuth 2.0 for Browser-Based Apps (BCP) |
 | Revocation | `POST /auth/logout`, member deactivation, password change/reset and tenant suspension end sessions at once | OWASP ASVS V3 |
 | Brute force | throttling per account; 5 failures lock sign-in temporarily (`429`); same error for unknown user / wrong password | NIST SP 800-63B §5.2.2 |
 | Web app | keeps the session in `localStorage`, refreshes one minute before expiry or after a `401` (one refresh at a time, across tabs) | |
@@ -46,7 +46,7 @@ site.
 
 Institutions bring their workforce IdP through **WorkOS as SSO broker** (decision in plans/02): the institution's IT
 configures the connection and verifies its e-mail domains in the broker's **Admin Portal**, opened from
-*Settings → Security* (`POST /sso/setup-link`). Fintivio never sees the IdP's secrets.
+*Settings → Security* (`POST /sso/setup-link`). Lintelia never sees the IdP's secrets.
 
 - Port `SsoBroker`, one adapter `WorkOsSsoBroker` (`@workos-inc/node` 11, `apps/core/src/auth/sso/broker.ts`);
   locally it points at the **WorkOS emulator** (`fake-services/workos`: organizations, domains with DNS TXT
@@ -100,7 +100,7 @@ attributes, segments, consents):
   (API client with `clients:provision`) calls `POST /client-sessions` with its customer (`externalId`, e-mail, name,
   attributes). The client is found by `(source, externalId)`, else by e-mail when the app links by e-mail, else
   created. The answer carries a **single-use `clientSecret`** (random, stored hashed in Redis, 5 minutes) that the
-  institution's front end hands to `@fintivio/client-sdk`; the embedded app exchanges it at
+  institution's front end hands to `@lintelia/client-sdk`; the embedded app exchanges it at
   `POST /auth/client/session` (tenant from `X-Tenant` / the host) for a normal client session. A secret of another
   institution, a used or an expired one is refused.
 - **Token exchange** (RFC 8693 style): when the app enables it (issuer, JWKS address, audience), a JWT of the
@@ -134,7 +134,7 @@ to the host page the institution allowed (embedding settings; the same list feed
 
 Implemented for the case engine: cases start through the API (`POST /workflows/:id/executions`, `POST /cases`, form
 submissions, events), which authorises the caller, records `initiatedBy` on the case and calls `caseRun` with an
-HMAC signature (`x-fintivio-signature`, `auth/internal-signature.ts`) instead of a user token. Human tasks are
+HMAC signature (`x-lintelia-signature`, `auth/internal-signature.ts`) instead of a user token. Human tasks are
 completed through the API, authorised at that moment. Nothing sensitive enters the Restate journal (X-05 checks the
 `caseRun` journal), and deactivating the initiator does not break running cases.
 

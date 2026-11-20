@@ -1,6 +1,6 @@
 # 04 — API clients and webhooks
 
-Institutions connect their own systems (core banking, CRM, data warehouse) to Fintivio: **inbound** through API
+Institutions connect their own systems (core banking, CRM, data warehouse) to Lintelia: **inbound** through API
 clients, **outbound** through signed webhooks. Flows FIA-10 and X-07 already encode the contract in the e2e suite.
 
 ## API clients (OAuth 2.0 client credentials)

@@ -134,7 +134,7 @@ is a read-only, signed address (30 days) of a case channel. Payload ≤ 4 kB (64
   validates it (known step types, existing next steps, one start, roles that exist) and freezes it as the next
   version, or answers `422 { errors }`. Running cases keep their version; new cases use the active version.
 - **Starting**: always through the API, which authorises the caller, creates the case and calls the engine with an
-  HMAC-signed request (`x-fintivio-signature`, no user token — nothing sensitive in the Restate journal). Browsers never
+  HMAC-signed request (`x-lintelia-signature`, no user token — nothing sensitive in the Restate journal). Browsers never
   call the Restate ingress; `caseRun` refuses unsigned calls.
 - **Routing and queues**: `assignTo.role` puts the task in that role's queue (claimable by members holding the role).
   High-authority tasks are also open to every member with `cases:approve_high_risk`. Second approvals (four-eyes) are

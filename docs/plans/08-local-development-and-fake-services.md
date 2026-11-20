@@ -77,10 +77,10 @@ demo data) and tells you where to click; the same command is what the e2e suite 
 8. **Print** the table below and keep streaming prefixed logs (`[api]`, `[web]`, `[didit]`…), errors highlighted.
 
 ```
-Fintivio local stack — all 23 services healthy (41 s)
+Lintelia local stack — all 23 services healthy (41 s)
 
-  Back office (Demo Bank)   http://demo-bank.localhost:3001      analyst@demo-bank.test / fintivio-dev-password
-  Platform console          http://localhost:3001               staff SSO: staff@fintivio.local (fake IdP, password "staff")
+  Back office (Demo Bank)   http://demo-bank.localhost:3001      analyst@demo-bank.test / lintelia-dev-password
+  Platform console          http://localhost:3001               staff SSO: staff@lintelia.local (fake IdP, password "staff")
   Client portal             http://demo-bank.localhost:3001/portal   client@demo-bank.test (or "Email me a code")
   Bank website (embedded)   http://localhost:4000
   Mailbox (all e-mails)     http://localhost:8025

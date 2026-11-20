@@ -11,7 +11,7 @@ buyer at the dealership and sends it to one or more lenders; the lender decides,
 paid ("funded"), and the lender services the loan for years. The dealer wants a decision in hours and money in a day;
 the lender wants nothing funded that does not match what was approved.
 
-| Who | Wants | In Fintivio |
+| Who | Wants | In Lintelia |
 | --- | --- | --- |
 | Dealer (F&I manager) | send deals fast, know where each one is, answer what is asked, get funded | a **client** with the `dealer` segment, using the institution's **client app** (dealer portal) |
 | Buyer → borrower | a car; then pay, see the balance, get help, get the title back | a **client** created by the deal (`client.upsert`), same app with the `borrower` segment |

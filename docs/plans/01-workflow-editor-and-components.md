@@ -53,7 +53,7 @@ interface ComponentDefinition {
   executor), replacing the `switch` in `case-runner.ts`; `STEP_TYPES` becomes the registry.
 - **Validation** at publish time validates each step's config against its `configSchema` (ajv) after static checks
   (graph, roles, connections); expressions are compiled (JSONata parse) so syntax errors surface at publish.
-- **Shared package**: the JSON schemas and types live in `packages/fintivio` so the web app can also validate while
+- **Shared package**: the JSON schemas and types live in `packages/lintelia` so the web app can also validate while
   editing.
 
 ## Editor changes
@@ -77,7 +77,7 @@ interface ComponentDefinition {
 7. **Palette** from the catalogue: Flow (condition, wait, end), Data (calculate, map), People (review, task, form
    request), Client (client request, confirmation), Case (update, decision), Communication (e-mail, SMS), Connectors
    (one group per connection).
-8. **Templates and round trip**: the YAML ⇄ graph conversion (`packages/fintivio/src/utilities/workflow.ts`) keeps
+8. **Templates and round trip**: the YAML ⇄ graph conversion (`packages/lintelia/src/utilities/workflow.ts`) keeps
    unknown fields verbatim (today zod schemas and mappers can drop them) and keeps event names.
 
 ## Retiring the legacy engine
@@ -109,7 +109,7 @@ few small components and unblocks reviewing the templates visually; the catalogu
 
 ## Tests
 
-- Unit (`packages/fintivio`): every template round-trips YAML → graph → YAML unchanged (order-insensitive).
+- Unit (`packages/lintelia`): every template round-trips YAML → graph → YAML unchanged (order-insensitive).
 - Unit (core): every built-in definition's `configSchema` accepts the templates and rejects known-bad configs.
 - e2e UI (new flow **DES-06 Edit a workflow visually**): open each template in the editor; every step shows its title and
   summary (e.g. the MLRO step shows "Queue compliance_officer · High authority"); change the triage SLA in the dialog,

@@ -7,7 +7,7 @@ the status column below says what is left.
 
 | # | Document | Topic | Status after 0004 |
 | --- | --- | --- | --- |
-| 01 | [01-workflow-editor-and-components.md](01-workflow-editor-and-components.md) | why nodes render empty in the editor; one component catalogue shared by editor, engine and connectors; retiring the legacy engine | done; legacy node engine removed (its schemas in packages/fintivio remain) |
+| 01 | [01-workflow-editor-and-components.md](01-workflow-editor-and-components.md) | why nodes render empty in the editor; one component catalogue shared by editor, engine and connectors; retiring the legacy engine | done; legacy node engine removed (its schemas in packages/lintelia remain) |
 | 02 | [02-identity-sso-mfa.md](02-identity-sso-mfa.md) | SSO for staff and institutions through WorkOS, with a local WorkOS-compatible emulator; MFA; SCIM | SSO (institutions + staff), directory sync (SCIM), TOTP MFA, policy done; left: passkeys, step-up, SAML fake, group → role mapping |
 | 03 | [03-integrations-architecture.md](03-integrations-architecture.md) | connectors as separate services: manifests, registry, connect/setup flows, SDK, workflow components, events, canonical entities | done; left: SDK test kit, UI bridge session tokens, lifecycle events beyond `uninstalled`, client-audience connectors |
 | 04 | [04-api-clients-and-webhooks.md](04-api-clients-and-webhooks.md) | OAuth client credentials for institutions' systems, outbound signed webhooks, inbound webhooks | done (incl. rate limits, Idempotency-Key); left: `/v1` + OpenAPI, replay of a time range |

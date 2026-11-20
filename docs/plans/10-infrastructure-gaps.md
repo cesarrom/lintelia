@@ -29,8 +29,8 @@ already in the code are marked ✔; ones to add are marked ✚.
 
 ### 1. Postgres with row level security
 
-Requirements we rely on: Postgres ≥ 15 (we use 17), three roles (owner for migrations, `fintivio_app`,
-`fintivio_platform`) that are **not superusers and have no BYPASSRLS**, `set_config('app.tenant_id', …, true)` per
+Requirements we rely on: Postgres ≥ 15 (we use 17), three roles (owner for migrations, `lintelia_app`,
+`lintelia_platform`) that are **not superusers and have no BYPASSRLS**, `set_config('app.tenant_id', …, true)` per
 transaction, composite foreign keys, append-only grants on audit tables.
 
 - **AWS (RDS/Aurora)**: the master user is `rds_superuser`-like — use it only for migrations (CI job), create the two
@@ -42,7 +42,7 @@ transaction, composite foreign keys, append-only grants on audit tables.
 - **GCP (Cloud SQL/AlloyDB)**: `cloudsqlsuperuser` for migrations; Cloud SQL Auth Proxy/connector; AlloyDB if analytics
   on the same data grows.
 - Gap for all: a reporting replica (read-only role with RLS) and per-tenant exports; connection pooling sized for
-  Restate handler concurrency; the `fintivio_test` database never exists in deployed environments.
+  Restate handler concurrency; the `lintelia_test` database never exists in deployed environments.
 
 ### 2. Redis
 

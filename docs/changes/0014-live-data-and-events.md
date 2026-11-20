@@ -33,7 +33,7 @@ Design, decisions, spike findings and what is left: [../plans/17-live-data-and-e
   the start (`GET /live?topics=…&since=0`); nothing published before is lost.
 - `GET /live` streams Server-Sent Events (an API client may listen to cases with `cases:read`); `case.message`
   webhooks carry workflows' messages to one subscription.
-- `@fintivio/client-sdk`: `client.subscribe(topics, onEvent)` for your own screens.
+- `@lintelia/client-sdk`: `client.subscribe(topics, onEvent)` for your own screens.
 
 ## For everyone using the web app
 
@@ -46,7 +46,7 @@ Design, decisions, spike findings and what is left: [../plans/17-live-data-and-e
 
 | Where | What |
 | --- | --- |
-| `packages/fintivio/src/entities/tenant/events.entity.ts` | `inbound_events`, `case_keys`, `case_event_waits`, `case_events`, `live_messages` (migration `0025_live_events.sql`: RLS forced; triggers `NOTIFY fintivio_live` on client records, notifications, profiles, cases, tasks and live messages) |
+| `packages/lintelia/src/entities/tenant/events.entity.ts` | `inbound_events`, `case_keys`, `case_event_waits`, `case_events`, `live_messages` (migration `0025_live_events.sql`: RLS forced; triggers `NOTIFY lintelia_live` on client records, notifications, profiles, cases, tasks and live messages) |
 | `apps/core/src/engine/events.ts` | keys, waits, deliveries (one advisory lock per event type; exactly once per case), buffers |
 | `apps/core/src/services/event-router.ts` | the router: deliver, hand to start-or-deliver cases, start; retention |
 | `apps/core/src/engine/components/events.ts` | `event.wait`, `poll`, `live.publish`; `case.update` `keys`; `case.live.<channel>` |

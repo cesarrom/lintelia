@@ -21,7 +21,7 @@ Read this before running anything.
 - Postgres refuses to run as root, so embedded Postgres has to be started by a normal user.
 
 ## What this is
-A multi-tenant onboarding and KYC workflow engine. `apps/core` is NestJS on the Hono adapter. Durable workflow execution runs on Restate, mounted through one `/restate` controller. `apps/web` is a Vite React app, `apps/e2e` holds the Playwright suite, `integrations/` holds the connector services, `fake-services/` holds the local vendor fakes and `packages/fintivio` holds the shared schemas, entities and events, `packages/client-sdk` the client app SDK and `apps/core/src/solutions` ready-made solutions. The original code dates from May and June 2025.
+A multi-tenant onboarding and KYC workflow engine. `apps/core` is NestJS on the Hono adapter. Durable workflow execution runs on Restate, mounted through one `/restate` controller. `apps/web` is a Vite React app, `apps/e2e` holds the Playwright suite, `integrations/` holds the connector services, `fake-services/` holds the local vendor fakes and `packages/lintelia` holds the shared schemas, entities and events, `packages/client-sdk` the client app SDK and `apps/core/src/solutions` ready-made solutions. The original code dates from May and June 2025.
 
 ## Where things stand
 - **Database:** one Postgres with row-level security enforced. Neon and the per-tenant databases are gone. RLS only counts when the app connects as a restricted role, because superusers bypass it. Local Postgres comes from the `embedded-postgres` npm package.
@@ -32,7 +32,7 @@ A multi-tenant onboarding and KYC workflow engine. `apps/core` is NestJS on the 
 
 ## Known gaps
 - Passkeys and step-up authentication, object-store adapters for real clouds, edge and TLS for custom domains, and a connector SDK test kit (`docs/changes/0004-platform-capabilities.md`, `docs/plans/10-infrastructure-gaps.md`).
-- Legacy schemas of the removed node engine remain in `packages/fintivio`, and the web app has type errors in legacy screens (database tables, logs, legacy nodes).
+- Legacy schemas of the removed node engine remain in `packages/lintelia`, and the web app has type errors in legacy screens (database tables, logs, legacy nodes).
 - The e2e browser tests need Chromium for Playwright (`bunx playwright install chromium`, or `PLAYWRIGHT_BROWSERS_PATH`). The Playwright CDN download may be blocked in a registry-only environment.
 - `.env.example` files list every variable. Fill them with local values only.
 

@@ -1,4 +1,4 @@
-# Fintivio
+# Lintelia
 
 Multi-tenant onboarding and KYC workflow platform for financial institutions.
 
@@ -10,7 +10,7 @@ Multi-tenant onboarding and KYC workflow platform for financial institutions.
 | --- | --- |
 | `apps/core` | API: NestJS on Hono, served by Bun. Durable workflow execution on [Restate](RESTATE.md) (`/restate`). |
 | `apps/web` | Vite + React app (platform staff app, tenant back-office, client-facing forms). |
-| `packages/fintivio` | Shared Drizzle schema (entities + RLS policies), zod schemas, workflow utilities. |
+| `packages/lintelia` | Shared Drizzle schema (entities + RLS policies), zod schemas, workflow utilities. |
 | `packages/connector-sdk` | Build connectors: manifest, signed core requests, core client, encrypted secrets, settings pages. |
 | `integrations/*` | Connectors (separate services with their own databases): smtp-mailer, postgres-datasource, didit, documenso, screening, http (any REST API + its webhooks), ai (document extraction, summaries), loanpro (loan servicing). |
 | `fake-services/*` | Local stand-ins for vendors (WorkOS, OIDC IdP, Didit, Documenso, screening, LLM, LoanPro, QuickBooks, Google Sheets, mailbox, webhook receiver, DNS, scanner, sanitiser). |
@@ -47,11 +47,11 @@ Demo data helpers (`bun run demo:workflows`, `demo:case`, `demo:token`, `demo:fi
 | Demo Bank website | http://localhost:4000 | the loan form embedded on a third-party site |
 | Restate admin | http://localhost:9070 | durable executions |
 
-Seeded accounts (password `fintivio-dev-password`, override with `SEED_PASSWORD`):
+Seeded accounts (password `lintelia-dev-password`, override with `SEED_PASSWORD`):
 
 | Where | Account | Role |
 | --- | --- | --- |
-| http://localhost:3001/sign-on | `staff@fintivio.local` | platform staff (`platform_admin`). Staff always use a second factor: `bun run totp` prints the current code (development TOTP secret in `apps/core/scripts/seed.ts`) |
+| http://localhost:3001/sign-on | `staff@lintelia.local` | platform staff (`platform_admin`). Staff always use a second factor: `bun run totp` prints the current code (development TOTP secret in `apps/core/scripts/seed.ts`) |
 | http://demo-bank.localhost:3001/sign-on | `admin@demo-bank.test` | Demo Bank administrator |
 | | `compliance@demo-bank.test` | compliance officer / MLRO |
 | | `lead@demo-bank.test`, `senior@demo-bank.test` | senior reviewers (second approvals, investigations) |
@@ -119,7 +119,7 @@ Try the journeys (each is an e2e test in `apps/e2e/tests`):
    investigates (can ask the client for documents), `compliance` files the SAR / exits / closes. The client never sees
    the investigation.
 10. **Connect a system**: as `integrations`, *Integrations → SMTP mailer → Connect*: you land on the connector's own page
-   (host `localhost`, port `1025`, any user/password except `wrong`); back in Fintivio the connection is active and the
+   (host `localhost`, port `1025`, any user/password except `wrong`); back in Lintelia the connection is active and the
    workflow editor offers "Send e-mail (your server)". Didit, Documenso and PostgreSQL data sources work the same way.
 11. **Identity verification and signature**: a workflow with `connector:didit/kyc.verify` and
    `connector:documenso/signature.request` steps (see `apps/e2e/fixtures/workflows/retail-account-opening.yaml`): the
@@ -143,7 +143,7 @@ Other commands (run from the repository root or `apps/core`):
 ```sh
 bun run db:reset        # drop + recreate the dev database, migrate, seed
 bun run db:seed         # (re)seed development data, idempotent
-bun run --cwd apps/core db:generate   # generate a migration after changing packages/fintivio/src/entities
+bun run --cwd apps/core db:generate   # generate a migration after changing packages/lintelia/src/entities
 bun run --cwd apps/core test          # RLS + authentication tests (needs db:start running)
 bun run --cwd apps/core check-types
 bun run totp            # current second-factor code of the seeded staff account
@@ -152,11 +152,11 @@ bun run totp            # current second-factor code of the seeded staff account
 ## Tenancy and security model (current)
 
 - **One Postgres database** for platform and tenant data. Every tenant-owned table has a `tenant_id` and a row level
-  security policy declared with Drizzle `pgPolicy` (`packages/fintivio/src/entities/rls.ts`).
+  security policy declared with Drizzle `pgPolicy` (`packages/lintelia/src/entities/rls.ts`).
 - The API connects as two **restricted roles** (never a superuser, no `BYPASSRLS`):
-  - `fintivio_app`: tenant data. Each statement runs in a transaction that first calls
+  - `lintelia_app`: tenant data. Each statement runs in a transaction that first calls
     `set_config('app.tenant_id', <tenant>, true)`; without it the policies match nothing.
-  - `fintivio_platform`: tenant directory and staff accounts only; no access to tenant data.
+  - `lintelia_platform`: tenant directory and staff accounts only; no access to tenant data.
   The owner role is only used by `scripts/db.ts` to run migrations.
 - Child rows reference parents through composite `(tenant_id, id)` foreign keys, because foreign key checks bypass RLS.
 - **Authentication** is a local provider (`apps/core/src/auth`): users in Postgres, argon2id passwords, 15-minute

@@ -229,7 +229,7 @@ This is the *promote the URL beforehand* idea, and it also removes the race betw
   polling the database.
 - **Back office**: tasks, queue counters, the case page and the pipeline refresh live; plan 16 adds `live-feed` (a log
   channel) and `live-value` (a state stream, e.g. a quote with its change).
-- **SDK** (`@fintivio/client-sdk`): `live.subscribe(topic, handler)` for institutions that build their own UI on the
+- **SDK** (`@lintelia/client-sdk`): `live.subscribe(topic, handler)` for institutions that build their own UI on the
   headless API.
 
 ### 4.8 Two walk-throughs

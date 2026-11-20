@@ -1,6 +1,6 @@
 # 0008 — Dealer finance, and the automation building blocks behind it
 
-A lender that buys car loans from dealers can now run the whole business on Fintivio: dealers apply and send deals
+A lender that buys car loans from dealers can now run the whole business on Lintelia: dealers apply and send deals
 with their stipulations from a **dealer portal**; **AI reads the documents**, the numbers and policy flags are computed
 and the deal is **logged in a spreadsheet** before anyone looks; **underwriting** decides, asking the dealer for more as
 often as needed; the buyer and the dealer **sign** (Documenso); the **funding package** is audited; the dealer is
