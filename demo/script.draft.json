@@ -1,0 +1,870 @@
+{
+ "project": "Lintelia",
+ "voice": "Brian",
+ "brand": {
+  "bg1": "#0b1426",
+  "bg2": "#1d3a63",
+  "accent": "#2eaaa0",
+  "closing": "Lintelia"
+ },
+ "actors": {
+  "en": {
+   "staff": "Platform staff",
+   "mailbox": "Local mailbox (simulated)",
+   "admin": "Institution administrator",
+   "customer": "Customer",
+   "applicant": "Customer",
+   "team": "Bank team",
+   "reviewer": "Reviewer",
+   "analyst": "First-line reviewer",
+   "lead": "Senior reviewer",
+   "lead2": "Second senior reviewer"
+  },
+  "es": {
+   "staff": "Personal de la plataforma",
+   "mailbox": "Buzón local (simulado)",
+   "admin": "Administrador de la entidad",
+   "customer": "Cliente",
+   "applicant": "Cliente",
+   "team": "Equipo del banco",
+   "reviewer": "Revisor",
+   "analyst": "Revisor de primera línea",
+   "lead": "Revisor senior",
+   "lead2": "Segundo revisor senior"
+  }
+ },
+ "videos": [
+  {
+   "slug": "01-pitch-reel-en",
+   "voice": "Brian",
+   "lang": "en",
+   "note": "Demo data · identity check, e-signature and e-mail are simulated · interface in English",
+   "parts": [
+    {
+     "type": "card",
+     "kicker": "THE PROBLEM",
+     "title": "Opening an account is more than a form",
+     "subtitle": "An identity check, a signature, a human decision",
+     "say": "Opening an account is more than a form. There is an identity check, an agreement to sign, and a person who has to decide. Lintelia puts all of it in one workflow for financial institutions.",
+     "seconds": 4.5
+    },
+    {
+     "type": "scene",
+     "key": "d01",
+     "lines": [
+      {
+       "step": 2,
+       "text": "Platform staff onboard an institution",
+       "say": "Our staff onboard a new institution from a console, and its administrator is invited by e-mail."
+      },
+      {
+       "step": 6,
+       "text": "The administrator enrols a second factor",
+       "say": "The administrator sets a password and enrols a second factor before entering the new workspace."
+      }
+     ],
+     "to": 7
+    },
+    {
+     "type": "scene",
+     "key": "d02",
+     "lines": [
+      {
+       "step": 2,
+       "text": "The customer verifies identity on a phone",
+       "say": "Customers verify their identity and sign the agreement from their phone."
+      },
+      {
+       "step": 4,
+       "text": "Approved, and the customer is told",
+       "say": "When the checks pass, the application is approved and the customer sees it at once."
+      }
+     ],
+     "to": 4
+    },
+    {
+     "type": "scene",
+     "key": "larger-ones",
+     "lines": [
+      {
+       "step": 2,
+       "text": "Clear-cut cases are decided automatically",
+       "say": "Small, clear-cut cases are decided automatically, with no human step."
+      }
+     ],
+     "to": 2
+    },
+    {
+     "type": "scene",
+     "key": "d03",
+     "lines": [
+      {
+       "step": 5,
+       "text": "A person decides, and gives a reason",
+       "say": "Cases that need a person go to a team queue. The reviewer decides, and has to give a reason."
+      }
+     ],
+     "to": 6
+    },
+    {
+     "type": "scene",
+     "key": "audit-trail",
+     "lines": [
+      {
+       "step": 4,
+       "text": "Large decisions need two approvers",
+       "say": "Large decisions can require two different senior approvers."
+      },
+      {
+       "step": 7,
+       "text": "Every action is in the audit log",
+       "say": "And every action is written to an audit log."
+      }
+     ],
+     "to": 7
+    },
+    {
+     "type": "card",
+     "kicker": "LINTELIA",
+     "title": "Lintelia",
+     "subtitle": "Onboarding and KYC workflows for financial institutions",
+     "say": "Lintelia: onboarding and K Y C workflows for financial institutions. Everything you saw ran on demo data, with simulated identity, signature and e-mail providers.",
+     "seconds": 4.0
+    }
+   ]
+  },
+  {
+   "slug": "01-pitch-reel-es",
+   "voice": "Brian",
+   "lang": "es",
+   "note": "Datos de demostración · verificación, firma y correo simulados · interfaz en inglés",
+   "parts": [
+    {
+     "type": "card",
+     "kicker": "EL PROBLEMA",
+     "title": "Abrir una cuenta es más que un formulario",
+     "subtitle": "Verificar identidad, firmar, y que alguien decida",
+     "say": "Abrir una cuenta es más que un formulario. Hay que verificar la identidad, firmar un acuerdo, y alguien tiene que decidir. Lintelia reúne todo eso en un solo flujo para entidades financieras.",
+     "seconds": 4.5
+    },
+    {
+     "type": "scene",
+     "key": "d01",
+     "lines": [
+      {
+       "step": 2,
+       "text": "El personal de la plataforma da de alta una entidad",
+       "say": "Nuestro equipo da de alta una entidad nueva desde una consola, y su administrador recibe una invitación por correo."
+      },
+      {
+       "step": 6,
+       "text": "El administrador activa un segundo factor",
+       "say": "El administrador elige una contraseña y activa un segundo factor antes de entrar al espacio nuevo."
+      }
+     ],
+     "to": 7
+    },
+    {
+     "type": "scene",
+     "key": "d02",
+     "lines": [
+      {
+       "step": 2,
+       "text": "El cliente verifica su identidad desde el teléfono",
+       "say": "Los clientes verifican su identidad y firman el acuerdo desde su teléfono."
+      },
+      {
+       "step": 4,
+       "text": "Aprobado, y se le avisa al cliente",
+       "say": "Cuando las verificaciones pasan, la solicitud se aprueba y el cliente lo ve enseguida."
+      }
+     ],
+     "to": 4
+    },
+    {
+     "type": "scene",
+     "key": "larger-ones",
+     "lines": [
+      {
+       "step": 2,
+       "text": "Los casos claros se deciden solos",
+       "say": "Los casos pequeños y claros se deciden automáticamente, sin ningún paso humano."
+      }
+     ],
+     "to": 2
+    },
+    {
+     "type": "scene",
+     "key": "d03",
+     "lines": [
+      {
+       "step": 5,
+       "text": "Una persona decide y explica por qué",
+       "say": "Los casos que necesitan a una persona van a una cola del equipo. El revisor decide, y tiene que dar un motivo."
+      }
+     ],
+     "to": 6
+    },
+    {
+     "type": "scene",
+     "key": "audit-trail",
+     "lines": [
+      {
+       "step": 4,
+       "text": "Las decisiones grandes piden dos aprobadores",
+       "say": "Las decisiones grandes pueden exigir a dos aprobadores senior distintos."
+      },
+      {
+       "step": 7,
+       "text": "Cada acción queda en el registro de auditoría",
+       "say": "Y cada acción queda escrita en un registro de auditoría."
+      }
+     ],
+     "to": 7
+    },
+    {
+     "type": "card",
+     "kicker": "LINTELIA",
+     "title": "Lintelia",
+     "subtitle": "Flujos de alta y K Y C para entidades financieras",
+     "say": "Lintelia: flujos de alta y de verificación de identidad para entidades financieras. Todo lo que viste corrió con datos de demostración, y con proveedores de identidad, firma y correo simulados.",
+     "seconds": 4.0
+    }
+   ]
+  },
+  {
+   "slug": "02-tenant-onboarding-en",
+   "voice": "Bella",
+   "lang": "en",
+   "note": "Demo data · identity check, e-signature and e-mail are simulated · interface in English",
+   "parts": [
+    {
+     "type": "card",
+     "kicker": "PLATFORM STAFF",
+     "title": "Onboard a financial institution",
+     "subtitle": "From the console to a working workspace",
+     "say": "In this video, platform staff onboard a financial institution, and its administrator takes the first steps in the new workspace.",
+     "seconds": 4.0
+    },
+    {
+     "type": "scene",
+     "key": "d01",
+     "lines": [
+      {
+       "step": 1,
+       "text": "Platform staff see every institution",
+       "say": "This is the console our platform staff use. Every institution on the platform is listed here."
+      },
+      {
+       "step": 2,
+       "text": "Onboard a new institution",
+       "say": "To add one, staff enter a name, a workspace key and the e-mail of its administrator."
+      },
+      {
+       "step": 3,
+       "text": "The workspace exists and the administrator is invited",
+       "say": "One click creates the workspace and sends the invitation. The institution shows as active right away."
+      },
+      {
+       "step": 4,
+       "text": "The invitation arrives by e-mail (local mailbox, simulated)",
+       "say": "This is the invitation in the demo's local mailbox. E-mail is simulated here, nothing leaves the machine."
+      },
+      {
+       "step": 5,
+       "text": "The administrator chooses a password",
+       "say": "The administrator opens the link and chooses a password."
+      },
+      {
+       "step": 6,
+       "text": "A second factor is required",
+       "say": "A new institution requires a second factor, so the administrator enrols an authenticator app before going in."
+      },
+      {
+       "step": 7,
+       "text": "The workspace is ready",
+       "say": "And the workspace is ready, with its first administrator on the team."
+      },
+      {
+       "step": 8,
+       "text": "The platform audit log records it",
+       "say": "Back in the console, the platform audit log records what staff did."
+      }
+     ],
+     "to": 8
+    },
+    {
+     "type": "card",
+     "kicker": "LINTELIA",
+     "title": "Lintelia",
+     "subtitle": "Onboarding and KYC workflows for financial institutions",
+     "say": "Lintelia: onboarding and K Y C workflows for financial institutions. Everything you saw ran on demo data, with simulated identity, signature and e-mail providers.",
+     "seconds": 4.0
+    }
+   ]
+  },
+  {
+   "slug": "02-tenant-onboarding-es",
+   "voice": "Bella",
+   "lang": "es",
+   "note": "Datos de demostración · verificación, firma y correo simulados · interfaz en inglés",
+   "parts": [
+    {
+     "type": "card",
+     "kicker": "PERSONAL DE LA PLATAFORMA",
+     "title": "Dar de alta una entidad financiera",
+     "subtitle": "De la consola a un espacio de trabajo listo",
+     "say": "En este video, el personal de la plataforma da de alta una entidad financiera, y su administrador da los primeros pasos en el espacio nuevo.",
+     "seconds": 4.0
+    },
+    {
+     "type": "scene",
+     "key": "d01",
+     "lines": [
+      {
+       "step": 1,
+       "text": "El personal ve todas las entidades",
+       "say": "Esta es la consola que usa nuestro personal. Aquí aparece cada entidad de la plataforma."
+      },
+      {
+       "step": 2,
+       "text": "Dar de alta una entidad nueva",
+       "say": "Para añadir una, se escribe el nombre, una clave de espacio y el correo de su administrador."
+      },
+      {
+       "step": 3,
+       "text": "El espacio existe y se invita al administrador",
+       "say": "Con un clic se crea el espacio y se envía la invitación. La entidad aparece activa de inmediato."
+      },
+      {
+       "step": 4,
+       "text": "La invitación llega por correo (buzón local, simulado)",
+       "say": "Esta es la invitación en el buzón local de la demostración. El correo es simulado, nada sale de la máquina."
+      },
+      {
+       "step": 5,
+       "text": "El administrador elige una contraseña",
+       "say": "El administrador abre el enlace y elige una contraseña."
+      },
+      {
+       "step": 6,
+       "text": "Se exige un segundo factor",
+       "say": "Una entidad nueva exige un segundo factor, así que el administrador activa una aplicación de autenticación antes de entrar."
+      },
+      {
+       "step": 7,
+       "text": "El espacio está listo",
+       "say": "Y el espacio está listo, con su primer administrador en el equipo."
+      },
+      {
+       "step": 8,
+       "text": "El registro de auditoría de la plataforma lo anota",
+       "say": "De vuelta en la consola, el registro de auditoría de la plataforma anota lo que hizo el personal."
+      }
+     ],
+     "to": 8
+    },
+    {
+     "type": "card",
+     "kicker": "LINTELIA",
+     "title": "Lintelia",
+     "subtitle": "Flujos de alta y K Y C para entidades financieras",
+     "say": "Lintelia: flujos de alta y de verificación de identidad para entidades financieras. Todo lo que viste corrió con datos de demostración, y con proveedores de identidad, firma y correo simulados.",
+     "seconds": 4.0
+    }
+   ]
+  },
+  {
+   "slug": "03-customer-onboarding-en",
+   "voice": "Adam",
+   "lang": "en",
+   "note": "Demo data · identity check, e-signature and e-mail are simulated · interface in English",
+   "parts": [
+    {
+     "type": "card",
+     "kicker": "THE CUSTOMER",
+     "title": "Opening an account, from the customer's side",
+     "subtitle": "Apply, verify, sign, approved",
+     "say": "This is the journey of one customer, from the first form to an approved account.",
+     "seconds": 3.5
+    },
+    {
+     "type": "scene",
+     "key": "d03",
+     "lines": [
+      {
+       "step": 1,
+       "text": "It starts on the bank's own website",
+       "say": "It starts on the bank's own website, with a form embedded in the page."
+      },
+      {
+       "step": 2,
+       "text": "The e-mail is confirmed with a code",
+       "say": "The customer confirms their e-mail with a code, so the bank knows the address is real."
+      }
+     ],
+     "to": 2
+    },
+    {
+     "type": "scene",
+     "key": "d02",
+     "lines": [
+      {
+       "step": 1,
+       "text": "The portal shows what the bank needs",
+       "say": "In their portal, on a phone, the customer sees exactly what the bank is waiting for."
+      },
+      {
+       "step": 2,
+       "text": "Verify identity (simulated provider)",
+       "say": "The identity check opens in a secure page. Here the provider is simulated, and we choose the outcome."
+      },
+      {
+       "step": 3,
+       "text": "Sign the agreement (simulated provider)",
+       "say": "Next comes the agreement to sign. The signature provider is simulated too."
+      },
+      {
+       "step": 4,
+       "text": "Approved, and the customer sees it",
+       "say": "The checks pass, the case is approved, and the customer sees it at once."
+      },
+      {
+       "step": 5,
+       "text": "The team sees the full record",
+       "say": "On the bank's side, the team sees the verification, the signature and the signed file on the same case."
+      }
+     ],
+     "to": 5
+    },
+    {
+     "type": "card",
+     "kicker": "LINTELIA",
+     "title": "Lintelia",
+     "subtitle": "Onboarding and KYC workflows for financial institutions",
+     "say": "Lintelia: onboarding and K Y C workflows for financial institutions. Everything you saw ran on demo data, with simulated identity, signature and e-mail providers.",
+     "seconds": 4.0
+    }
+   ]
+  },
+  {
+   "slug": "03-customer-onboarding-es",
+   "voice": "Adam",
+   "lang": "es",
+   "note": "Datos de demostración · verificación, firma y correo simulados · interfaz en inglés",
+   "parts": [
+    {
+     "type": "card",
+     "kicker": "EL CLIENTE",
+     "title": "Abrir una cuenta, desde el lado del cliente",
+     "subtitle": "Solicitar, verificar, firmar, aprobado",
+     "say": "Este es el recorrido de un cliente, desde el primer formulario hasta una cuenta aprobada.",
+     "seconds": 3.5
+    },
+    {
+     "type": "scene",
+     "key": "d03",
+     "lines": [
+      {
+       "step": 1,
+       "text": "Empieza en el sitio web del banco",
+       "say": "Todo empieza en el sitio web del banco, con un formulario incrustado en la página."
+      },
+      {
+       "step": 2,
+       "text": "El correo se confirma con un código",
+       "say": "El cliente confirma su correo con un código, para que el banco sepa que la dirección es real."
+      }
+     ],
+     "to": 2
+    },
+    {
+     "type": "scene",
+     "key": "d02",
+     "lines": [
+      {
+       "step": 1,
+       "text": "El portal muestra lo que el banco necesita",
+       "say": "En su portal, en el teléfono, el cliente ve exactamente qué está esperando el banco."
+      },
+      {
+       "step": 2,
+       "text": "Verificar la identidad (proveedor simulado)",
+       "say": "La verificación de identidad se abre en una página segura. Aquí el proveedor es simulado, y elegimos el resultado."
+      },
+      {
+       "step": 3,
+       "text": "Firmar el acuerdo (proveedor simulado)",
+       "say": "Después viene el acuerdo para firmar. El proveedor de firma también es simulado."
+      },
+      {
+       "step": 4,
+       "text": "Aprobado, y el cliente lo ve",
+       "say": "Las verificaciones pasan, el caso se aprueba y el cliente lo ve enseguida."
+      },
+      {
+       "step": 5,
+       "text": "El equipo ve el registro completo",
+       "say": "Del lado del banco, el equipo ve la verificación, la firma y el archivo firmado en el mismo caso."
+      }
+     ],
+     "to": 5
+    },
+    {
+     "type": "card",
+     "kicker": "LINTELIA",
+     "title": "Lintelia",
+     "subtitle": "Flujos de alta y K Y C para entidades financieras",
+     "say": "Lintelia: flujos de alta y de verificación de identidad para entidades financieras. Todo lo que viste corrió con datos de demostración, y con proveedores de identidad, firma y correo simulados.",
+     "seconds": 4.0
+    }
+   ]
+  },
+  {
+   "slug": "04-reviewer-decision-en",
+   "voice": "Sarah",
+   "lang": "en",
+   "note": "Demo data · identity check, e-signature and e-mail are simulated · interface in English",
+   "parts": [
+    {
+     "type": "card",
+     "kicker": "THE REVIEWER",
+     "title": "A person makes the call",
+     "subtitle": "Queue, review, decision, reason",
+     "say": "Some cases need a person. Here is how a reviewer takes one from the queue to a decision.",
+     "seconds": 3.5
+    },
+    {
+     "type": "scene",
+     "key": "d03",
+     "lines": [
+      {
+       "step": 3,
+       "text": "The case lands in the team queue",
+       "say": "When a case needs a person, it lands in the team queue."
+      },
+      {
+       "step": 4,
+       "text": "The reviewer claims it and reads the figures",
+       "say": "A reviewer claims it, which assigns it to them, and reads the figures."
+      },
+      {
+       "step": 5,
+       "text": "A reason is required",
+       "say": "Rejecting needs a reason. This reviewer approves, and writes why."
+      },
+      {
+       "step": 6,
+       "text": "The case shows who decided, and when",
+       "say": "The case then shows who decided, and when."
+      },
+      {
+       "step": 7,
+       "text": "The customer sees the decision",
+       "say": "And the customer sees the decision in their own portal."
+      }
+     ],
+     "to": 7
+    },
+    {
+     "type": "card",
+     "kicker": "LINTELIA",
+     "title": "Lintelia",
+     "subtitle": "Onboarding and KYC workflows for financial institutions",
+     "say": "Lintelia: onboarding and K Y C workflows for financial institutions. Everything you saw ran on demo data, with simulated identity, signature and e-mail providers.",
+     "seconds": 4.0
+    }
+   ]
+  },
+  {
+   "slug": "04-reviewer-decision-es",
+   "voice": "Sarah",
+   "lang": "es",
+   "note": "Datos de demostración · verificación, firma y correo simulados · interfaz en inglés",
+   "parts": [
+    {
+     "type": "card",
+     "kicker": "EL REVISOR",
+     "title": "Una persona toma la decisión",
+     "subtitle": "Cola, revisión, decisión, motivo",
+     "say": "Algunos casos necesitan a una persona. Así lleva un revisor un caso desde la cola hasta una decisión.",
+     "seconds": 3.5
+    },
+    {
+     "type": "scene",
+     "key": "d03",
+     "lines": [
+      {
+       "step": 3,
+       "text": "El caso llega a la cola del equipo",
+       "say": "Cuando un caso necesita a una persona, llega a la cola del equipo."
+      },
+      {
+       "step": 4,
+       "text": "El revisor lo toma y lee las cifras",
+       "say": "Un revisor lo toma, con lo que queda asignado a él, y lee las cifras."
+      },
+      {
+       "step": 5,
+       "text": "Se exige un motivo",
+       "say": "Para rechazar hace falta un motivo. Este revisor aprueba, y escribe por qué."
+      },
+      {
+       "step": 6,
+       "text": "El caso muestra quién decidió y cuándo",
+       "say": "Luego el caso muestra quién decidió, y cuándo."
+      },
+      {
+       "step": 7,
+       "text": "El cliente ve la decisión",
+       "say": "Y el cliente ve la decisión en su propio portal."
+      }
+     ],
+     "to": 7
+    },
+    {
+     "type": "card",
+     "kicker": "LINTELIA",
+     "title": "Lintelia",
+     "subtitle": "Flujos de alta y K Y C para entidades financieras",
+     "say": "Lintelia: flujos de alta y de verificación de identidad para entidades financieras. Todo lo que viste corrió con datos de demostración, y con proveedores de identidad, firma y correo simulados.",
+     "seconds": 4.0
+    }
+   ]
+  },
+  {
+   "slug": "05-roles-and-audit-en",
+   "voice": "Daniel",
+   "lang": "en",
+   "note": "Demo data · identity check, e-signature and e-mail are simulated · interface in English",
+   "parts": [
+    {
+     "type": "card",
+     "kicker": "CONTROL",
+     "title": "Who can do what, and a record of it",
+     "subtitle": "Roles, four-eyes approval, audit log",
+     "say": "Control matters as much as speed. Here is how roles, a second approver and the audit log work together.",
+     "seconds": 3.5
+    },
+    {
+     "type": "scene",
+     "key": "audit-trail",
+     "lines": [
+      {
+       "step": 1,
+       "text": "A first-line reviewer does not see large loans",
+       "say": "Roles decide who sees what. A first-line reviewer does not see loans above fifty thousand in the team queue."
+      },
+      {
+       "step": 2,
+       "text": "A senior reviewer gives the first approval",
+       "say": "A senior reviewer claims the loan and gives the first approval."
+      },
+      {
+       "step": 3,
+       "text": "The same person cannot approve twice",
+       "say": "The same person cannot also give the second approval."
+      },
+      {
+       "step": 4,
+       "text": "A different senior reviewer confirms",
+       "say": "A different senior reviewer sees it marked second approval, reads the first decision, and confirms."
+      },
+      {
+       "step": 5,
+       "text": "Both approvers are on the case",
+       "say": "The case records both approvers, with their reasons."
+      },
+      {
+       "step": 6,
+       "text": "Roles and permissions",
+       "say": "The institution's administrator manages roles and permissions in one place."
+      },
+      {
+       "step": 7,
+       "text": "The audit log",
+       "say": "And the audit log keeps who did what, and when. Entries are chained, so tampering is detectable."
+      }
+     ],
+     "to": 7
+    },
+    {
+     "type": "card",
+     "kicker": "LINTELIA",
+     "title": "Lintelia",
+     "subtitle": "Onboarding and KYC workflows for financial institutions",
+     "say": "Lintelia: onboarding and K Y C workflows for financial institutions. Everything you saw ran on demo data, with simulated identity, signature and e-mail providers.",
+     "seconds": 4.0
+    }
+   ]
+  },
+  {
+   "slug": "05-roles-and-audit-es",
+   "voice": "Daniel",
+   "lang": "es",
+   "note": "Datos de demostración · verificación, firma y correo simulados · interfaz en inglés",
+   "parts": [
+    {
+     "type": "card",
+     "kicker": "CONTROL",
+     "title": "Quién puede hacer qué, y el registro de ello",
+     "subtitle": "Roles, aprobación de cuatro ojos, auditoría",
+     "say": "El control importa tanto como la rapidez. Así trabajan juntos los roles, un segundo aprobador y el registro de auditoría.",
+     "seconds": 3.5
+    },
+    {
+     "type": "scene",
+     "key": "audit-trail",
+     "lines": [
+      {
+       "step": 1,
+       "text": "Un revisor de primera línea no ve los préstamos grandes",
+       "say": "Los roles deciden quién ve qué. Un revisor de primera línea no ve en la cola los préstamos de más de cincuenta mil."
+      },
+      {
+       "step": 2,
+       "text": "Un revisor senior da la primera aprobación",
+       "say": "Un revisor senior toma el préstamo y da la primera aprobación."
+      },
+      {
+       "step": 3,
+       "text": "La misma persona no puede aprobar dos veces",
+       "say": "La misma persona no puede dar también la segunda aprobación."
+      },
+      {
+       "step": 4,
+       "text": "Otro revisor senior confirma",
+       "say": "Otro revisor senior lo ve marcado como segunda aprobación, lee la primera decisión y confirma."
+      },
+      {
+       "step": 5,
+       "text": "Los dos aprobadores quedan en el caso",
+       "say": "El caso registra a los dos aprobadores, con sus motivos."
+      },
+      {
+       "step": 6,
+       "text": "Roles y permisos",
+       "say": "El administrador de la entidad gestiona roles y permisos en un solo lugar."
+      },
+      {
+       "step": 7,
+       "text": "El registro de auditoría",
+       "say": "Y el registro de auditoría guarda quién hizo qué, y cuándo. Las entradas están encadenadas, así que cualquier alteración se detecta."
+      }
+     ],
+     "to": 7
+    },
+    {
+     "type": "card",
+     "kicker": "LINTELIA",
+     "title": "Lintelia",
+     "subtitle": "Flujos de alta y K Y C para entidades financieras",
+     "say": "Lintelia: flujos de alta y de verificación de identidad para entidades financieras. Todo lo que viste corrió con datos de demostración, y con proveedores de identidad, firma y correo simulados.",
+     "seconds": 4.0
+    }
+   ]
+  },
+  {
+   "slug": "06-automation-vs-manual-en",
+   "voice": "Bella",
+   "lang": "en",
+   "note": "Demo data · identity check, e-signature and e-mail are simulated · interface in English",
+   "parts": [
+    {
+     "type": "card",
+     "kicker": "AUTOMATION",
+     "title": "Some cases decide themselves",
+     "subtitle": "Automatic and manual paths in one workflow",
+     "say": "Not every case needs a person. Here three applications take three different paths through the same workflow.",
+     "seconds": 3.5
+    },
+    {
+     "type": "scene",
+     "key": "larger-ones",
+     "lines": [
+      {
+       "step": 1,
+       "text": "Three applications, three paths",
+       "say": "Three applications came in through the same form, and each took a different path."
+      },
+      {
+       "step": 2,
+       "text": "Affordable and small: approved automatically",
+       "say": "A small loan the applicant can afford was approved by the workflow, with no human step."
+      },
+      {
+       "step": 3,
+       "text": "Unaffordable: declined automatically",
+       "say": "A loan the applicant cannot afford was declined automatically, and the applicant got a polite e-mail."
+      },
+      {
+       "step": 4,
+       "text": "Mid-size: waits for a person",
+       "say": "The mid-size loan waits in the team queue for a reviewer. The rules come from the workflow the institution publishes."
+      }
+     ],
+     "to": 4
+    },
+    {
+     "type": "card",
+     "kicker": "LINTELIA",
+     "title": "Lintelia",
+     "subtitle": "Onboarding and KYC workflows for financial institutions",
+     "say": "Lintelia: onboarding and K Y C workflows for financial institutions. Everything you saw ran on demo data, with simulated identity, signature and e-mail providers.",
+     "seconds": 4.0
+    }
+   ]
+  },
+  {
+   "slug": "06-automation-vs-manual-es",
+   "voice": "Bella",
+   "lang": "es",
+   "note": "Datos de demostración · verificación, firma y correo simulados · interfaz en inglés",
+   "parts": [
+    {
+     "type": "card",
+     "kicker": "AUTOMATIZACIÓN",
+     "title": "Algunos casos se deciden solos",
+     "subtitle": "Rutas automáticas y manuales en un solo flujo",
+     "say": "No todos los casos necesitan a una persona. Aquí tres solicitudes siguen tres caminos distintos por el mismo flujo.",
+     "seconds": 3.5
+    },
+    {
+     "type": "scene",
+     "key": "larger-ones",
+     "lines": [
+      {
+       "step": 1,
+       "text": "Tres solicitudes, tres caminos",
+       "say": "Tres solicitudes entraron por el mismo formulario, y cada una siguió un camino distinto."
+      },
+      {
+       "step": 2,
+       "text": "Pequeño y asequible: aprobado automáticamente",
+       "say": "Un préstamo pequeño que el solicitante puede pagar fue aprobado por el flujo, sin ningún paso humano."
+      },
+      {
+       "step": 3,
+       "text": "No asequible: rechazado automáticamente",
+       "say": "Un préstamo que el solicitante no puede pagar se rechazó automáticamente, y recibió un correo amable."
+      },
+      {
+       "step": 4,
+       "text": "Mediano: espera a una persona",
+       "say": "El préstamo mediano espera en la cola del equipo a que lo revise alguien. Las reglas vienen del flujo que publica la entidad."
+      }
+     ],
+     "to": 4
+    },
+    {
+     "type": "card",
+     "kicker": "LINTELIA",
+     "title": "Lintelia",
+     "subtitle": "Flujos de alta y K Y C para entidades financieras",
+     "say": "Lintelia: flujos de alta y de verificación de identidad para entidades financieras. Todo lo que viste corrió con datos de demostración, y con proveedores de identidad, firma y correo simulados.",
+     "seconds": 4.0
+    }
+   ]
+  }
+ ]
+}
