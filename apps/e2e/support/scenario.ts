@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 import { Api, expectStatus, type Session } from './api';
 import { env } from './env';
-import { addMember, createTenant, uniqueEmail, type TenantHandle } from './factories';
+import { addMember, createTenant, staffSession, uniqueEmail, type TenantHandle } from './factories';
 import { otpCode, waitForEmail } from './mailbox';
 import { simpleFormConfig } from './workflows';
 import { randomUUID } from 'node:crypto';
@@ -36,7 +36,8 @@ const CONNECTOR_CONNECTIONS: Partial<Record<ConnectionName, { connector: string;
 
 /** An institution with members in the given roles (one member per entry) and connections to local fakes. */
 export async function prepareInstitution(opts: { members?: Record<string, string>; connections?: ConnectionName[]; name?: string } = {}): Promise<Institution> {
-  const bank = await createTenant(opts.name ? { name: opts.name, key: `${opts.name.toLowerCase().replace(/[^a-z]+/g, '-')}-${Math.random().toString(36).slice(2, 6)}` } : {});
+  if (opts.name) await removeTenantQuietly(opts.name.toLowerCase().replace(/[^a-z]+/g, '-'));
+  const bank = await createTenant(opts.name ? { name: opts.name, key: opts.name.toLowerCase().replace(/[^a-z]+/g, '-') } : {});
   const members: Record<string, Member> = {};
   for (const [label, role] of Object.entries(opts.members ?? {})) {
     members[label] = await addMember(bank, { roles: [role], label });
@@ -129,4 +130,11 @@ export async function confirmAssisted(bank: TenantHandle, email: string, caseId:
   const confirmed = await Api.as(client).post(`/me/cases/${caseId}/confirm`, { consent: true });
   expectStatus(confirmed, 200);
   return client;
+}
+
+/** A leftover institution with the same (stable, demo) key from an earlier run would make onboarding fail: remove it. */
+async function removeTenantQuietly(key: string) {
+  const staff = Api.as(await staffSession());
+  await staff.put(`/tenants/${key}`, { data: { status: 'suspended' } });
+  await staff.delete(`/tenants/${key}`);
 }

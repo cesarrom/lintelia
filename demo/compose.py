@@ -42,7 +42,7 @@ FASTWORD = {"es": "Acelerado", "en": "Fast-forward"}
 # Pace. Viewers need time to look, then listen, then digest: the screen shows for LEAD seconds before
 # the voice starts, each line is followed by BREATH seconds of quiet, speech is slowed a little
 # (SPEECH 0.92 = 8 percent, pitch kept), and footage is only sped up where a line asks for it ("fast").
-SPEECH, LEAD, BREATH = 0.92, 0.6, 1.1
+SPEECH, LEAD, BREATH = 0.82, 1.0, 1.8
 ZOOM_IN_AT, ZOOM_IN_FOR, ZOOM_OUT_FOR, ZOOM_MAX = 0.8, 0.9, 0.6, 1.7
 
 
@@ -212,7 +212,7 @@ def tag_png(text, out, pt=22, fill="#e8ecf6", bg="rgba(8,12,32,0.72)"):
 def side_caption_png(text, out):
     """Large left-aligned caption for the space beside a phone."""
     t = out.with_suffix(".t.png")
-    text_png(text, t, 760, 54, gravity="west")
+    text_png(text, t, 520, 46, gravity="west")
     run(["magick", str(t), "-trim", "+repage", str(t)])
     tw, th = size(t)
     bw, bh = tw + 70, th + 56
@@ -414,7 +414,7 @@ def compose_scene(part, results, out_mp4, brand, voice, lang, cache, work, note,
         if ln["step"] not in starts:
             raise SystemExit(f"{part['key']}: no step {ln['step']} in timeline (have {sorted(starts)})")
         mp3 = tts(ln.get("say", ln["text"]), ln.get("voice", voice), cache)
-        segs.append({"text": ln["text"], "mp3": mp3, "n": dur(mp3) / SPEECH, "a": max(0, starts[ln["step"]] - 0.3), "fast": ln.get("fast", 0), "win": j,
+        segs.append({"text": ln["text"], "mp3": mp3, "n": dur(mp3) / SPEECH, "a": max(0, starts[ln["step"]] - 0.3), "fast": ln.get("fast", 0), "hold": float(ln.get("hold", 0)), "win": j,
                      "who": actors.get(ln["step"], "")})
     to = part.get("to")
     last_end = ends[to] if to else (max(ends.values()) if ends else total)
@@ -446,7 +446,7 @@ def compose_scene(part, results, out_mp4, brand, voice, lang, cache, work, note,
                     pieces = [(max(w["off"], pa - 0.5), pa)]
         s["pieces"] = pieces or [(s["a"], s["b"])]
         L = max(0.8, sum(pb - pa for pa, pb in s["pieces"]))
-        need = s["n"] + LEAD + BREATH
+        need = s["n"] + LEAD + BREATH + s["hold"]
         lo = 1.0 / s["fast"] if s["fast"] else 0.85
         f = min(2.5, max(lo, need / L))
         s["f"] = f
@@ -498,7 +498,7 @@ def compose_scene(part, results, out_mp4, brand, voice, lang, cache, work, note,
     fit = (940 / h0) if portrait else min(1760 / w0, 830 / h0)
     fw, fh = int(w0 * fit) // 2 * 2, int(h0 * fit) // 2 * 2
     # A phone stands left of centre inside a bezel; the caption is large text beside it (never below, never boxed into 4:3).
-    fx, fy = (360 if portrait else (W - fw) // 2), ((H - fh) // 2 if portrait else 36)
+    fx, fy = (W - fw) // 2, ((H - fh) // 2 if portrait else 36)
     capx = fx + fw + 120
     bg = work / "bg.png"
     stage_bg(fw, fh, fx, fy, bg)
@@ -612,13 +612,38 @@ def still_clip(png, mp3, seconds, out_mp4):
     run(cmd)
 
 
+def split_scene(part, results):
+    """A scene whose lines alternate between a phone window and a desktop window is cut into runs of one orientation,
+    so each run gets its own layout (portrait phone in a centred bezel, or the landscape stage)."""
+    lines = part["lines"]
+    wins, starts, ends, total, actors, focus = load_timeline(find_dir(results, part["key"]))
+    chosen = pick_windows(wins, starts, actors, [ln["step"] for ln in lines])
+    orient = [wins[j]["sz"][1] > wins[j]["sz"][0] for j in chosen]
+    groups = []
+    for ln, o in zip(lines, orient):
+        if groups and groups[-1][0] == o:
+            groups[-1][1].append(ln)
+        else:
+            groups.append((o, [ln]))
+    out = []
+    for gi, (o, ls) in enumerate(groups):
+        p = {**part, "lines": ls}
+        if gi + 1 < len(groups):
+            p["to"] = groups[gi + 1][1][0]["step"] - 1
+        out.append(p)
+    return out
+
+
 def build_video(v, results, out, brand, default_voice, cache, work_root, actor_names):
     voice, lang, note = v.get("voice", default_voice), v.get("lang", "en"), v.get("note")
     work = work_root / v["slug"]
     shutil.rmtree(work, ignore_errors=True)
     work.mkdir(parents=True)
     clips = []
-    for i, part in enumerate(v["parts"]):
+    parts = []
+    for part in v["parts"]:
+        parts += split_scene(part, results) if part["type"] == "scene" else [part]
+    for i, part in enumerate(parts):
         mp4 = work / f"p{i:02d}.mp4"
         kind = part["type"]
         if kind in ("card", "compare"):

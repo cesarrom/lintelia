@@ -93,14 +93,15 @@ export function endScenes(): void {
 }
 
 /** Type like a person, so a viewer can follow what is being entered. */
-export async function typeSlow(target: Locator, text: string, delay = 45): Promise<void> {
+export async function typeSlow(target: Locator, text: string, delay = 70): Promise<void> {
   await target.click();
   await target.fill('');
   await target.pressSequentially(text, { delay });
 }
 
 /** A beat for the viewer to take in what is on screen. The composer re-times footage to the narration. */
-export const beat = (page: Page, ms = 1200) => page.waitForTimeout(ms);
+const PACE = Number(process.env.E2E_DEMO_PACE ?? 1.5);
+export const beat = (page: Page, ms = 1200) => page.waitForTimeout(Math.round(ms * PACE));
 
 /**
  * Draw the viewer's eye to what matters right now: dim the rest of the page with a spotlight around `target`, and
@@ -179,3 +180,16 @@ export async function demoMember(bank: TenantHandle, fullName: string, role: str
 }
 
 export { addMember, uniqueEmail, env };
+
+/** Remove leftover test institutions so the console list shows only the three seeded ones (demo footage). */
+export async function purgeLeftoverTenants(keep: string[] = []) {
+  const staff = Api.as(await staffSession());
+  const list = await staff.get('/tenants');
+  if (list.status !== 200) return;
+  const seeded = new Set(['acme-credit', 'demo-auto', 'demo-bank', ...keep]);
+  for (const t of list.body as Array<{ domain: string }>) {
+    if (seeded.has(t.domain)) continue;
+    await staff.put(`/tenants/${t.domain}`, { data: { status: 'suspended' } });
+    await staff.delete(`/tenants/${t.domain}`);
+  }
+}

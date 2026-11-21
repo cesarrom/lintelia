@@ -1,37 +1,68 @@
 import { test, expect } from '@playwright/test';
-import { Api } from '../../support/api';
-import { deleteTenant, uniqueEmail } from '../../support/factories';
-import { applyAsClient, prepareInstitution, publishForm, waitForCase } from '../../support/scenario';
-import { publishWorkflow, workflowFixture } from '../../support/workflows';
-import { beat, endScenes, focus, recordedContext, scene, still, unfocus } from '../../support/demo';
+import { deleteTenant } from '../../support/factories';
+import { FakeWebsite } from '../../support/website';
+import { clientSignIn } from '../../support/scenario';
+import { waitForCase } from '../../support/scenario';
+import { otpCode, waitForEmail } from '../../support/mailbox';
+import { embeddedForm } from '../../support/ui';
+import { accountInstitution, ACCOUNT_FORM, caseIdOf } from '../../support/demo-account';
+import { beat, endScenes, focus, recordedContext, scene, still, typeSlow, unfocus } from '../../support/demo';
 
 /**
- * D02: a new customer opens an account on their phone: verifies their identity (Didit, simulated), signs the
- * agreement (Documenso, simulated) and is approved; the bank's team sees the verification, the signature and the file.
+ * D02 (L03): Ada opens an account from the bank's own website, confirms her e-mail, then on her phone verifies her
+ * identity (simulated provider) and signs (simulated provider); the bank's team sees the record.
  */
-test.describe.configure({ timeout: 300_000 });
+test.describe.configure({ timeout: 400_000 });
+const website = new FakeWebsite('www.northwind-bank.localhost');
 
-test('d02 a customer verifies identity and signs on a phone; the team sees the record', async ({ browser }) => {
-  const inst = await prepareInstitution({ name: 'Northwind Bank', members: { designer: 'flow_designer' }, connections: ['didit', 'documenso'] });
+test('d02 a customer opens an account: apply, verify, sign, approved', async ({ browser }) => {
+  await website.start();
+  const { inst, snippet } = await accountInstitution(website);
   try {
-    const designer = Api.as(inst.members.designer);
-    const workflowId = await publishWorkflow(designer, workflowFixture('retail-account-opening', {
-      DIDIT: inst.connections.didit, DOCUMENSO: inst.connections.documenso, REMIND_AFTER: 'P3D', EXPIRES_AFTER: 'P30D',
-    }));
-    const { publicKey } = await publishForm(designer, inst.bank, workflowId);
-    const { caseId, client } = await applyAsClient(inst.bank, publicKey, { email: uniqueEmail('ada.applicant', 'customers.example') });
+    website.page('Open an account', snippet);
+    const email = 'ada.applicant@customers.example';
+    const site = await recordedContext(browser, 'applicant', { app: 'web', url: `${website.origin}/apply`,
+      ready: async (p) => { await embeddedForm(p, ACCOUNT_FORM); } });
+    const sp = site.page;
+    const form = await embeddedForm(sp, ACCOUNT_FORM);
+    await beat(sp, 1500);
 
+    scene("On the bank's own website", 'applicant');
+    await focus(sp, sp.locator(`iframe[title="${ACCOUNT_FORM}"]`));
+    await beat(sp, 1500);
+    await typeSlow(form.getByLabel('Full name'), 'Ada Applicant');
+    await typeSlow(form.getByLabel('E-mail'), email);
+    await beat(sp, 2500);
+    await still(sp, 'site-form');
+    await unfocus(sp);
+    const since = Date.now() - 1000;
+    await form.getByRole('button', { name: 'Submit' }).click();
+
+    scene('E-mail confirmed first', 'applicant');
+    await expect(form.getByLabel('Verification code')).toBeVisible();
+    await beat(sp, 2500);
+    const code = otpCode(await waitForEmail({ tenant: inst.bank.key, to: email, since, subject: /code/i }));
+    await typeSlow(form.getByLabel('Verification code'), code);
+    await beat(sp, 1500);
+    await form.getByRole('button', { name: 'Confirm' }).click();
+    await expect(form.getByTestId('embed-confirmation')).toBeVisible();
+    const reference = (await form.getByTestId('application-reference').textContent())!.trim();
+    await beat(sp, 3500);
+    await still(sp, 'site-confirmed');
+
+    const caseId = await caseIdOf(inst, reference);
+    const client = await clientSignIn(inst.bank, email);
     const phone = await recordedContext(browser, 'customer', { app: 'phone', session: client, url: inst.bank.url(`/portal/cases/${caseId}`),
       ready: async (p) => { await expect(p.getByTestId('client-request').filter({ hasText: 'Verify your identity' })).toBeVisible({ timeout: 30_000 }); } });
     const pp = phone.page;
     await beat(pp, 1500);
-    scene('The customer sees what the bank needs from them', 'customer');
+    scene('What the bank needs', 'customer');
     await focus(pp, pp.getByTestId('client-request').first());
-    await beat(pp, 3500);
+    await beat(pp, 5000);
     await still(pp, 'phone-requests');
     await unfocus(pp);
 
-    scene('Verify identity on the verification page (simulated provider)', 'customer');
+    scene('Identity check (simulated provider)', 'customer');
     await pp.getByTestId('client-request').filter({ hasText: 'Verify your identity' }).getByTestId('client-action').click({ timeout: 30_000 });
     const didit = pp.frameLocator('iframe[title="Verify your identity"]');
     await expect(didit.getByRole('button', { name: /Approve/ })).toBeVisible({ timeout: 20_000 });
@@ -39,36 +70,37 @@ test('d02 a customer verifies identity and signs on a phone; the team sees the r
     await still(pp, 'phone-verify');
     await didit.getByRole('button', { name: /Approve/ }).click();
     await expect(pp.getByTestId('client-action-finished')).toBeVisible();
-    await beat(pp, 2500);
+    await beat(pp, 2000);
 
-    scene('Sign the agreement (simulated provider)', 'customer');
+    scene('E-signature (simulated provider)', 'customer');
     await pp.getByTestId('client-request').filter({ hasText: 'Sign your agreement' }).getByTestId('client-action').click({ timeout: 30_000 });
     const doc = pp.frameLocator('iframe[title="Sign your agreement"]');
     await expect(doc.getByRole('heading', { name: 'Retail account agreement' })).toBeVisible({ timeout: 20_000 });
-    await beat(pp, 3000);
+    await beat(pp, 3500);
     await still(pp, 'phone-sign');
     await doc.getByRole('button', { name: 'Sign' }).click();
 
-    scene('Approved: the customer is told', 'customer');
+    scene('Approved, customer told', 'customer');
     await waitForCase(inst.bank.adminApi, caseId, (c) => c.status === 'approved', 30_000);
     await expect(pp.getByText(/approved/i).first()).toBeVisible({ timeout: 15_000 });
-    await beat(pp, 3500);
+    await beat(pp, 4500);
     await still(pp, 'phone-approved');
 
     const team = await recordedContext(browser, 'team', { app: 'web', session: inst.bank.admin, url: inst.bank.url(`/app/cases/${caseId}`),
-      ready: async (p) => { await expect(p.getByTestId('case-record').first()).toBeVisible({ timeout: 20_000 }); } });
+      ready: async (p) => { await expect(p.getByTestId('case-file').filter({ hasText: 'signed-' })).toBeVisible({ timeout: 30_000 }); } });
     const tp = team.page;
-    scene('The team sees the verification, the signature and the signed file', 'team');
-    await beat(tp, 2000);
-    await expect(tp.getByTestId('case-file').filter({ hasText: 'signed-' })).toBeVisible({ timeout: 20_000 });
+    scene('One case, full record', 'team');
+    await beat(tp, 1500);
     await focus(tp, tp.getByTestId('case-record').first());
-    await beat(tp, 4000);
+    await beat(tp, 5000);
     await unfocus(tp);
+    await tp.mouse.wheel(0, 150);
+    await beat(tp, 3000);
     await still(tp, 'team-case-record');
-    await beat(tp, 2000);
     endScenes();
-    await phone.close(); await team.close();
+    await site.close(); await phone.close(); await team.close();
   } finally {
+    await website.stop();
     await deleteTenant(inst.bank);
   }
 });

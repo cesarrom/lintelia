@@ -118,7 +118,7 @@ export interface TenantHandle {
 export async function createTenant(opts: { name?: string; key?: string } = {}): Promise<TenantHandle> {
   const staff = await staffSession();
   const key = opts.key ?? uniqueKey();
-  const adminEmail = uniqueEmail('admin', `${key}.example`);
+  const adminEmail = opts.name ? `olivia.owner@${key}.example` : uniqueEmail('admin', `${key}.example`);
   const since = Date.now() - 1000;
   const created = await Api.as(staff).post('/tenants', {
     name: opts.name ?? `E2E ${key}`,
@@ -126,7 +126,7 @@ export async function createTenant(opts: { name?: string; key?: string } = {}): 
     invitee: [{ email: adminEmail, role: 'admin' }],
   });
   expectStatus(created, 201);
-  const admin = await acceptInvitation({ tenant: key, email: adminEmail, since });
+  const admin = await acceptInvitation({ tenant: key, email: adminEmail, since, ...(opts.name ? { name: 'Olivia Owner' } : {}) });
   return {
     key,
     host: tenantHost(key),

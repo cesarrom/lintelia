@@ -20,7 +20,7 @@ export async function loanInstitution(browser: Browser, website: FakeWebsite, na
   await designer.getByRole('button', { name: 'Create Form' }).click();
   const dialog = designer.getByRole('dialog');
   await dialog.getByLabel('Form name').fill(FORM_NAME);
-  await dialog.getByLabel('Description').fill('Find out in minutes how much you can borrow.');
+  await dialog.getByLabel('Description').fill('Tell us about the loan you need.');
   const fields: Array<[string, string, string]> = [
     ['Add Text Field', 'fullName', 'Full name'], ['Add Email', 'email', 'E-mail'],
     ['Add Number Field', 'amount', 'Loan amount'], ['Add Number Field', 'annualIncome', 'Annual income'],
