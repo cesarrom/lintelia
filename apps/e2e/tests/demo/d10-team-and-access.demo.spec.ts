@@ -16,12 +16,6 @@ test('d10 team, roles and a second approver', async ({ browser }) => {
     await demoMember(inst.bank, 'Luis Lead', 'senior_reviewer');
     const second = await demoMember(inst.bank, 'Omar Owner', 'admin');
     await demoMember(inst.bank, 'Sam Support', 'support_agent');
-    // Policy: a second administrator for changes that grant access (set unrecorded).
-    const setup = await personaPage(browser, inst.bank.key, inst.bank.admin, '/app/settings?tab=security');
-    await setup.getByLabel('Require a second administrator for changes that grant access').click();
-    await expect(setup.getByText('A second administrator is now required')).toBeVisible();
-    await setup.context().close();
-
     const ol = await recordedContext(browser, 'admin', { app: 'web', session: inst.bank.admin, url: inst.bank.url('/app/users'),
       ready: async (p) => { await expect(p.getByTestId('member-row').first()).toBeVisible({ timeout: 20_000 }); } });
     const op = ol.page;
@@ -55,6 +49,12 @@ test('d10 team, roles and a second approver', async ({ browser }) => {
     await beat(rv.page, 7500);
     await still(rv.page, 'reviewer-menu');
     await unfocus(rv.page);
+
+    // Policy: a second administrator for changes that grant access (set unrecorded).
+    const setup = await personaPage(browser, inst.bank.key, inst.bank.admin, '/app/settings?tab=security');
+    await setup.getByLabel('Require a second administrator for changes that grant access').click();
+    await expect(setup.getByText('A second administrator is now required')).toBeVisible();
+    await setup.context().close();
 
     scene('Sensitive changes need a second approver', 'admin');
     const sam = op.getByTestId('member-row').filter({ hasText: 'sam.support' });
