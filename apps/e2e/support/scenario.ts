@@ -35,8 +35,8 @@ const CONNECTOR_CONNECTIONS: Partial<Record<ConnectionName, { connector: string;
 };
 
 /** An institution with members in the given roles (one member per entry) and connections to local fakes. */
-export async function prepareInstitution(opts: { members?: Record<string, string>; connections?: ConnectionName[] } = {}): Promise<Institution> {
-  const bank = await createTenant();
+export async function prepareInstitution(opts: { members?: Record<string, string>; connections?: ConnectionName[]; name?: string } = {}): Promise<Institution> {
+  const bank = await createTenant(opts.name ? { name: opts.name, key: `${opts.name.toLowerCase().replace(/[^a-z]+/g, '-')}-${Math.random().toString(36).slice(2, 6)}` } : {});
   const members: Record<string, Member> = {};
   for (const [label, role] of Object.entries(opts.members ?? {})) {
     members[label] = await addMember(bank, { roles: [role], label });

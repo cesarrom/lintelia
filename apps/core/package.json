@@ -66,7 +66,7 @@
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
     "@restatedev/restate": "1.7.12",
-    "@restatedev/restate-server": "1.7.12",
+    "@restatedev/restate-server": "1.8.1",
     "@types/bun": "^1.2.12",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/lodash": "^4.17.7",

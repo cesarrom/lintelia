@@ -42,6 +42,15 @@ export default defineConfig({
   },
   projects: [
     { name: 'api', testMatch: /.*\.api\.spec\.ts$/ },
+    // `E2E_DEMO=1`: the sales-material stories (tests/demo), recorded by demo/record.sh. Absent from normal runs.
+    ...(process.env.E2E_DEMO === '1'
+      ? [{
+        name: 'demo',
+        testMatch: '**/demo/**/*.demo.spec.ts',
+        timeout: 480_000,
+        use: { ...devices['Desktop Chrome'], launchOptions: process.env.E2E_CHROMIUM_PATH ? { executablePath: process.env.E2E_CHROMIUM_PATH } : {} },
+      }]
+      : []),
     {
       name: 'ui',
       testMatch: /.*\.ui\.spec\.ts$/,
