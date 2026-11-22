@@ -1,0 +1,62 @@
+# SCN-09 / CLI-08: business onboarding; every declared UBO/director verifies themselves before review
+# (parties.collect → foreach over the parties running party-verification.yaml as child cases → review).
+schemaVersion: "1"
+name: Business account opening (KYB)
+description: Company details, related parties each complete identity verification
+version: 1
+triggers: []
+inputs:
+  - { id: email, name: email, type: string, required: true }
+  - { id: companyName, name: companyName, type: string, required: true }
+steps:
+  - id: start
+    name: Start
+    type: start
+    events:
+      - { name: finished, outputs: [], next: [parties] }
+  - id: parties
+    name: Related parties
+    type: parties.collect
+    config:
+      title: Tell us who owns and runs the company
+      roles: [ubo, director]
+      minimum: { ubo: 1 }
+    events:
+      - { name: collected, outputs: [], next: [verify] }
+      - { name: expired, outputs: [], next: [reject] }
+  - id: verify
+    name: Verify every party
+    type: foreach
+    config:
+      items: "= steps.parties.parties"
+      workflowId: ${PARTY_WORKFLOW}
+      inputs: { partyId: "= item.id", role: "= item.role" }
+      applicant: "= item.personId"
+      onItemFailure: continue
+    events:
+      - { name: completed, outputs: [], next: [review] }
+      - { name: failed, outputs: [], next: [review] }
+  - id: review
+    name: KYB review
+    type: review
+    config:
+      title: "Business onboarding: {{input.companyName}}"
+      assignTo: { role: reviewer }
+      sla: PT24H
+    events:
+      - { name: review_approved, outputs: [], next: [approve] }
+      - { name: review_rejected, outputs: [], next: [reject] }
+  - id: approve
+    name: Approve
+    type: case.decision
+    config: { status: approved, notifyApplicant: true }
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }
+  - id: reject
+    name: Reject
+    type: case.decision
+    config: { status: rejected, notifyApplicant: true }
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }

@@ -1,0 +1,20 @@
+{
+  "name": "@repo/connector-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Build Lintelia connectors: manifest, core request verification, core client, secrets, settings pages (docs/plans/03).",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "check-types": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@repo/lintelia": "*",
+    "hono": "^4.7.8",
+    "jose": "^6.0.0",
+    "postgres": "^3.4.5"
+  }
+}

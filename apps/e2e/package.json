@@ -1,0 +1,26 @@
+{
+  "name": "e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:api": "playwright test --project=api",
+    "test:ui": "playwright test --project=ui",
+    "test:flow": "playwright test --grep",
+    "test:watch": "E2E_VISUAL=1 playwright test",
+    "test:headless": "E2E_VISUAL=0 playwright test",
+    "report": "playwright show-report",
+    "flow-status": "node scripts/flow-status.mjs",
+    "check-types": "tsc --noEmit",
+    "screens": "bun scripts/screens.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.2",
+    "@types/node": "^22.15.3",
+    "pdf-lib": "^1.17.1",
+    "postgres": "^3.4.5",
+    "qrcode-generator": "2.0.4",
+    "typescript": "5.8.2"
+  }
+}

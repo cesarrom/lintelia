@@ -1,0 +1,99 @@
+schemaVersion: "1"
+name: "App: open your first account"
+description: Client onboarding from the app — personal details, identity document, KYC review; approved clients get a current account and a debit card.
+caseTitle: "Account opening: {{applicant}}"
+inputs: []
+steps:
+  - { id: start, name: Start, type: start, events: [{ name: finished, outputs: [], next: [details] }] }
+  - id: details
+    name: Your details
+    type: client.screen
+    config:
+      title: Let's get to know you
+      description: We need a few details to open your account. It takes about three minutes.
+      stage: details
+      fields:
+        - { key: fullName, label: Full legal name, type: text, required: true, default: "{{me.name}}" }
+        - { key: dateOfBirth, label: Date of birth, type: date, required: true, default: "{{me.dateOfBirth}}" }
+        - { key: phone, label: Mobile number, type: phone, required: true, default: "{{me.phone}}" }
+        - { key: address, label: Home address, type: textarea, required: true, default: "{{me.address}}", placeholder: "Street, city, postcode" }
+        - { key: employment, label: Employment, type: select, required: true, options: [Employed full-time, Employed part-time, Self-employed, Student, Retired, Other] }
+      buttons: [{ key: continue, label: Continue, style: primary }]
+    events: [{ name: continue, outputs: [], next: [identity] }, { name: expired, outputs: [], next: [] }]
+  - id: identity
+    name: Identity document
+    type: client.screen
+    config:
+      title: Confirm your identity
+      description: Upload a photo or scan of your passport or driving licence. Files are checked for malware before anyone opens them.
+      stage: identity
+      fields:
+        - { key: idDocument, label: Passport or driving licence, type: file, required: true }
+        - { key: declaration, label: "I confirm the information I gave is true and complete", type: checkbox, required: true }
+      buttons: [{ key: continue, label: Send for review, style: primary }, { key: back, label: Back, style: secondary, skipValidation: true }]
+    events: [{ name: continue, outputs: [], next: [kyc] }, { name: back, outputs: [], next: [details] }, { name: expired, outputs: [], next: [] }]
+  - id: kyc
+    name: KYC review
+    type: review
+    config:
+      title: "KYC review: {{input.fullName}}"
+      description: "New client from the app. Born {{input.dateOfBirth}} · {{input.employment}} · {{input.address}}"
+      assignTo: { role: reviewer }
+      sla: PT24H
+      escalateTo: { role: senior_reviewer }
+    events: [{ name: review_approved, outputs: [], next: [profile] }, { name: review_rejected, outputs: [], next: [sorry] }]
+  - id: profile
+    name: Verified customer
+    type: client.profile
+    config:
+      attributes: { kycLevel: "= 2", dateOfBirth: "{{input.dateOfBirth}}", phone: "{{input.phone}}", address: "{{input.address}}", employment: "{{input.employment}}" }
+      addSegments: [customer]
+    events: [{ name: done, outputs: [], next: [numbers] }]
+  - id: numbers
+    name: Account numbers
+    type: calculate
+    config:
+      outputs:
+        accountNumber: "$string($floor($random() * 90000000) + 10000000)"
+        last4: "$string($floor($random() * 9000) + 1000)"
+    events: [{ name: done, outputs: [], next: [account] }]
+  - id: account
+    name: Current account
+    type: client.record
+    config:
+      collection: accounts
+      key: "= 'cur-' & case.reference"
+      mode: upsert
+      data: { name: Everyday account, type: current, number: "= '•• ' & $substring(steps.numbers.accountNumber, 4)", sortCode: 04-00-04, balance: "= 0", currency: GBP, status: active, openedAt: "= $now()" }
+    events: [{ name: done, outputs: [], next: [card] }]
+  - id: card
+    name: Debit card
+    type: client.record
+    config:
+      collection: cards
+      key: "= 'card-' & case.reference"
+      mode: upsert
+      data: { name: Debit card, type: debit, network: visa, last4: "{{steps.numbers.last4}}", account: "= 'cur-' & case.reference", status: ordered, expiry: "= $fromMillis($toMillis($now()) + 94608000000, '[M01]/[Y01]')", holder: "{{input.fullName}}" }
+    events: [{ name: done, outputs: [], next: [welcome] }]
+  - id: welcome
+    name: Account ready
+    type: client.notify
+    config: { title: "Your account is open", body: "Welcome {{input.fullName}}. Your Everyday account is ready and your debit card is on its way.", tone: success, page: accounts, email: true }
+    events: [{ name: done, outputs: [], next: [approved] }]
+  - id: approved
+    name: Approved
+    type: case.decision
+    config: { status: approved, outcome: account_opened, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]
+  - id: sorry
+    name: Not approved
+    type: client.notify
+    config: { title: "We could not open your account", body: "{{steps.kyc.reason}}", tone: warning, email: true }
+    events: [{ name: done, outputs: [], next: [rejected] }]
+  - id: rejected
+    name: Rejected
+    type: case.decision
+    config: { status: rejected, outcome: not_onboarded, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]

@@ -1,41 +1,61 @@
 {
-  "name": "fintivio",
-  "version": "0.1.0",
+  "name": "lintelia",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
-  },
-  "dependencies": {
-    "@bpmn-io/form-js": "^1.9.1",
-    "@descope/nextjs-sdk": "^0.2.2",
-    "@radix-ui/react-checkbox": "^1.1.1",
-    "@radix-ui/react-collapsible": "^1.1.0",
-    "@radix-ui/react-dialog": "^1.1.1",
-    "@radix-ui/react-dropdown-menu": "^2.1.1",
-    "@radix-ui/react-label": "^2.1.0",
-    "@radix-ui/react-select": "^2.1.1",
-    "@radix-ui/react-slot": "^1.1.0",
-    "class-variance-authority": "^0.7.0",
-    "clsx": "^2.1.1",
-    "dotenv": "^16.4.5",
-    "env-var": "^7.5.0",
-    "lucide-react": "^0.428.0",
-    "moment": "^2.30.1",
-    "next": "14.2.5",
-    "react": "^18",
-    "react-dom": "^18",
-    "tailwind-merge": "^2.5.2",
-    "tailwindcss-animate": "^1.0.7"
+    "build": "turbo run build",
+    "clean": "turbo run clean",
+    "dev": "turbo run dev",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "check-types": "turbo run check-types",
+    "db:start": "bun run --cwd apps/core db:start",
+    "db:setup": "bun run --cwd apps/core db:setup",
+    "db:seed": "bun run --cwd apps/core db:seed",
+    "db:reset": "bun run --cwd apps/core db:reset",
+    "restate:serve": "bun run --cwd apps/core restate:serve",
+    "restate:register": "bun run --cwd apps/core restate:register",
+    "e2e": "bun scripts/e2e.ts",
+    "e2e:watch": "bun scripts/e2e.ts --headed",
+    "e2e:headless": "bun scripts/e2e.ts --headless",
+    "e2e:status": "bun run --cwd apps/e2e flow-status",
+    "redis:start": "bun run --cwd apps/core redis:start",
+    "demo:site": "bun run --cwd apps/core demo:site",
+    "stack": "bun scripts/stack.ts up",
+    "stack:status": "bun scripts/stack.ts status",
+    "stack:logs": "bun scripts/stack.ts logs",
+    "stack:restart": "bun scripts/stack.ts restart",
+    "stack:stop": "bun scripts/stack.ts stop",
+    "stack:reset": "bun scripts/stack.ts reset",
+    "stack:doctor": "bun scripts/stack.ts doctor",
+    "stack:test": "bun scripts/e2e.ts",
+    "totp": "bun run --cwd apps/core totp",
+    "demo:workflows": "bun run --cwd apps/core demo:workflows",
+    "demo:case": "bun run --cwd apps/core demo:case",
+    "demo:token": "bun run --cwd apps/core demo:token",
+    "connectors:register": "bun run --cwd apps/core connectors:register",
+    "db:migrate": "bun run --cwd apps/core db:migrate",
+    "demo:files": "bun run --cwd apps/core demo:files",
+    "demo:auto-finance": "bun run --cwd apps/core demo:auto-finance"
   },
   "devDependencies": {
-    "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
-    "postcss": "^8",
-    "tailwindcss": "^3.4.1",
-    "typescript": "^5"
-  }
+    "prettier": "^3.5.3",
+    "turbo": "^2.5.2"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "packageManager": "bun@1.3.14",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "integrations/*",
+    "fake-services/*"
+  ],
+  "trustedDependencies": [
+    "@embedded-postgres/linux-x64",
+    "@embedded-postgres/linux-arm64",
+    "@embedded-postgres/darwin-arm64",
+    "@embedded-postgres/darwin-x64"
+  ]
 }

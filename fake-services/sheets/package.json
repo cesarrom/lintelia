@@ -1,0 +1,15 @@
+{
+  "name": "@fake/sheets",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts"
+  },
+  "dependencies": {
+    "@repo/fake-kit": "*",
+    "hono": "^4.7.8"
+  },
+  "description": "Local Google Sheets API v4 subset (append, read) with a page showing the sheets."
+}

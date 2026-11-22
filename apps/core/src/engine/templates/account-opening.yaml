@@ -1,0 +1,42 @@
+schemaVersion: "1"
+name: Account opening review
+description: Every application is reviewed by the onboarding team, who can ask the applicant for documents before deciding
+version: 1
+caseTitle: "Account opening: {{input.fullName}}"
+triggers: []
+inputs:
+  - { id: fullName, name: fullName, label: Full name, type: string, required: true }
+  - { id: email, name: email, label: E-mail, type: string, required: true }
+steps:
+  - id: start
+    name: Start
+    type: start
+    events:
+      - { name: finished, outputs: [], next: [review] }
+  - id: review
+    name: Onboarding review
+    type: review
+    config:
+      title: "Review application: {{input.fullName}}"
+      kind: onboarding_review
+      assignTo: { role: reviewer }
+      sla: PT24H
+      escalateTo: { role: senior_reviewer }
+      requireCommentOnReject: true
+    events:
+      - { name: review_approved, outputs: [], next: [approve] }
+      - { name: review_rejected, outputs: [], next: [reject] }
+  - id: approve
+    name: Approve
+    type: case.decision
+    config: { status: approved, outcome: account_opened }
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }
+  - id: reject
+    name: Reject
+    type: case.decision
+    config: { status: rejected, outcome: declined }
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }

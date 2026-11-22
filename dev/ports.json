@@ -1,0 +1,120 @@
+{
+  "$comment": "Single source of local ports and host names (docs/plans/08). Read by scripts/stack.ts, fake services, connectors and the e2e suite; override with <NAME>_PORT environment variables.",
+  "services": {
+    "postgres": {
+      "port": 5433
+    },
+    "redis": {
+      "port": 6380
+    },
+    "restate-ingress": {
+      "port": 8080
+    },
+    "restate-admin": {
+      "port": 9070
+    },
+    "api": {
+      "port": 8000,
+      "url": "http://localhost:8000"
+    },
+    "web": {
+      "port": 3001,
+      "url": "http://localhost:3001"
+    },
+    "demo-site": {
+      "port": 4000,
+      "url": "http://localhost:4000"
+    },
+    "mailbox": {
+      "port": 8025,
+      "url": "http://localhost:8025"
+    },
+    "mailbox-smtp": {
+      "port": 1025
+    },
+    "workos": {
+      "port": 9300,
+      "url": "http://localhost:9300"
+    },
+    "idp-oidc": {
+      "port": 9400,
+      "url": "http://localhost:9400"
+    },
+    "didit": {
+      "port": 9401,
+      "url": "http://localhost:9401"
+    },
+    "documenso": {
+      "port": 9402,
+      "url": "http://localhost:9402"
+    },
+    "webhook-receiver": {
+      "port": 9404,
+      "url": "http://localhost:9404"
+    },
+    "scanner": {
+      "port": 9501,
+      "url": "http://localhost:9501"
+    },
+    "sanitizer": {
+      "port": 9502,
+      "url": "http://localhost:9502"
+    },
+    "connector-smtp-mailer": {
+      "port": 4101,
+      "url": "http://localhost:4101"
+    },
+    "connector-didit": {
+      "port": 4102,
+      "url": "http://localhost:4102"
+    },
+    "connector-documenso": {
+      "port": 4103,
+      "url": "http://localhost:4103"
+    },
+    "connector-postgres-datasource": {
+      "port": 4104,
+      "url": "http://localhost:4104"
+    },
+    "dns": {
+      "port": 9408,
+      "url": "http://localhost:9408"
+    },
+    "screening": {
+      "port": 9407,
+      "url": "http://localhost:9407"
+    },
+    "connector-screening": {
+      "port": 4105,
+      "url": "http://localhost:4105"
+    },
+    "llm": {
+      "port": 9409,
+      "url": "http://localhost:9409"
+    },
+    "loanpro": {
+      "port": 9410,
+      "url": "http://localhost:9410"
+    },
+    "quickbooks": {
+      "port": 9411,
+      "url": "http://localhost:9411"
+    },
+    "sheets": {
+      "port": 9412,
+      "url": "http://localhost:9412"
+    },
+    "connector-http": {
+      "port": 4106,
+      "url": "http://localhost:4106"
+    },
+    "connector-ai": {
+      "port": 4107,
+      "url": "http://localhost:4107"
+    },
+    "connector-loanpro": {
+      "port": 4108,
+      "url": "http://localhost:4108"
+    }
+  }
+}

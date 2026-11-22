@@ -1,0 +1,9 @@
+{
+  "name": "@fake/sanitizer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local content sanitiser (CDR): rebuilds PDFs without active content, strips image metadata.",
+  "scripts": { "dev": "bun --watch src/index.ts", "start": "bun src/index.ts" },
+  "dependencies": { "@repo/fake-kit": "*", "hono": "^4.7.8", "pdf-lib": "^1.17.1" }
+}

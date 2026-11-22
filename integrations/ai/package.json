@@ -1,0 +1,22 @@
+{
+  "name": "@connector/ai",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Lintelia connector: AI steps (document data extraction, text generation) on an OpenAI-compatible model.",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "check-types": "tsc --noEmit -p .",
+    "test": "bun test"
+  },
+  "lintelia": {
+    "connector": "ai"
+  },
+  "dependencies": {
+    "@repo/connector-sdk": "*"
+  },
+  "devDependencies": {
+    "pdf-lib": "^1.17.1"
+  }
+}

@@ -1,0 +1,1 @@
+ALTER TABLE "tenant_security_policies" ADD COLUMN "read_audit" boolean DEFAULT false NOT NULL;

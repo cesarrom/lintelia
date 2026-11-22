@@ -1,0 +1,105 @@
+schemaVersion: "1"
+name: Suspicious activity investigation
+description: A flagged client is triaged by an analyst, investigated by a senior investigator (who can ask the client for documents) and decided by the MLRO (file a SAR, exit the relationship or take no action). The client is never told about a SAR (tipping-off).
+version: 1
+caseTitle: "Suspicious activity: {{input.clientName}}"
+startOn: [client.flagged]
+clientVisibility: requests_only
+triggers: []
+inputs:
+  - { id: clientId, name: clientId, type: string, required: true }
+  - { id: clientName, name: clientName, type: string, required: false }
+  - { id: reason, name: reason, type: string, required: true }
+  - { id: category, name: category, type: string, required: false }
+steps:
+  - id: start
+    name: Start
+    type: start
+    events:
+      - { name: finished, outputs: [], next: [risk] }
+  - id: risk
+    name: Mark risk
+    type: case.update
+    config:
+      riskLevel: high
+      addFlags: [under_investigation]
+    events:
+      - { name: done, outputs: [], next: [triage] }
+  - id: triage
+    name: Alert triage
+    type: review
+    config:
+      title: "Triage alert: {{input.reason}}"
+      description: "Flagged by {{input.flaggedBy}} ({{input.category}}): {{input.reason}}"
+      kind: alert_triage
+      assignTo: { role: reviewer }
+      sla: PT24H
+      escalateTo: { role: senior_reviewer }
+      outcomes:
+        - { key: false_positive, label: False positive, requiresReason: true }
+        - { key: escalate, label: Escalate to investigation, requiresReason: true }
+    events:
+      - { name: false_positive, outputs: [], next: [close_false_positive] }
+      - { name: escalate, outputs: [], next: [investigation] }
+  - id: investigation
+    name: Investigation
+    type: review
+    config:
+      title: "Investigate: {{input.clientName}}"
+      description: "Escalated after triage. Review the activity, ask the client for supporting documents if needed."
+      kind: investigation
+      assignTo: { role: senior_reviewer }
+      sla: P3D
+      escalateTo: { role: compliance_officer }
+      outcomes:
+        - { key: request_info, label: Ask the client for documents, requiresReason: true }
+        - { key: close_no_action, label: Close without action, requiresReason: true }
+        - { key: refer_mlro, label: Refer to the MLRO, requiresReason: true }
+    events:
+      - { name: close_no_action, outputs: [], next: [close_no_action] }
+      - { name: refer_mlro, outputs: [], next: [mlro] }
+  - id: mlro
+    name: MLRO decision
+    type: review
+    config:
+      title: "MLRO decision: {{input.clientName}}"
+      kind: sar_decision
+      assignTo: { role: compliance_officer }
+      authority: high
+      sla: P2D
+      outcomes:
+        - { key: file_sar, label: File a suspicious activity report, requiresReason: true }
+        - { key: exit_relationship, label: Exit the relationship, requiresReason: true }
+        - { key: no_action, label: No further action, requiresReason: true }
+    events:
+      - { name: file_sar, outputs: [], next: [sar] }
+      - { name: exit_relationship, outputs: [], next: [exit] }
+      - { name: no_action, outputs: [], next: [close_no_action] }
+  - id: sar
+    name: SAR filed
+    type: case.decision
+    config: { status: closed, outcome: sar_filed, addFlags: [sar_filed], riskLevel: high, notifyApplicant: false }
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }
+  - id: exit
+    name: Relationship exited
+    type: case.decision
+    config: { status: closed, outcome: relationship_exited, addFlags: [exit_relationship], riskLevel: high, notifyApplicant: false }
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }
+  - id: close_no_action
+    name: Closed, no action
+    type: case.decision
+    config: { status: closed, outcome: no_action, riskLevel: medium, notifyApplicant: false }
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }
+  - id: close_false_positive
+    name: Closed, false positive
+    type: case.decision
+    config: { status: closed, outcome: false_positive, riskLevel: low, notifyApplicant: false }
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }

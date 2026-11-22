@@ -1,0 +1,62 @@
+# SCN-04: personal loan. Credit score read from the institution's own database (postgres-datasource connector, parameterised);
+# loans above 50,000 need four-eyes approval (authority: high).
+schemaVersion: "1"
+name: Personal loan origination
+description: Credit check against core banking, four-eyes for large loans
+version: 1
+triggers: []
+inputs:
+  - { id: email, name: email, type: string, required: true }
+  - { id: customerId, name: customerId, type: string, required: true }
+  - { id: amount, name: amount, type: number, required: true }
+steps:
+  - id: start
+    name: Start
+    type: start
+    events:
+      - { name: finished, outputs: [], next: [credit] }
+  - id: credit
+    name: Credit score
+    type: "connector:postgres-datasource/query.run"
+    config:
+      connection: ${CORE_BANKING_DB}
+      query: "select score, bureau from credit_scores where customer_id = :customerId"
+      params: { customerId: "{{input.customerId}}" }
+      maxRows: 1
+    events:
+      - { name: success, outputs: [], next: [eligibility] }
+      - { name: failed, outputs: [], next: [reject] }
+  - id: eligibility
+    name: Eligible?
+    type: conditional
+    config:
+      expression: "steps.credit.rowCount > 0 and steps.credit.rows[0].score >= 600"
+    events:
+      - { name: "true", outputs: [], next: [review] }
+      - { name: "false", outputs: [], next: [reject] }
+  - id: review
+    name: Credit decision
+    type: review
+    config:
+      title: "Loan of {{input.amount}}"
+      assignTo: { role: reviewer }
+      authority: "= input.amount > 50000 ? 'high' : 'standard'"
+      sla: PT8H
+      escalateTo: { role: senior_reviewer }
+    events:
+      - { name: review_approved, outputs: [], next: [approve] }
+      - { name: review_rejected, outputs: [], next: [reject] }
+  - id: approve
+    name: Approve
+    type: case.decision
+    config: { status: approved, notifyApplicant: true }
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }
+  - id: reject
+    name: Reject
+    type: case.decision
+    config: { status: rejected, notifyApplicant: true }
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }

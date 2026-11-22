@@ -1,0 +1,33 @@
+# Per party (foreach): a team member calls the person; one member handles every party of the application (PTY-01).
+schemaVersion: "1"
+name: Party check call
+description: A team member checks a related party by phone
+version: 1
+caseTitle: "Check {{input.role}}"
+triggers: []
+inputs:
+  - { id: partyId, name: partyId, type: string, required: true }
+  - { id: role, name: role, type: string, required: true }
+steps:
+  - id: start
+    name: Start
+    type: start
+    events:
+      - { name: finished, outputs: [], next: [call] }
+  - id: call
+    name: Call the party
+    type: task
+    config:
+      title: "Call the {{input.role}}"
+      description: Confirm identity and intent by phone.
+      assignTo: { role: reviewer }
+      sameAssigneeAs: siblings
+    events:
+      - { name: done, outputs: [], next: [end] }
+  - id: end
+    name: Done
+    type: case.decision
+    config: { status: completed }
+    isTerminal: true
+    events:
+      - { name: done, outputs: [], next: [] }

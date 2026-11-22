@@ -1,0 +1,9 @@
+{
+  "name": "@fake/screening",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local sanctions / PEP / adverse media screening API (stands in for a screening vendor).",
+  "scripts": { "dev": "bun --watch src/index.ts", "start": "bun src/index.ts" },
+  "dependencies": { "@repo/fake-kit": "*", "hono": "^4.7.8" }
+}

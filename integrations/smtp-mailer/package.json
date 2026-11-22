@@ -1,0 +1,22 @@
+{
+  "name": "@connector/smtp-mailer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Lintelia connector: send workflow e-mails through the institution's own SMTP server.",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "check-types": "tsc --noEmit -p ."
+  },
+  "lintelia": {
+    "connector": "smtp-mailer"
+  },
+  "dependencies": {
+    "@repo/connector-sdk": "*",
+    "nodemailer": "^6.9.15"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^6.4.17"
+  }
+}

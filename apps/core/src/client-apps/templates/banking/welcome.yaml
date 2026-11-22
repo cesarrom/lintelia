@@ -1,0 +1,25 @@
+schemaVersion: "1"
+name: "App: welcome new clients"
+description: Runs when someone signs up in the app or is registered by your systems — a welcome notification and the "registered" segment.
+caseTitle: "Welcome: {{applicant}}"
+startOn: [client.registered]
+clientVisibility: requests_only
+inputs: []
+steps:
+  - { id: start, name: Start, type: start, events: [{ name: finished, outputs: [], next: [segment] }] }
+  - id: segment
+    name: Mark as registered
+    type: client.profile
+    config: { addSegments: [registered] }
+    events: [{ name: done, outputs: [], next: [welcome] }]
+  - id: welcome
+    name: Welcome message
+    type: client.notify
+    config: { title: "Welcome aboard", body: "Your sign-in is ready. Open your first account in a few minutes — no paperwork, no branch visit.", tone: success, page: products }
+    events: [{ name: done, outputs: [], next: [finish] }]
+  - id: finish
+    name: Done
+    type: case.decision
+    config: { status: completed, outcome: welcomed, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]

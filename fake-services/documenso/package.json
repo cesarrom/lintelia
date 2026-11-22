@@ -1,0 +1,9 @@
+{
+  "name": "@fake/documenso",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local stand-in for Documenso (v2 API subset from docs/vendor-api/documenso-openapi-v2.json), signing page, webhooks.",
+  "scripts": { "dev": "bun --watch src/index.ts", "start": "bun src/index.ts" },
+  "dependencies": { "@repo/fake-kit": "*", "hono": "^4.7.8", "pdf-lib": "^1.17.1" }
+}

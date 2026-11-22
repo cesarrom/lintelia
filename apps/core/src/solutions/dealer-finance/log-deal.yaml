@@ -1,0 +1,30 @@
+schemaVersion: "1"
+name: "Function: log a deal to the spreadsheet"
+description: Appends a row to the deal log spreadsheet (Google Sheets, through an HTTP API connection). A function — other workflows use it as a step.
+function: true
+caseTitle: "Deal log: {{input.reference}} ({{input.status}})"
+clientVisibility: requests_only
+inputs:
+  - { id: reference, name: reference, label: Deal reference, type: string, required: true }
+  - { id: dealer, name: dealer, label: Dealer, type: string }
+  - { id: buyer, name: buyer, label: Buyer, type: string }
+  - { id: vehicle, name: vehicle, label: Vehicle, type: string }
+  - { id: amount, name: amount, label: Amount financed, type: string }
+  - { id: status, name: status, label: Status, type: string, required: true }
+outputs:
+  logged: "= steps.append.ok = true"
+  range: "= steps.append.body.updates.updatedRange"
+steps:
+  - { id: start, name: Start, type: start, events: [{ name: finished, outputs: [], next: [append] }] }
+  - id: append
+    name: Append a row
+    type: "connector:http/request"
+    config:
+      connection: ${SHEETS}
+      method: POST
+      input:
+        path: "/v4/spreadsheets/${SPREADSHEET_ID}/values/Deals!A1:append"
+        query: "= { 'valueInputOption': 'USER_ENTERED' }"
+        # Optional inputs as '' (JSONata drops undefined items from arrays: the columns would shift).
+        body: "= { 'values': [[ $now(), input.reference, ($exists(input.dealer) ? $string(input.dealer) : ''), ($exists(input.buyer) ? $string(input.buyer) : ''), ($exists(input.vehicle) ? $string(input.vehicle) : ''), ($exists(input.amount) ? $string(input.amount) : ''), input.status ]] }"
+    events: [{ name: succeeded, outputs: [], next: [] }, { name: failed, outputs: [], next: [] }]

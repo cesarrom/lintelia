@@ -1,0 +1,91 @@
+schemaVersion: "1"
+name: "Dealer: become a partner"
+description: A dealership applies to send us deals — its licence, W-9 and agreement are checked by the team; once approved, the dealer can submit deals in the portal.
+caseTitle: "Dealer application: {{input.dealerName}}"
+stages:
+  - { key: dealership, label: Dealership }
+  - { key: documents, label: Documents }
+  - { key: review, label: Our checks }
+  - { key: approved, label: Ready to send deals }
+inputs: []
+steps:
+  - { id: start, name: Start, type: start, events: [{ name: finished, outputs: [], next: [dealership] }] }
+  - id: dealership
+    name: Dealership
+    type: client.screen
+    config:
+      title: Your dealership
+      stage: dealership
+      fields:
+        - { key: dealerName, label: Dealership name, type: text, required: true }
+        - { key: licenseNumber, label: Dealer licence number, type: text, required: true }
+        - { key: state, label: State, type: text, required: true, placeholder: e.g. TX }
+        - { key: ein, label: EIN, type: text, required: true, placeholder: 12-3456789 }
+        - { key: phone, label: Phone, type: phone, required: true }
+        - { key: monthlyVolume, label: Deals per month (estimate), type: number, min: 0 }
+      buttons: [{ key: continue, label: Continue, style: primary }]
+    events: [{ name: continue, outputs: [], next: [documents] }]
+  - id: documents
+    name: Documents
+    type: client.screen
+    config:
+      title: Documents
+      stage: documents
+      fields:
+        - { key: dealerLicense, label: Dealer licence, type: file, required: true }
+        - { key: w9, label: W-9, type: file, required: true }
+        - { key: agree, label: "I accept the dealer agreement on behalf of the dealership", type: checkbox, required: true }
+      buttons: [{ key: submit, label: Apply, style: primary }, { key: back, label: Back, style: secondary, skipValidation: true }]
+    events: [{ name: submit, outputs: [], next: [in_review] }, { name: back, outputs: [], next: [dealership] }]
+  - id: in_review
+    name: In review
+    type: case.update
+    config: { stage: review, title: "= 'Dealer application: ' & input.dealerName & ' (' & input.state & ')'" }
+    events: [{ name: done, outputs: [], next: [review] }]
+  - id: review
+    name: Dealer approval
+    type: review
+    config:
+      title: "Dealer application: {{input.dealerName}}"
+      description: "Licence {{input.licenseNumber}} ({{input.state}}), EIN {{input.ein}}, about {{input.monthlyVolume}} deals a month. Check the licence and the W-9."
+      assignTo: { role: senior_reviewer }
+      sla: P2D
+      outcomes:
+        - { key: approve, label: Approve the dealer }
+        - { key: request_info, label: Ask the dealer, requiresReason: true }
+        - { key: decline, label: Decline, requiresReason: true }
+    events: [{ name: approve, outputs: [], next: [enable] }, { name: decline, outputs: [], next: [declined] }]
+  - id: enable
+    name: Make them a dealer
+    type: client.profile
+    config:
+      attributes: { dealerName: "= input.dealerName", dealerLicense: "= input.licenseNumber", dealerState: "= input.state", phone: "= input.phone" }
+      addSegments: [dealer]
+    events: [{ name: done, outputs: [], next: [stage_approved] }]
+  - id: stage_approved
+    name: Approved
+    type: case.update
+    config: { stage: approved }
+    events: [{ name: done, outputs: [], next: [welcome] }]
+  - id: welcome
+    name: Welcome
+    type: client.notify
+    config: { title: "Welcome, {{input.dealerName}}", body: You can now submit deals. Most decisions come back within four business hours., tone: success, page: home, email: true }
+    events: [{ name: done, outputs: [], next: [approved] }]
+  - id: approved
+    name: Approved
+    type: case.decision
+    config: { status: approved, outcome: dealer_approved, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]
+  - id: declined
+    name: Declined
+    type: client.notify
+    config: { title: About your application, body: "{{steps.review.reason}}", tone: info, email: true }
+    events: [{ name: done, outputs: [], next: [rejected] }]
+  - id: rejected
+    name: Declined
+    type: case.decision
+    config: { status: rejected, outcome: dealer_declined, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]

@@ -1,0 +1,251 @@
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Lintelia design tokens (docs/design/README.md).
+ * Colours are HSL channels so Tailwind can apply opacity (`bg-primary/10`).
+ *  - ink: near-black with a cool blue cast for text; canvas: the app's backdrop (sidebar, portal background);
+ *  - brand: indigo-violet; semantic colours for status (success, warning, danger, info).
+ */
+@layer base {
+  :root {
+    --font-sans: "Geist Variable";
+    --font-mono: "Geist Mono Variable";
+
+    --background: 0 0% 100%;
+    --foreground: 232 33% 11%;
+    --canvas: 228 33% 97.4%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 232 33% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 232 33% 11%;
+
+    --primary: 248 75% 58%;
+    --primary-foreground: 0 0% 100%;
+    --brand-soft: 248 90% 97%;
+    --brand-strong: 250 60% 40%;
+
+    --secondary: 229 30% 95.5%;
+    --secondary-foreground: 232 33% 14%;
+    --muted: 229 30% 96%;
+    --muted-foreground: 231 11% 45%;
+    --accent: 230 38% 94.8%;
+    --accent-foreground: 232 33% 12%;
+
+    --destructive: 352 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 158 64% 34%;
+    --success-soft: 150 60% 95%;
+    --warning: 34 92% 45%;
+    --warning-soft: 44 100% 94%;
+    --info: 204 84% 45%;
+    --info-soft: 204 90% 95.5%;
+
+    --border: 228 22% 90%;
+    --input: 228 20% 86%;
+    --ring: 248 75% 58%;
+
+    --sidebar: 228 33% 97.4%;
+    --sidebar-foreground: 232 20% 30%;
+
+    --radius: 0.625rem;
+    --highlight: var(--primary);
+    --highlight-foreground: var(--primary-foreground);
+  }
+
+  .dark {
+    --background: 233 26% 8%;
+    --foreground: 228 30% 95%;
+    --canvas: 234 28% 5.5%;
+
+    --card: 233 24% 10%;
+    --card-foreground: 228 30% 95%;
+    --popover: 233 24% 11%;
+    --popover-foreground: 228 30% 95%;
+
+    --primary: 248 92% 72%;
+    --primary-foreground: 240 40% 9%;
+    --brand-soft: 248 40% 16%;
+    --brand-strong: 248 95% 82%;
+
+    --secondary: 233 20% 15%;
+    --secondary-foreground: 228 30% 95%;
+    --muted: 233 20% 13.5%;
+    --muted-foreground: 230 14% 64%;
+    --accent: 233 22% 16%;
+    --accent-foreground: 228 30% 96%;
+
+    --destructive: 352 80% 62%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 156 60% 50%;
+    --success-soft: 158 40% 13%;
+    --warning: 40 95% 58%;
+    --warning-soft: 38 50% 13%;
+    --info: 204 90% 62%;
+    --info-soft: 206 50% 14%;
+
+    --border: 233 18% 18%;
+    --input: 233 18% 23%;
+    --ring: 248 92% 72%;
+
+    --sidebar: 234 28% 5.5%;
+    --sidebar-foreground: 230 18% 74%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.18);
+  }
+
+  h1, h2, h3, h4 {
+    @apply tracking-tight;
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring) / 0.6);
+    outline-offset: 2px;
+  }
+
+  /* Quiet scrollbars */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--foreground) / 0.16) transparent;
+  }
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-thumb {
+    background: hsl(var(--foreground) / 0.14);
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-track { background: transparent; }
+}
+
+@layer components {
+  /* Faint dotted grid used behind hero areas and the auth artwork. */
+  .bg-dots {
+    background-image: radial-gradient(hsl(var(--foreground) / 0.09) 1px, transparent 1px);
+    background-size: 18px 18px;
+  }
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, hsl(var(--foreground) / 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--foreground) / 0.05) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  /* Soft brand aurora for hero sections. */
+  .bg-aurora {
+    background:
+      radial-gradient(60% 80% at 15% 0%, hsl(248 90% 70% / 0.22), transparent 60%),
+      radial-gradient(50% 60% at 90% 10%, hsl(190 90% 60% / 0.16), transparent 60%),
+      radial-gradient(50% 60% at 60% 100%, hsl(160 70% 55% / 0.10), transparent 60%);
+  }
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(100deg, hsl(var(--foreground)) 10%, hsl(var(--primary)) 60%, hsl(190 85% 45%) 100%);
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* React Flow (workflow editor) follows the theme */
+.react-flow__node {
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+.react-flow__controls {
+  @apply overflow-hidden rounded-lg border border-border shadow-sm;
+}
+.react-flow__controls button {
+  @apply border-border bg-card text-foreground hover:bg-accent;
+}
+.react-flow__attribution {
+  @apply bg-transparent text-muted-foreground;
+}
+
+.react-flow-dark {
+  @apply bg-background;
+}
+.react-flow-dark .react-flow__node {
+  @apply border-border bg-card text-card-foreground;
+}
+.react-flow-dark .react-flow__handle {
+  @apply border-border bg-muted;
+}
+.react-flow-dark .react-flow__edge path,
+.react-flow-dark .react-flow__edge-path {
+  @apply stroke-muted-foreground;
+}
+.react-flow-dark .react-flow__controls {
+  @apply border-border bg-card;
+}
+.react-flow-dark .react-flow__controls button {
+  @apply border-border bg-card text-card-foreground hover:bg-accent;
+}
+.react-flow-dark .react-flow__background {
+  @apply bg-background;
+}
+
+/* Institution colours (lib/brand.ts brandProps): the light or the dark set, following the theme. */
+[data-brand] {
+  --primary: var(--brand-l-primary);
+  --primary-foreground: var(--brand-l-primary-foreground);
+  --ring: var(--brand-l-ring);
+  --brand-soft: var(--brand-l-soft);
+  --brand-strong: var(--brand-l-strong);
+}
+.dark [data-brand] {
+  --primary: var(--brand-d-primary);
+  --primary-foreground: var(--brand-d-primary-foreground);
+  --ring: var(--brand-d-ring);
+  --brand-soft: var(--brand-d-soft);
+  --brand-strong: var(--brand-d-strong);
+}
+
+/*
+ * Client app theme (docs/plans/14): accent colour, background tint, button shape. `appThemeProps` sets the variables
+ * and the markers on the app's root.
+ */
+[data-brand], [data-accent] {
+  --highlight: var(--primary);
+  --highlight-foreground: var(--primary-foreground);
+}
+[data-accent] {
+  --highlight: var(--brand-l-accent);
+  --highlight-foreground: var(--brand-l-accent-foreground);
+}
+.dark [data-accent] {
+  --highlight: var(--brand-d-accent);
+  --highlight-foreground: var(--brand-d-accent-foreground);
+}
+[data-canvas] {
+  --canvas: var(--app-canvas);
+}
+.dark [data-canvas] {
+  --canvas: 234 28% 5.5%;
+}
+[data-buttons="pill"] .ui-button {
+  border-radius: 9999px;
+}
+[data-buttons="square"] .ui-button {
+  border-radius: 0.2rem;
+}

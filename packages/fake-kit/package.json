@@ -1,0 +1,13 @@
+{
+  "name": "@repo/fake-kit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Helpers shared by fake-services/*: health, control API, request log, webhook signing.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "hono": "^4.7.8"
+  }
+}

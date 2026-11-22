@@ -1,0 +1,15 @@
+{
+  "name": "@fake/webhook-receiver",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local webhook endpoints: record deliveries, verify Standard Webhooks signatures, fail on demand.",
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts"
+  },
+  "dependencies": {
+    "@repo/fake-kit": "*",
+    "hono": "^4.7.8"
+  }
+}

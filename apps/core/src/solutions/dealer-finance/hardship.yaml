@@ -1,0 +1,55 @@
+schemaVersion: "1"
+name: "Borrower: payment difficulty"
+description: A borrower who cannot pay asks for help (a due-date change, a deferral); the servicing team decides and the answer lands in the app.
+caseTitle: "Hardship request: {{applicant}}"
+inputs: []
+steps:
+  - { id: start, name: Start, type: start, events: [{ name: finished, outputs: [], next: [ask] }] }
+  - id: ask
+    name: What is happening
+    type: client.screen
+    config:
+      title: Having trouble making payments?
+      description: Tell us what is going on. Asking does not affect your credit.
+      stage: details
+      fields:
+        - { key: request, label: What would help, type: select, required: true, options: ["due_date|Move my due date", "deferral|Skip a payment (deferral)", "plan|A payment plan", "other|Something else"] }
+        - { key: reason, label: What happened, type: textarea, required: true }
+        - { key: phone, label: Best number to call you, type: phone, default: "{{me.phone}}" }
+      buttons: [{ key: send, label: Send, style: primary }]
+    events: [{ name: send, outputs: [], next: [review] }]
+  - id: review
+    name: Our answer
+    type: review
+    config:
+      title: "Hardship: {{applicant}} asks for {{input.request}}"
+      description: "{{input.reason}}"
+      assignTo: { role: reviewer }
+      sla: P2D
+      outcomes:
+        - { key: approve, label: Grant }
+        - { key: request_info, label: Ask the borrower, requiresReason: true }
+        - { key: decline, label: Decline, requiresReason: true }
+    events: [{ name: approve, outputs: [], next: [granted] }, { name: decline, outputs: [], next: [declined] }]
+  - id: granted
+    name: Tell the borrower (granted)
+    type: client.notify
+    config: { title: We can help, body: "Your request was granted. We will confirm the new schedule by e-mail; your app shows it once it is in place.", tone: success, page: loan, email: true }
+    events: [{ name: done, outputs: [], next: [approved] }]
+  - id: approved
+    name: Granted
+    type: case.decision
+    config: { status: approved, outcome: granted, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]
+  - id: declined
+    name: Tell the borrower (declined)
+    type: client.notify
+    config: { title: About your request, body: "{{steps.review.reason}}", tone: info, page: loan, email: true }
+    events: [{ name: done, outputs: [], next: [rejected] }]
+  - id: rejected
+    name: Declined
+    type: case.decision
+    config: { status: rejected, outcome: declined, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]

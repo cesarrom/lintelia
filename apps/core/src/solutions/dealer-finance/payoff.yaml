@@ -1,0 +1,69 @@
+schemaVersion: "1"
+name: "Borrower: payoff quote"
+description: The borrower asks how much it takes to pay the loan off today (live from LoanPro) and can pay it in one go.
+caseTitle: "Payoff quote: {{applicant}}"
+inputs: []
+steps:
+  - { id: start, name: Start, type: start, events: [{ name: finished, outputs: [], next: [loans] }] }
+  - id: loans
+    name: Loans
+    type: client.data
+    config: { collection: loans }
+    events: [{ name: done, outputs: [], next: [which] }]
+  - id: which
+    name: Which loan
+    type: calculate
+    config:
+      outputs:
+        loan: "steps.loans.records[0]"
+    events: [{ name: done, outputs: [], next: [quote] }]
+  - id: quote
+    name: Payoff from LoanPro
+    type: "connector:loanpro/loan.get"
+    config:
+      connection: ${LOANPRO}
+      input: { loanId: "= $string(steps.which.loan.loanId)" }
+    events: [{ name: found, outputs: [], next: [show] }, { name: failed, outputs: [], next: [unavailable] }]
+  - id: show
+    name: Your payoff
+    type: client.screen
+    config:
+      title: "Payoff amount: ${{steps.quote.payoff | money}}"
+      stage: quote
+      content: "To pay off your **{{steps.which.loan.name}}** today: **${{steps.quote.payoff | money}}** (principal ${{steps.quote.balance | money}} plus interest to date).\n\nThe amount is good until the end of the day. After your loan is paid off we release our lien and send you the title."
+      buttons: [{ key: pay, label: "Pay it off now", style: primary }, { key: close, label: Not now, style: secondary, skipValidation: true }]
+    events: [{ name: pay, outputs: [], next: [post] }, { name: close, outputs: [], next: [quoted] }]
+  - id: post
+    name: Post the payoff (LoanPro)
+    type: "connector:loanpro/payment.create"
+    config:
+      connection: ${LOANPRO}
+      input: { loanId: "= $string(steps.which.loan.loanId)", amount: "= $string(steps.quote.payoff)", clientId: "= case.applicant.id" }
+    events: [{ name: posted, outputs: [], next: [paid] }, { name: failed, outputs: [], next: [unavailable] }]
+  - id: paid
+    name: Paid off
+    type: case.decision
+    config: { status: completed, outcome: paid_off, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]
+  - id: quoted
+    name: Quoted
+    type: case.decision
+    config: { status: completed, outcome: quoted, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]
+  - id: unavailable
+    name: Not available
+    type: client.screen
+    config:
+      title: We can't give you a quote right now
+      content: Please try again later, or message us and we will send it to you.
+      stage: quote
+      buttons: [{ key: close, label: Close, style: primary, skipValidation: true }]
+    events: [{ name: close, outputs: [], next: [not_quoted] }]
+  - id: not_quoted
+    name: Not quoted
+    type: case.decision
+    config: { status: closed, outcome: unavailable, notifyApplicant: false }
+    isTerminal: true
+    events: [{ name: done, outputs: [], next: [] }]
