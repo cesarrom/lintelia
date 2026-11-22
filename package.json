@@ -1,5 +1,6 @@
 {
   "name": "lintelia",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "build": "turbo run build",
@@ -39,6 +40,8 @@
     "demo:auto-finance": "bun run --cwd apps/core demo:auto-finance"
   },
   "devDependencies": {
+    "@restatedev/restate": "1.7.12",
+    "@restatedev/restate-server": "1.8.1",
     "prettier": "^3.5.3",
     "turbo": "^2.5.2"
   },
