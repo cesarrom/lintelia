@@ -24,6 +24,7 @@ Requirements: [Bun](https://bun.sh) 1.3.x (`npm i -g bun@1.3.14` works offline a
 (non-root) user. No Docker: Postgres, Redis, Restate, the connectors and every fake vendor run as local processes.
 
 ```sh
+bun install              # Ubuntu review guide: docs/SUBMISSION-RUN.md (Restate is also vendored under vendor/restate)
 bun run stack            # installs, creates .env files, starts everything, migrates, seeds, registers connectors
 ```
 
@@ -182,3 +183,5 @@ bun run totp            # current second-factor code of the seeded staff account
 - [docs/README.md](docs/README.md): index (personas, flows, architecture, testing, change log)
 - End-to-end suite: `bun e2e` (starts or attaches to the stack), progress per flow: `bun run e2e:status` →
   [docs/testing/flow-status.md](docs/testing/flow-status.md)
+
+Third-party software: `vendor/restate/` holds the Restate server binary under Restate's own Business Source License 1.1, not this repository's MIT license ([THIRD-PARTY.md](THIRD-PARTY.md)).
